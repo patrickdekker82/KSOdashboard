@@ -1,0 +1,49 @@
+{
+  "name": "showroom-suite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Showroom Suite - desktopapplicatie voor kopersbegeleiding, planning en capaciteit",
+  "author": "Afdeling Showroom",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/core",
+    "packages/main",
+    "packages/renderer"
+  ],
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "npm run typecheck && electron-vite build",
+    "build:win": "npm run build && electron-builder --win --config electron-builder.yml",
+    "build:unpack": "npm run build && electron-builder --dir --config electron-builder.yml",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "db:generate": "drizzle-kit generate --config packages/core/drizzle.config.ts",
+    "seed": "node packages/core/dist/db/seed.js",
+    "serve:core": "node packages/core/dist/standalone.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4",
+    "electron": "^38.8.6",
+    "electron-vite": "^5.0.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^6.4.3",
+    "@vitest/coverage-v8": "^3.2.4"
+  }
+}

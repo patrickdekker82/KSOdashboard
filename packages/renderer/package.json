@@ -1,0 +1,23 @@
+{
+  "name": "@showroom/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@showroom/shared": "*",
+    "@tanstack/react-query": "^5.62.11",
+    "@tanstack/react-router": "^1.170.32",
+    "@tanstack/react-table": "^8.20.6",
+    "date-fns": "^4.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.5",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3"
+  }
+}
