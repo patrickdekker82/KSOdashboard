@@ -14,6 +14,9 @@ import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import { Zoekbalk } from './components/Zoekbalk.tsx';
 import { Dubbelen } from './features/crm/Dubbelen.tsx';
+import { Kansenbord } from './features/kansen/Kansenbord.tsx';
+import { KansDetail } from './features/kansen/KansDetail.tsx';
+import { Pijplijnrapport } from './features/kansen/Pijplijnrapport.tsx';
 import type { JSX } from 'react';
 
 export function App(): JSX.Element {
@@ -65,9 +68,15 @@ export function App(): JSX.Element {
 const GENERIEK: Record<string, { entiteit: string; titel: string }> = {
   '/klanten': { entiteit: 'organizations', titel: 'Klanten' },
   '/contactpersonen': { entiteit: 'contacts', titel: 'Contactpersonen' },
-  '/kansen': { entiteit: 'opportunities', titel: 'Kansen' },
   '/projecten': { entiteit: 'projects', titel: 'Projecten' },
 };
+
+/** Leest het record-id uit een pad als `/kansen/12`. Geeft `null` bij `/kansen`. */
+function recordId(pad: string, basis: string): number | null {
+  const rest = pad.slice(basis.length).replace(/^\//, '');
+  const id = Number(rest);
+  return rest !== '' && Number.isInteger(id) && id > 0 ? id : null;
+}
 
 function Inhoud({ pad, navigeer }: { pad: string; navigeer: (pad: string) => void }): JSX.Element {
   if (pad.startsWith('/dashboard')) return <Dashboard />;
@@ -75,13 +84,38 @@ function Inhoud({ pad, navigeer }: { pad: string; navigeer: (pad: string) => voi
   if (pad.startsWith('/verlof')) return <Verlofkalender />;
   if (pad.startsWith('/instellingen/velden')) return <Velden />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
+  if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;
+
+  // Kansen hebben een eigen bord en een eigen detailpagina met disciplineregels.
+  // De generieke lijst blijft bereikbaar, want daar zitten de filters en de
+  // opgeslagen weergaven die een bord niet kan bieden.
+  if (pad.startsWith('/kansen/lijst')) {
+    return (
+      <GeneriekeLijst
+        entiteit="opportunities"
+        titel="Kansen"
+        onOpen={(kansId) => navigeer(`/kansen/${kansId}`)}
+      />
+    );
+  }
+  if (pad.startsWith('/kansen')) {
+    const id = recordId(pad, '/kansen');
+    return id === null ? (
+      <Kansenbord
+        onOpen={(kansId) => navigeer(`/kansen/${kansId}`)}
+        onLijst={() => navigeer('/kansen/lijst')}
+      />
+    ) : (
+      <KansDetail id={id} onTerug={() => navigeer('/kansen')} navigeer={navigeer} />
+    );
+  }
+
   if (pad.startsWith('/instellingen')) return <Instellingen navigeer={navigeer} />;
 
   for (const [basis, opzet] of Object.entries(GENERIEK)) {
     if (!pad.startsWith(basis)) continue;
-    const rest = pad.slice(basis.length).replace(/^\//, '');
-    const id = Number(rest);
-    if (rest !== '' && Number.isInteger(id) && id > 0) {
+    const id = recordId(pad, basis);
+    if (id !== null) {
       return (
         <GeneriekDetail
           entiteit={opzet.entiteit}

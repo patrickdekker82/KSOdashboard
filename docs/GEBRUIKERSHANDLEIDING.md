@@ -94,6 +94,58 @@ Loopt zo'n inzet af, dan meldt de app dat als goed nieuws: *"RB komt vanaf week
 21 weer volledig beschikbaar — capaciteit stijgt met 3 afspraken per week."*
 Dat is het moment om extra werk in te plannen.
 
+## Klanten en contactpersonen
+
+`Ctrl+K` zoekt overal tegelijk: klanten, contactpersonen, projecten en kansen.
+U tikt gewoon in wat u zoekt; aanhalingstekens en sterretjes hoeft u niet te
+gebruiken en ze storen ook niet.
+
+Onder **Dubbelen** staat wat er mogelijk twee keer in het systeem zit. Een
+gelijk KvK-nummer of e-mailadres is zeker, een gelijkende naam is een
+vermoeden. Bij samenvoegen kiest u per veld welke waarde blijft; alles wat aan
+het vervallende record hing — contactpersonen, projecten, kansen, offertes,
+bijlagen — verhuist mee. **Samenvoegen kan niet ongedaan worden gemaakt**, dus
+kijk eerst.
+
+Op elke detailpagina staat rechts de tijdlijn: gesprekken, wijzigingen,
+e-mails, offertes en fasewisselingen door elkaar, op volgorde. In het veld
+erboven legt u meteen vast wat er besproken is.
+
+## Kansen
+
+Het kansenscherm is een bord met een kolom per fase. Elke kaart is een kans,
+met het bedrag, het gewogen bedrag, de eigenaar en de verwachte sluitdatum.
+Staat er een rode rand met "⚠ zoveel dagen geen beweging" om een kaart, dan
+staat die kans langer stil dan bij die fase hoort.
+
+**Een kans verplaatsen** doet u door de kaart naar een andere kolom te slepen,
+of — als u liever niet sleept — met de keuzelijst "Verplaats naar" onderaan de
+kaart. Die twee doen precies hetzelfde.
+
+**Winnen** en **verliezen** gaan niet door te slepen. Sleept u een kaart toch
+naar "Gewonnen" of "Verloren", dan opent de dialoog die erbij hoort:
+
+- Bij **winnen** vult u per discipline in wat er daadwerkelijk gescoord is. Het
+  offertebedrag staat er alvast in; wat u op nul laat staan, wordt als verloren
+  geboekt. Zo klopt de omzet per discipline later, ook als een kans op tegels
+  wél doorging en op keukens niet. Wilt u het meteen inplannen, laat dan
+  "Meteen een showroomproject aanmaken" aanstaan: de klant, het aantal woningen
+  en de verwachte showroomperiode gaan mee.
+- Bij **verliezen** kiest u een reden of schrijft u kort op wat er speelde. Een
+  van die twee is verplicht — zonder reden zegt het verliesrapport later niets.
+
+**De regels van een kans** staan op de detailpagina, per discipline: aantal,
+eenheid, stuksprijs, korting en kostprijs. Bedrag en marge rekent de
+applicatie uit; die kunt u niet zelf invullen, en ze lopen al mee terwijl u
+typt. Bedragen tikt u Nederlands in, met een komma: `1.234,56`.
+
+Met de knop **Lijstweergave** gaat u naar de gewone lijst, met filters,
+kolomkeuze en opgeslagen weergaven.
+
+Onder **Rapportages** staat de trechter: wat er per fase open staat, wat u wint
+en waarop, hoe lang elke fase duurt en waarom kansen weglopen. Alles staat er
+ook als tabel, dus u hoeft geen staaflengte te schatten.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -106,6 +158,6 @@ Dat is het moment om extra werk in te plannen.
 
 ## Nog niet af
 
-CRM, kansen, projectbeheer, duurzaamheidspakketten, opvolging, e-mail en
-rapportages zijn nog niet gebouwd. Die schermen zeggen dat zelf, met de fase
-waarin ze komen.
+Projectbeheer met de Excel-planning-import, duurzaamheidspakketten, offertes,
+opvolging, e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
+zelf, met de fase waarin ze komen.

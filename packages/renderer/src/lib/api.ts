@@ -280,6 +280,33 @@ export const endpoints = {
       { bevestiging: 'ANONIMISEREN' },
     ),
 
+  // --- kansen (fase 4) ------------------------------------------------------
+  kansfasen: () => api.get<{ data: Fase[] }>('/opportunities/stages'),
+  kansenbord: (eigenaarId?: number) =>
+    api.get<{ data: { fasen: Fase[]; kansen: BordKans[] } }>(
+      `/opportunities/board${eigenaarId ? `?ownerId=${eigenaarId}` : ''}`,
+    ),
+  kansNaarFase: (id: number, stageId: number) =>
+    api.post<{ data: FaseWissel }>(`/opportunities/${id}/stage`, { stageId }),
+  kansWinnen: (id: number, regels: Array<{ lineId: number; wonAmountCents: number }>, maakProject: boolean) =>
+    api.post<{ data: { opportunityId: number; wonAmountCents: number; regels: number; projectId: number | null } }>(
+      `/opportunities/${id}/win`,
+      { regels, maakProject },
+    ),
+  kansVerliezen: (id: number, redenId: number | null, notitie: string | null) =>
+    api.post<{ data: { opportunityId: number; reden: number | null } }>(
+      `/opportunities/${id}/lose`,
+      { redenId, notitie },
+    ),
+  kansNaarProject: (id: number) =>
+    api.post<{ data: { projectId: number } }>(`/opportunities/${id}/create-project`),
+  kansHistorie: (id: number) => api.get<{ data: FaseHistorie[] }>(`/opportunities/${id}/history`),
+  verouderdeKansen: () => api.get<{ data: VerouderdeKans[] }>('/opportunities/stale'),
+  pijplijnrapport: (van?: string, tot?: string) =>
+    api.get<{ data: Pijplijnrapport; meta: { van?: string; tot?: string } }>(
+      `/reports/pipeline${van && tot ? `?from=${van}&to=${tot}` : ''}`,
+    ),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -332,4 +359,125 @@ export type Sectie = {
   columns: number;
   collapsible: boolean;
   defaultOpen: boolean;
+};
+
+// --- kansen -----------------------------------------------------------------
+
+export type Fase = {
+  id: number;
+  name: string;
+  sortOrder: number;
+  defaultProbabilityBp: number;
+  isWon: boolean;
+  isLost: boolean;
+  rottingDays: number | null;
+  color: string | null;
+};
+
+export type BordKans = {
+  id: number;
+  number: string | null;
+  name: string;
+  stage_id: number | null;
+  status: string;
+  amount_cents: number;
+  weighted_amount_cents: number;
+  probability_bp: number | null;
+  expected_close_date: string | null;
+  expected_units: number | null;
+  organisatie: string | null;
+  eigenaar: string | null;
+  dagen_stil: number | null;
+};
+
+export type FaseWissel = {
+  opportunityId: number;
+  vanFase: number | null;
+  naarFase: number;
+  dagenInVorigeFase: number | null;
+  status: string;
+};
+
+export type FaseHistorie = {
+  id: number;
+  at: string;
+  days_in_stage: number | null;
+  van_fase: string | null;
+  naar_fase: string | null;
+  door: string | null;
+};
+
+export type VerouderdeKans = {
+  id: number;
+  name: string;
+  stage: string;
+  dagenStil: number;
+  rottingDays: number;
+  amountCents: number;
+  eigenaar: string | null;
+};
+
+export type Pijplijnrapport = {
+  samenvatting: {
+    openAantal: number;
+    openCents: number;
+    gewogenCents: number;
+    gescoordDitJaarCents: number;
+    winRatePct: number;
+    gemiddeldeDealCents: number;
+  };
+  trechter: Array<{
+    stageId: number;
+    fase: string;
+    volgorde: number;
+    kleur: string | null;
+    aantal: number;
+    bedragCents: number;
+    gewogenCents: number;
+  }>;
+  winRatePerDiscipline: WinRate[];
+  winRatePerEigenaar: WinRate[];
+  winRatePerBron: WinRate[];
+  doorlooptijd: Array<{
+    stageId: number;
+    fase: string;
+    volgorde: number;
+    gemiddeldeDagen: number;
+    medianeDagen: number;
+    metingen: number;
+  }>;
+  omzetPerDiscipline: Array<{
+    discipline: string;
+    maand: string;
+    aantalRegels: number;
+    gescoordCents: number;
+  }>;
+  verliesredenen: Array<{ reden: string; aantal: number; gemistCents: number }>;
+};
+
+export type WinRate = {
+  sleutel: string;
+  label: string;
+  gewonnen: number;
+  verloren: number;
+  winRatePct: number;
+  gescoordCents: number;
+};
+
+export type Kansregel = {
+  id: number;
+  opportunity_id: number;
+  discipline_id: number;
+  description: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_price_cents: number;
+  discount_bp: number;
+  amount_cents: number;
+  cost_price_cents: number;
+  margin_cents: number;
+  probability_bp: number | null;
+  status: 'open' | 'won' | 'lost';
+  won_amount_cents: number | null;
+  sort_order: number;
 };

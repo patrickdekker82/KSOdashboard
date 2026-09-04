@@ -13,6 +13,7 @@ import {
   verouderdeKansen,
   winKans,
   wisselFase,
+  tijdstempel,
 } from './stages.ts';
 import { doorlooptijdPerFase, samenvatting, trechter, verliesredenen, winRate } from './reports.ts';
 
@@ -152,6 +153,31 @@ describe('fasewisselingen', () => {
       .all(id) as Array<Record<string, unknown>>;
     expect(historie).toHaveLength(1);
     expect(historie[0]).toMatchObject({ from_stage_id: kwalificatie, to_stage_id: offerte });
+  });
+
+  // De rest van het schema schrijft tijdstempels met datetime('now'). Zou deze
+  // module ISO-tekst met een "T" wegschrijven, dan staan er twee vormen in
+  // dezelfde kolom en gaat elke sortering of BETWEEN daarover een keer mis.
+  it('schrijft tijdstempels in dezelfde vorm als de rest van het schema', () => {
+    const id = maakKans();
+    wisselFase(handle, id, offerte, 1, new Date('2026-09-15T08:30:00Z'));
+
+    const patroon = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    expect(String(kansRij(id).stage_changed_at)).toMatch(patroon);
+
+    const historie = handle.raw
+      .prepare('SELECT at FROM opportunity_stage_history WHERE opportunity_id = ?')
+      .get(id) as { at: string };
+    expect(historie.at).toBe('2026-09-15 08:30:00');
+
+    // En de vorm die win/verlies via datetime('now') schrijft, ziet er net zo uit.
+    const nu = handle.raw.prepare("SELECT datetime('now') AS nu").get() as { nu: string };
+    expect(nu.nu).toMatch(patroon);
+  });
+
+  it('houdt tijdstempel en dagenTussen op elkaar aangesloten', () => {
+    const heen = new Date('2026-03-29T12:00:00Z');
+    expect(dagenTussen(tijdstempel(heen), new Date('2026-04-08T12:00:00Z'))).toBe(10);
   });
 
   it('rekent uit hoe lang de kans in de vorige fase stond', () => {

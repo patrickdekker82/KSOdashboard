@@ -6,7 +6,7 @@
  * hun volgorde komen uit het register, dus wat een beheerder hier sleept,
  * staat er de volgende keer zo.
  */
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FieldDefinition } from '@showroom/shared';
 import { ApiFout, endpoints } from '../../lib/api.ts';
@@ -25,11 +25,17 @@ export function GeneriekDetail({
   id,
   titel,
   onTerug,
+  acties,
+  extra,
 }: {
   entiteit: string;
   id: number;
   titel: string;
   onTerug: () => void;
+  /** Knoppen die bij deze entiteit horen, naast Bewerken in de kopbalk. */
+  acties?: ReactNode;
+  /** Panelen onder de veldsecties, bijvoorbeeld de regels van een kans. */
+  extra?: ReactNode;
 }): JSX.Element {
   const schema = useEntiteitSchema(entiteit);
   const queryClient = useQueryClient();
@@ -118,6 +124,7 @@ export function GeneriekDetail({
         <h1 style={{ fontSize: 18, margin: 0 }}>{kop}</h1>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {!bewerken && acties}
           {bewerken ? (
             <>
               <button
@@ -204,6 +211,8 @@ export function GeneriekDetail({
               />
             </Kaart>
           )}
+
+          {extra}
         </div>
 
         <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>

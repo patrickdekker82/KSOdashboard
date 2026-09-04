@@ -84,8 +84,35 @@ telt is welke fase is opgeleverd.
 - AVG: een inzagedossier per contactpersoon en anonimiseren dat de
   persoonsgegevens overschrijft maar de transacties bewaart.
 
+### Fase 4 — kansen en verkooptrechter
+- Kansen met disciplineregels: bedrag, marge, gewogen bedrag en gescoord bedrag
+  worden na elke wijziging op één plek herrekend, met de prijsmodule uit de
+  rekenkern. Een `afterWrite`-haak in de CRUD-factory zorgt dat dat ook gebeurt
+  bij een import, een bulkactie of een aanroep buiten het scherm om.
+- Fasewisselingen worden vastgelegd met het aantal dagen in de vorige fase.
+  Kansen die langer stilstaan dan de fase toestaat, worden als verouderd
+  gemeld — waarbij "stil" kijkt naar de laatste activiteit, niet alleen naar de
+  laatste fasewissel.
+- Winnen gaat per discipline: per regel wordt vastgelegd wat er daadwerkelijk
+  is gescoord, en wat niet meekomt gaat op verloren. Optioneel rolt er meteen
+  een showroomproject uit met klant, aantal woningen en verwachte periode.
+- Verliezen vraagt een reden of een toelichting; zonder één van beide weigert
+  de kern het.
+- Rapportage over de trechter: openstaand per fase, win-rate per discipline,
+  eigenaar en bron, doorlooptijd per fase met gemiddelde én mediaan, gescoorde
+  omzet per discipline per maand en de tien meest voorkomende verliesredenen.
+- Kanbanbord met slepen tussen fasen. Naar "Gewonnen" of "Verloren" slepen
+  opent de bijbehorende dialoog in plaats van de kans stilletjes te verplaatsen.
+  Elke kaart heeft daarnaast een keuzelijst "Verplaats naar", zodat het bord
+  ook zonder muis te bedienen is.
+- Regeleditor per kans met totalen die meelopen tijdens het typen, berekend met
+  dezelfde functie als de kern gebruikt.
+- Trechterscherm met een liggende staafgrafiek in de twee gecontroleerde
+  kleuren, het aantal kansen als tekst op elke staaf, en alle cijfers eronder
+  ook als tabel.
+
 ### Nog niet gebouwd
-Kansen met disciplineregels en kanban (fase 4), de Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
+De Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
 opvolging en Microsoft 365 (fase 9), de AI-assistent (fase 10), rapportages en
 export (fase 11), hostmodus en automatische updates (fase 12). De schermen
 daarvoor tonen in welke fase ze komen.

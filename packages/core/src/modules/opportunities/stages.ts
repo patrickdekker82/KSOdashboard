@@ -53,6 +53,18 @@ export function laadFasen(handle: DatabaseHandle, pipelineId?: number): Fase[] {
   }));
 }
 
+/**
+ * Een tijdstip in de vorm die SQLite zelf schrijft: "YYYY-MM-DD HH:MM:SS" in UTC.
+ *
+ * De rest van het schema vult tijdstempels met `datetime('now')`. Zou deze
+ * module er `toISOString()` in schrijven, dan staan er twee vormen in dezelfde
+ * kolom: een sortering of een BETWEEN over die kolom vergelijkt dan tekst met
+ * een "T" tegen tekst met een spatie, en dat gaat een keer mis.
+ */
+export function tijdstempel(moment: Date): string {
+  return moment.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 /** Hele dagen tussen twee tijdstempels; nooit negatief. */
 export function dagenTussen(van: string | null, tot: Date): number | null {
   if (!van) return null;
@@ -128,7 +140,7 @@ export function wisselFase(
       .run(
         naarFaseId,
         status,
-        nu.toISOString(),
+        tijdstempel(nu),
         Number(doel.default_probability_bp),
         status,
         gebruikerId,
@@ -141,7 +153,7 @@ export function wisselFase(
            (opportunity_id, from_stage_id, to_stage_id, at, user_id, days_in_stage)
          VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(opportunityId, vanFase, naarFaseId, nu.toISOString(), gebruikerId, dagen);
+      .run(opportunityId, vanFase, naarFaseId, tijdstempel(nu), gebruikerId, dagen);
 
     handle.raw.exec('COMMIT');
   } catch (error) {

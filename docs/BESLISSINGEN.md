@@ -132,6 +132,52 @@ Twee bewuste afwijkingen van de validator:
   opdracht vraagt er expliciet om. Daarom draagt een stoplicht altijd zijn
   woord: "Ruimte", "Vol", "Overbezet", "Gesloten".
 
+### Slepen met de HTML-standaard, niet met een sleepbibliotheek
+
+Het kanbanbord sleept met `draggable` en de sleepgebeurtenissen die de browser
+zelf levert. Een bibliotheek als dnd-kit zou vloeiender animeren, maar voegt
+een afhankelijkheid toe die in deze bouwomgeving niet te testen is, en de
+opdracht vraagt om slepen — niet om animaties.
+
+Belangrijker: slepen is met een toetsenbord niet te bedienen, en dat geldt voor
+elke bibliotheek. Daarom draagt elke kaart óók een keuzelijst "Verplaats naar"
+die precies hetzelfde doet. Die keuzelijst is niet de armere variant voor wie
+geen muis heeft; het is gewoon de tweede weg naar dezelfde handeling.
+
+### Winnen en verliezen kunnen niet door te slepen
+
+Een kans naar "Gewonnen" slepen zou het bedrag uit de offerte overnemen, en dat
+is bijna nooit wat er werkelijk gescoord is — laat staan per discipline. Een
+kans naar "Verloren" slepen zou geen reden vastleggen, en dan is het
+verliesrapport later niets waard.
+
+De kern weigert die twee fasewissels daarom met een eigen foutcode
+(`gebruik_winnen`, `gebruik_verliezen`), ook bij een aanroep buiten het scherm
+om. Het bord vangt die codes op en opent de dialoog die er wél bij hoort. De
+weigering is dus geen hindernis voor de gebruiker: het is de knop.
+
+### Bedragen worden als tekst omgerekend, niet als kommagetal
+
+`1.005 × 100` is in drijvende komma 100,49999999999999. Wie € 1,005 typt zou
+dus € 1,00 krijgen in plaats van € 1,01. Op één regel merkt niemand dat; op een
+offerte met dertig regels wel.
+
+De omrekening in `features/kansen/bedrag.ts` schuift de komma daarom op in de
+tekst zelf en rondt op het eerste weggelaten cijfer af, van nul af — dezelfde
+regel als `roundCents` in de rekenkern. Er staan tests op met precies de
+bedragen waar een kommagetal de mist in gaat.
+
+### Tijdstempels hebben één vorm
+
+De kolommen `stage_changed_at` en `opportunity_stage_history.at` werden door
+`wisselFase` met `toISOString()` gevuld en door winnen en verliezen met
+`datetime('now')`. Twee vormen in dezelfde kolom: `2026-09-04T12:44:13.822Z`
+naast `2026-09-04 12:44:27`. Sorteren of filteren over zo'n kolom vergelijkt
+dan tekst met een "T" tegen tekst met een spatie, en dat gaat een keer mis.
+
+Alles schrijft nu de vorm die SQLite zelf gebruikt, via één functie waar de
+tests een klok in kunnen zetten.
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:

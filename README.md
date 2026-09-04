@@ -18,7 +18,8 @@ webadres om te onthouden, werkt volledig offline.
 | Veldenregister: velden toevoegen, hernoemen, verplaatsen, verbergen, verwijderen | **af** |
 | Generieke lijst, detailpagina en veldbeheer | **af** |
 | CRM: zoeken, tijdlijn, dubbelen samenvoegen, bijlagen, AVG | **af** |
-| Kansen-kanban, pakketten, offertes, opvolging, e-mail, AI, rapportages | nog niet gebouwd |
+| Kansen: kanban, disciplineregels, winnen/verliezen, trechterrapport | **af** |
+| Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
 fase ze komen. De gegevens erachter staan al wel in de database.
@@ -120,6 +121,28 @@ Anonimiseren overschrijft naam en contactgegevens, óók in het auditlog, maar
 laat offertes en kansen staan: het bedrag is bedrijfsadministratie, de naam is
 een persoonsgegeven.
 
+## Kansen
+
+Het kansenscherm is een kanbanbord: één kolom per fase, één kaart per open
+kans, en slepen verplaatst een kans. Naar "Gewonnen" of "Verloren" slepen
+verplaatst niet, maar opent de bijbehorende dialoog — bij winnen hoort een
+bedrag per discipline en bij verliezen een reden, en zonder die twee klopt het
+verkooprapport later niet. De kern weigert die fasewissel ook als de aanroep
+buiten het scherm om komt.
+
+Slepen is met een toetsenbord niet te doen, dus elke kaart draagt daarnaast een
+keuzelijst "Verplaats naar" met dezelfde werking.
+
+Bedrag, marge, gewogen bedrag en gescoord bedrag zijn afgeleid en worden nooit
+ingetikt: na elke wijziging aan een kans of een regel rekent de kern ze opnieuw
+uit met de prijsmodule. De regeleditor toont tijdens het typen alvast wat het
+wordt, met exact dezelfde functie, zodat scherm en database niet uit elkaar
+kunnen lopen.
+
+Bedragen typt u Nederlands ("1.234,56"). Die omrekening naar centen schuift de
+komma in de tekst op in plaats van via een kommagetal te gaan: `1,005 × 100` is
+in drijvende komma 100,49999999999999 en zou naar € 1,00 afronden.
+
 ## De rekenkern
 
 Twee pure functiebibliotheken zonder databasetoegang, en dus volledig
@@ -148,7 +171,7 @@ decimalen.
 npm test
 ```
 
-205 tests, waaronder de verplichte gevallen: de volledige tabel met
+447 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter
