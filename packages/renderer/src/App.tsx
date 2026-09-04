@@ -5,7 +5,7 @@ import { ROUTES, useRoute } from './lib/routes.ts';
 import { Inloggen } from './features/Inloggen.tsx';
 import { Dashboard } from './features/Dashboard.tsx';
 import { Planning } from './features/Planning.tsx';
-import { Verlofkalender } from './features/Verlofkalender.tsx';
+import { Verlof } from './features/verlof/Verlof.tsx';
 import { NogTeBouwen } from './features/NogTeBouwen.tsx';
 import { GeneriekeLijst } from './features/generiek/GeneriekeLijst.tsx';
 import { GeneriekDetail } from './features/generiek/GeneriekDetail.tsx';
@@ -57,7 +57,7 @@ export function App(): JSX.Element {
           navigeer={navigeer}
         />
         <main style={{ padding: 20, flex: 1, minWidth: 0 }}>
-          <Inhoud pad={pad} navigeer={navigeer} />
+          <Inhoud pad={pad} navigeer={navigeer} gebruiker={gebruiker} />
         </main>
       </div>
     </div>
@@ -78,10 +78,18 @@ function recordId(pad: string, basis: string): number | null {
   return rest !== '' && Number.isInteger(id) && id > 0 ? id : null;
 }
 
-function Inhoud({ pad, navigeer }: { pad: string; navigeer: (pad: string) => void }): JSX.Element {
+function Inhoud({
+  pad,
+  navigeer,
+  gebruiker,
+}: {
+  pad: string;
+  navigeer: (pad: string) => void;
+  gebruiker: Gebruiker;
+}): JSX.Element {
   if (pad.startsWith('/dashboard')) return <Dashboard />;
   if (pad.startsWith('/planning')) return <Planning />;
-  if (pad.startsWith('/verlof')) return <Verlofkalender />;
+  if (pad.startsWith('/verlof')) return <Verlof ik={gebruiker} />;
   if (pad.startsWith('/instellingen/velden')) return <Velden />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;

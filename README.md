@@ -19,6 +19,7 @@ webadres om te onthouden, werkt volledig offline.
 | Generieke lijst, detailpagina en veldbeheer | **af** |
 | CRM: zoeken, tijdlijn, dubbelen samenvoegen, bijlagen, AVG | **af** |
 | Kansen: kanban, disciplineregels, winnen/verliezen, trechterrapport | **af** |
+| Verlof: aanvragen, goedkeuren, saldo in uren, inzet elders | **af** |
 | Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
@@ -143,6 +144,26 @@ Bedragen typt u Nederlands ("1.234,56"). Die omrekening naar centen schuift de
 komma in de tekst op in plaats van via een kommagetal te gaan: `1,005 × 100` is
 in drijvende komma 100,49999999999999 en zou naar € 1,00 afronden.
 
+## Verlof en inzet
+
+Een aanvraag laat tijdens het invullen zien wat hij met de planning doet: welke
+weken eronder komen te staan, hoeveel begeleiders er dan nog zijn en wie er al
+weg is. Dat is een waarschuwing en geen blokkade. De kern weigert de aanvraag
+niet, en het scherm dus ook niet: wie weet dat het druk wordt mag alsnog vrij
+vragen, en het gesprek daarover hoort tussen mensen plaats te vinden.
+
+Het saldo rekent in uren. Dat is de enige eenheid waarin een parttimer en een
+voltijder in dezelfde tabel passen: "twee dagen verlof" is voor iemand die vier
+uur op dinsdag werkt iets anders dan voor iemand die er acht draait. De uren per
+dag komen uit dezelfde functie als de beschikbaarheidsengine gebruikt, zodat
+saldo en planning niet uit elkaar kunnen lopen. Een feestdag midden in een
+vakantie kost geen verlof, en de vaste vrije dag van een parttimer evenmin.
+
+Verlof en inzet elders horen bij een persoon, en dat wordt in de kern
+afgedwongen: een gewone gebruiker kan alleen zijn eigen registraties beheren en
+de status niet zelf zetten. Goedkeuren blijft aan de manager, en dat geldt ook
+voor een POST die de goedkeuringsstroom probeert over te slaan.
+
 ## De rekenkern
 
 Twee pure functiebibliotheken zonder databasetoegang, en dus volledig
@@ -171,7 +192,7 @@ decimalen.
 npm test
 ```
 
-447 tests, waaronder de verplichte gevallen: de volledige tabel met
+480 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter

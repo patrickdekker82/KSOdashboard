@@ -46,6 +46,11 @@ gebeuren. **Er wordt niets opgeslagen** — u kunt vrij spelen.
 
 ## Verlof & inzet
 
+Dit scherm heeft tabbladen: **Kalender**, **Aanvragen**, **Goedkeuren** (alleen
+voor managers), **Saldo** en **Inzet elders**.
+
+### Kalender
+
 Het jaarraster toont per medewerker per week wat er speelt:
 
 | Letter | Betekenis |
@@ -62,19 +67,53 @@ Dat is het punt van dit scherm: u ziet meteen wat verlof met de planning doet.
 
 ### Verlof aanvragen
 
-Kies de medewerker en de periode. Voor een halve dag kiest u ochtend of
-middag. Weekenden en feestdagen worden automatisch overgeslagen.
+Kies het soort en de periode. Voor één dag laat u "tot en met" leeg; voor een
+halve dag kiest u ochtend of middag. Weekenden, feestdagen en uw eigen vaste
+vrije dagen tellen niet mee.
 
-Voordat u opslaat, laat de app zien wat de aanvraag doet:
+Terwijl u de datums invult, laat de app zien wat de aanvraag doet:
 
-> Week 22: bezetting stijgt van 78% naar 116%. Al afwezig: DM (2 dagen).
+> Week 22: bezetting 78% → 116%. Al weg: DM (16 uur).
 
-Dat is een **waarschuwing, geen blokkade**. U mag alsnog opslaan; er is soms
-een goede reden.
+Dat is een **waarschuwing, geen blokkade**. U mag alsnog aanvragen; er is soms
+een goede reden. Overleg het even als het krap wordt.
 
-Verlof en ADV moeten worden goedgekeurd door een manager. Ziekmeldingen niet —
-die gaan direct in. Een ziekmelding mag zonder einddatum; de app vraagt na een
-week om een update.
+U vraagt verlof voor uzelf aan. Voor een collega kan alleen een manager dat
+doen. Uw eigen aanvraag kunt u altijd intrekken, ook nadat hij is goedgekeurd.
+
+### Goedkeuren (managers)
+
+Op het tabblad **Goedkeuren** staat wat er op een beslissing wacht, met het
+aantal ernaast op het tabblad zelf. Bij elke aanvraag staat dezelfde
+doorrekening als de aanvrager zag, dus u hoeft nergens heen om te zien of die
+week het aankan.
+
+Goedkeuren en afwijzen kunnen allebei met een notitie, en die notitie ziet de
+aanvrager terug bij zijn aanvraag.
+
+### Saldo
+
+Het saldo staat in **uren**, niet in dagen. Dat is de enige eenheid waarin een
+parttimer en een voltijder in dezelfde tabel passen; de omrekening naar dagen
+staat er kleiner onder, op basis van een achturige dag.
+
+| Kolom | Wat het is |
+|---|---|
+| Recht | wat u dit jaar krijgt |
+| Overgeheveld | wat er uit vorig jaar is meegenomen |
+| Opgenomen | goedgekeurd verlof dat al geboekt is |
+| Aangevraagd | wat nog op goedkeuring wacht |
+| Resterend | recht + overgeheveld − opgenomen |
+| Vrij te besteden | resterend − aangevraagd |
+
+Het verschil tussen die laatste twee is waar een verkeerde toezegging vandaan
+komt: "resterend" is wat er nog staat, "vrij te besteden" is wat er overblijft
+als alles wat er ligt wordt goedgekeurd.
+
+Ziekte gaat niet van het verlof af. Een bedrijfssluiting ook niet automatisch —
+wilt u de bouwvak van het saldo laten aftrekken, boek hem dan als verlof.
+
+Een manager stelt het recht per medewerker per jaar in met "Recht instellen".
 
 ### Wat collega's zien
 
@@ -90,9 +129,12 @@ hoeveel: een percentage, een aantal dagen per week, of een aantal uren per
 week. Bijvoorbeeld: *RB — Renovatie Kerkstraat — week 12 t/m 20 — 2 dagen per
 week*.
 
-Loopt zo'n inzet af, dan meldt de app dat als goed nieuws: *"RB komt vanaf week
-21 weer volledig beschikbaar — capaciteit stijgt met 3 afspraken per week."*
-Dat is het moment om extra werk in te plannen.
+Inzet elders kent geen goedkeuring: hij gaat van de showroomcapaciteit af zodra
+hij op "gepland" of "actief" staat. Ook hier geldt dat u uw eigen inzet
+vastlegt en een manager die van een collega.
+
+Dat de app zelf meldt wanneer zo'n inzet afloopt — *"RB komt vanaf week 21 weer
+volledig beschikbaar"* — komt met de signaleringen in een latere fase.
 
 ## Klanten en contactpersonen
 
@@ -158,6 +200,7 @@ ook als tabel, dus u hoeft geen staaflengte te schatten.
 
 ## Nog niet af
 
-Projectbeheer met de Excel-planning-import, duurzaamheidspakketten, offertes,
-opvolging, e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
+Projectbeheer met de Excel-planning-import, de signaleringen op het dashboard,
+duurzaamheidspakketten, offertes, opvolging, e-mail en de export zijn nog niet
+gebouwd. Die schermen zeggen dat
 zelf, met de fase waarin ze komen.

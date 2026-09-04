@@ -283,17 +283,4 @@ export async function registerAvailabilityRoutes(app: FastifyInstance): Promise<
     return { data: laadSaldi(request.core.handle, jaar), meta: { jaar } };
   });
 
-  app.get('/api/v1/leave-balances', async (request) => {
-    const query = request.query as Record<string, unknown>;
-    const year = Number(query.year ?? new Date().getUTCFullYear());
-    const rows = request.core.handle.raw
-      .prepare(
-        `SELECT b.*, u.initials, u.name FROM leave_balances b
-           JOIN users u ON u.id = b.user_id
-          WHERE b.year = ?
-          ORDER BY u.initials`,
-      )
-      .all(year) as Row[];
-    return { data: rows, meta: { year } };
-  });
 }

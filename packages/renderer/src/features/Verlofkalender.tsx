@@ -90,8 +90,6 @@ export function Verlofkalender(): JSX.Element {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      <h1 style={{ fontSize: 18, margin: 0 }}>Verlof &amp; inzet</h1>
-
       <Kaart>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
           <h2 style={{ fontSize: 15, margin: 0 }}>Jaarraster</h2>
@@ -100,7 +98,7 @@ export function Verlofkalender(): JSX.Element {
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
-            <caption className="sr-only" style={{ textAlign: 'left', paddingBottom: 6, color: 'var(--inkt-zacht)' }}>
+            <caption className="alleen-voorlezen" style={{ textAlign: 'left', paddingBottom: 6, color: 'var(--inkt-zacht)' }}>
               Wie is wanneer weg of elders ingezet
             </caption>
             <thead>

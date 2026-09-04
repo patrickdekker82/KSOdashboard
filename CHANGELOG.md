@@ -111,6 +111,26 @@ telt is welke fase is opgeleverd.
   kleuren, het aantal kansen als tekst op elke staaf, en alle cijfers eronder
   ook als tabel.
 
+### Fase 5 — verlof en inzet
+- Verlofsaldo per medewerker per jaar: recht plus overheveling min opgenomen,
+  alles in uren. Aangevraagd verlof staat apart van opgenomen verlof, want het
+  is nog niet opgenomen maar wel vergeven.
+- De uren per dag komen uit dezelfde functie als de beschikbaarheidsengine
+  gebruikt, dus saldo en planning kunnen niet uit elkaar lopen. Een feestdag
+  midden in een vakantie kost geen verlof; de vaste vrije dag van een parttimer
+  evenmin; verlof over de jaargrens drukt op twee saldi.
+- Verlof aanvragen laat tijdens het invullen zien wat de aanvraag met de
+  planning doet ("week 46: bezetting 156% → 312%"), inclusief wie er die week
+  al weg is. Een waarschuwing, geen blokkade.
+- Goedkeuringswerklijst voor managers, met bij elke aanvraag diezelfde
+  doorrekening en een notitie die de aanvrager terugziet.
+- Saldoscherm met recht, overheveling, opgenomen, aangevraagd, resterend en wat
+  er vrij te besteden overblijft; een manager stelt het recht er ook in.
+- Inzet elders vastleggen in percentage, dagen per week of uren per week.
+- Beveiligingsherstel: de generieke CRUD-factory liet iedere gebruiker verlof
+  voor een collega boeken en zijn eigen aanvraag meteen goedkeuren. Een
+  `beforeWrite`-haak in de registry is nu de laatste horde voor de database.
+
 ### Nog niet gebouwd
 De Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
 opvolging en Microsoft 365 (fase 9), de AI-assistent (fase 10), rapportages en

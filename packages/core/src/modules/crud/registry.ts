@@ -237,6 +237,18 @@ export const ENTITIES: EntityDefinition[] = [
     beforeWrite: eigenRegistratie({ wat: 'inzet elders' }),
   }),
   entity({
+    // Het verlofrecht per medewerker per jaar. Wat er van dat recht af gaat,
+    // rekent de kern zelf uit; hier staat alleen wat iemand krijgt.
+    key: 'leave-balances',
+    table: 'leave_balances',
+    writable: ['user_id', 'year', 'entitlement_hours', 'carried_over_hours', 'note'],
+    filterable: ['id', 'user_id', 'year'],
+    defaultSort: 'year DESC',
+    softDelete: false,
+    customFields: false,
+    writeRole: 'manager',
+  }),
+  entity({
     key: 'work-schedules',
     table: 'work_schedules',
     writable: [

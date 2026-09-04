@@ -307,6 +307,28 @@ export const endpoints = {
       `/reports/pipeline${van && tot ? `?from=${van}&to=${tot}` : ''}`,
     ),
 
+  // --- verlof en inzet (fase 5) --------------------------------------------
+  verlofsaldi: (jaar: number) =>
+    api.get<{ data: Verlofsaldo[]; meta: { jaar: number } }>(
+      `/leave-balances/overview?year=${jaar}`,
+    ),
+  verlofConflicten: (userId: number, start: string, eind: string, dayPart = 'hele_dag') =>
+    api.get<{ data: VerlofConflict }>(
+      `/absences/conflicts?userId=${userId}&start=${start}&end=${eind}&dayPart=${dayPart}`,
+    ),
+  verlofGoedkeuren: (id: number, note: string) =>
+    api.post<{ id: number; status: string }>(`/absences/${id}/approve`, { note }),
+  verlofAfwijzen: (id: number, note: string) =>
+    api.post<{ id: number; status: string }>(`/absences/${id}/reject`, { note }),
+  verlofAnnuleren: (id: number) =>
+    api.post<{ id: number; status: string }>(`/absences/${id}/cancel`),
+  afwezigheidstypes: () =>
+    api.get<Lijst<Afwezigheidstype>>('/absence-types?pageSize=100'),
+  inzettypes: () =>
+    api.get<Lijst<{ id: number; name: string; code: string; color: string | null }>>(
+      '/allocation-types?pageSize=100',
+    ),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -480,4 +502,79 @@ export type Kansregel = {
   status: 'open' | 'won' | 'lost';
   won_amount_cents: number | null;
   sort_order: number;
+};
+
+// --- verlof en inzet --------------------------------------------------------
+
+export type Verlofsaldo = {
+  userId: number;
+  initials: string;
+  name: string;
+  jaar: number;
+  rechtUren: number;
+  overgeheveldUren: number;
+  opgenomenUren: number;
+  aangevraagdUren: number;
+  resterendUren: number;
+  vrijTeBestedenUren: number;
+  rechtVastgelegd: boolean;
+};
+
+export type VerlofConflictWeek = {
+  isoYear: number;
+  isoWeek: number;
+  bezettingVoor: number;
+  bezettingNa: number;
+  capaciteitVoor: number;
+  capaciteitNa: number;
+  begeleidersBeschikbaar: number;
+  overbezetting: boolean;
+  teWeinigBegeleiders: boolean;
+  alAfwezig: string[];
+};
+
+export type VerlofConflict = {
+  overlap: Array<{ id: number; start_date: string; end_date: string | null }>;
+  weken: VerlofConflictWeek[];
+  blokkeert: boolean;
+};
+
+export type Afwezigheidstype = {
+  id: number;
+  name: string;
+  code: string;
+  color: string | null;
+  counts_as_leave: number;
+  requires_approval: number;
+  allow_half_days: number;
+  visibility: 'iedereen' | 'management';
+};
+
+export type Afwezigheid = {
+  id: number;
+  user_id: number;
+  absence_type_id: number;
+  start_date: string;
+  end_date: string | null;
+  day_part: 'hele_dag' | 'ochtend' | 'middag';
+  hours_override: number | null;
+  status: 'aangevraagd' | 'goedgekeurd' | 'afgewezen' | 'geannuleerd';
+  note: string | null;
+  decision_note: string | null;
+  requested_at: string;
+};
+
+export type Inzet = {
+  id: number;
+  user_id: number;
+  allocation_type_id: number;
+  title: string;
+  project_id: number | null;
+  external_project_name: string | null;
+  start_date: string;
+  end_date: string;
+  allocation_mode: 'percentage' | 'dagen_per_week' | 'uren_per_week';
+  allocation_value: number;
+  status: 'gepland' | 'actief' | 'afgerond' | 'geannuleerd';
+  note: string | null;
 };

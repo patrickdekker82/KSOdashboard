@@ -178,6 +178,49 @@ dan tekst met een "T" tegen tekst met een spatie, en dat gaat een keer mis.
 Alles schrijft nu de vorm die SQLite zelf gebruikt, via één functie waar de
 tests een klok in kunnen zetten.
 
+### Een `beforeWrite`-haak boven op de rol per entiteit
+
+De generieke CRUD-factory kende per entiteit alleen kolommen en een minimale
+rol. Voor een klant of een discipline is dat genoeg, voor een registratie die
+aan een persoon hangt niet: iedere ingelogde gebruiker kon verlof voor een
+collega boeken, en zijn eigen aanvraag meteen op `goedgekeurd` zetten. Dat
+`/absences/:id/approve` de rol manager eist, hielp niet — een gewone POST liep
+er zo omheen.
+
+De haak is bewust in de registry gaan zitten en niet in een apart routebestand
+naast de factory. Een tweede schrijfpad zou de kans geven dat er ooit één
+vergeten wordt; nu draait dezelfde bewaker op aanmaken, wijzigen, verwijderen,
+herstellen én bulk. Bij een bulkactie gaan eerst alle rijen erlangs en pas
+daarna de schrijfactie, zodat een bulk die halverwege op een collega stuit de
+eerste helft niet al heeft doorgevoerd.
+
+### Wat er wel en niet van het verlofsaldo af gaat
+
+Drie keuzes, alle drie te verdedigen maar geen van drieën vanzelfsprekend:
+
+- **Een feestdag kost geen verlof.** Wie in een vakantieweek met Hemelvaart
+  erin vrij vraagt, raakt vier dagen kwijt en niet vijf. Die dag was al vrij.
+- **Een bedrijfssluiting gaat er niet automatisch vanaf.** In veel bedrijven ís
+  de bouwvak het verlof, maar dat is een afspraak en geen rekenregel. Het saldo
+  telt daarom alleen wat er als verlof geregistreerd staat. Wie de bouwvak van
+  het saldo wil laten aftrekken, boekt hem als verlof — dan klopt de
+  verlofkalender ook meteen.
+- **Ziekte gaat er nooit af.** Dat bepaalt `counts_as_leave` van het type, niet
+  de naam.
+
+De uren per dag komen uit `absenceHoursForDay` van de beschikbaarheidsengine.
+Die functie stond daar al en is getest; hem overschrijven zou een tweede
+waarheid opleveren die op het eerste randgeval — een halve dag aan het begin
+van een reeks bij een parttimer — uit elkaar loopt.
+
+### Acht uur per dag is alleen een leesbaarheidshulp
+
+Het saldoscherm zet de uren om naar dagen, want zo praten mensen erover. Die
+omrekening gebruikt een vaste achturige dag en staat er alleen ter
+verduidelijking: er wordt nergens mee gerekend, en het rooster van de
+medewerker blijft leidend. Anders zou "vijf dagen over" voor een parttimer een
+onwaarheid worden.
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:
