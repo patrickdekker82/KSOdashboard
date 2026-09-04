@@ -397,8 +397,13 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       .run(...(allValues as never[]));
 
     const id = Number(result.lastInsertRowid);
-    const row = readRow(handle, definition, id);
+    let row = readRow(handle, definition, id);
     auditWrite(handle, user.id, definition.key, id, 'aangemaakt', null, row);
+
+    definition.afterWrite?.({ handle, rij: row, id, actie: 'aangemaakt' });
+    // De haak kan afgeleide waarden hebben bijgewerkt, dus opnieuw lezen.
+    if (definition.afterWrite) row = readRow(handle, definition, id);
+
     return reply.code(201).send({ data: verrijk(veldenVoor(handle, definition), row!) });
   });
 
@@ -442,8 +447,12 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       .prepare(`UPDATE ${definition.table} SET ${assignments.join(', ')} WHERE id = ?`)
       .run(...([...values, id] as never[]));
 
-    const after = readRow(handle, definition, id);
+    let after = readRow(handle, definition, id);
     auditWrite(handle, user.id, definition.key, id, 'gewijzigd', before, after);
+
+    definition.afterWrite?.({ handle, rij: after, id, actie: 'gewijzigd' });
+    if (definition.afterWrite) after = readRow(handle, definition, id);
+
     return { data: verrijk(veldenVoor(handle, definition), after!) };
   });
 
@@ -462,6 +471,7 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     if (!definition.softDelete) {
       handle.raw.prepare(`DELETE FROM ${definition.table} WHERE id = ?`).run(id);
       auditWrite(handle, user.id, definition.key, id, 'verwijderd', before, null);
+      definition.afterWrite?.({ handle, rij: before, id, actie: 'verwijderd' });
       return { verwijderd: true, herstelbaar: false };
     }
 
@@ -469,6 +479,9 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       .prepare(`UPDATE ${definition.table} SET archived_at = datetime('now') WHERE id = ?`)
       .run(id);
     auditWrite(handle, user.id, definition.key, id, 'gearchiveerd', before, null);
+    // `before` en niet de huidige rij: de kans waar deze regel bij hoorde,
+    // moet juist nu opnieuw worden doorgerekend.
+    definition.afterWrite?.({ handle, rij: before, id, actie: 'verwijderd' });
     // Soft delete, zodat de "ongedaan maken"-toast uit hoofdstuk 9 kan werken.
     return { verwijderd: true, herstelbaar: true };
   });
@@ -487,7 +500,9 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     if (Number(result.changes ?? 0) === 0) {
       throw new ApiError(404, 'niet_gevonden', 'Dit record bestaat niet.');
     }
-    auditWrite(handle, user.id, definition.key, id, 'hersteld', null, readRow(handle, definition, id));
+    const hersteld = readRow(handle, definition, id);
+    auditWrite(handle, user.id, definition.key, id, 'hersteld', null, hersteld);
+    definition.afterWrite?.({ handle, rij: hersteld, id, actie: 'hersteld' });
     return { data: readRow(handle, definition, id) };
   });
 
@@ -545,6 +560,12 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
 
     for (const id of ids) {
       auditWrite(handle, user.id, definition.key, id, `bulk_${body.action}`, null, null);
+      definition.afterWrite?.({
+        handle,
+        rij: readRow(handle, definition, id),
+        id,
+        actie: 'bulk',
+      });
     }
     return { gewijzigd: changed };
   });

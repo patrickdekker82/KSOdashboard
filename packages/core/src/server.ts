@@ -29,6 +29,7 @@ import { registerCrudRoutes } from './modules/crud/routes.ts';
 import { registerFieldRoutes } from './modules/fields/routes.ts';
 import { registerCrmRoutes } from './modules/crm/routes.ts';
 import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
+import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
 
 export type NetworkMode = 'standalone' | 'host' | 'client';
 
@@ -151,6 +152,9 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   await registerAvailabilityRoutes(app);
   await registerFieldRoutes(app);
   await registerCrmRoutes(app);
+  // Vóór de generieke factory: /opportunities/board mag niet als een
+  // record-id op /:entity/:id worden gelezen.
+  await registerOpportunityRoutes(app);
   await registerAttachmentRoutes(app);
   await registerCrudRoutes(app);
 

@@ -7,6 +7,8 @@
  * the obvious example.
  */
 import type { UserRole } from '@showroom/shared';
+import type { DatabaseHandle } from '../../db/client.ts';
+import { herberekenKans, herberekenViaRegel } from '../opportunities/recalculate.ts';
 
 export type EntityDefinition = {
   /** URL segment, e.g. `capacity-allocations`. */
@@ -26,6 +28,19 @@ export type EntityDefinition = {
   softDelete?: boolean;
   /** Whether the table carries `custom_fields`. */
   customFields?: boolean;
+  /**
+   * Draait na elke schrijfactie op deze entiteit, binnen dezelfde aanroep.
+   *
+   * Bedoeld voor afgeleide waarden die elders moeten worden bijgewerkt — het
+   * bedrag van een kans nadat een regel wijzigde, bijvoorbeeld. `rij` is de
+   * rij zoals die na de wijziging bestaat, of de rij van vóór het verwijderen.
+   */
+  afterWrite?: (context: {
+    handle: DatabaseHandle;
+    rij: Record<string, unknown> | null;
+    id: number;
+    actie: 'aangemaakt' | 'gewijzigd' | 'verwijderd' | 'hersteld' | 'bulk';
+  }) => void;
 };
 
 const AUDIT = ['created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at'];
@@ -126,6 +141,9 @@ export const ENTITIES: EntityDefinition[] = [
     ],
     searchable: ['name', 'number', 'description'],
     defaultSort: 'updated_at DESC',
+    // Kans en fase bepalen mee welke kans er per regel geldt, dus na elke
+    // wijziging aan de kans zelf moet het gewogen bedrag opnieuw.
+    afterWrite: ({ handle, id }) => herberekenKans(handle, id),
   }),
   entity({
     key: 'opportunity-lines',
@@ -138,6 +156,7 @@ export const ENTITIES: EntityDefinition[] = [
     ],
     filterable: ['id', 'opportunity_id', 'discipline_id', 'status', ...AUDIT],
     defaultSort: 'sort_order ASC',
+    afterWrite: ({ handle, rij }) => herberekenViaRegel(handle, rij),
   }),
   entity({
     key: 'pipelines',
