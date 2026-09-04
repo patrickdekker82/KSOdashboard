@@ -14,6 +14,8 @@ import { bouwPayload, useEntiteitSchema, waardeVan } from '../../lib/schema.ts';
 import { VeldInvoer } from '../../components/velden/VeldInvoer.tsx';
 import { VeldWaarde } from '../../components/velden/VeldWaarde.tsx';
 import { Kaart, Skelet } from '../Dashboard.tsx';
+import { Tijdlijn } from './Tijdlijn.tsx';
+import { AvgPaneel } from './AvgPaneel.tsx';
 
 type Rij = Record<string, unknown>;
 type VeldFout = { veld: string; label: string; melding: string };
@@ -204,13 +206,12 @@ export function GeneriekDetail({
           )}
         </div>
 
-        <Kaart>
-          <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>Tijdlijn</h2>
-          <p style={{ color: 'var(--inkt-zacht)', fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-            Activiteiten, statuswijzigingen en verzonden e-mail komen hier te staan. Dat wordt
-            gebouwd in fase 3.
-          </p>
-        </Kaart>
+        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+          <Kaart>
+            <Tijdlijn entiteit={entiteit} id={id} />
+          </Kaart>
+          {entiteit === 'contacts' && <AvgPaneel contactId={id} />}
+        </div>
       </div>
     </div>
   );

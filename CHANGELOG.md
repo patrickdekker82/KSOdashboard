@@ -71,9 +71,21 @@ telt is welke fase is opgeleverd.
   voor velden.
 - Opgeslagen weergaven leveren kolommen, filter en sortering aan.
 
+### Fase 3 — CRM
+- Zoeken over klanten, contactpersonen, projecten en kansen in één lijst, met
+  Ctrl+K, zoeken-terwijl-je-typt en volledige toetsenbordbediening.
+- Dubbelendetectie op KvK-nummer, e-mailadres, adres en gelijkende naam, met
+  een samenvoegdialoog waarin per veld gekozen wordt welke waarde wint.
+- Tijdlijn per record: activiteiten, wijzigingen, e-mail, offertes en
+  fasewisselingen in één lijst, met een veld om meteen iets vast te leggen.
+- Labels en bijlagen per record. Bijlagen hebben een extensiewhitelist, een
+  grens van 25 MB, een door de applicatie gegenereerde naam op schijf en een
+  downloadendpoint dat een sessie vereist.
+- AVG: een inzagedossier per contactpersoon en anonimiseren dat de
+  persoonsgegevens overschrijft maar de transacties bewaart.
+
 ### Nog niet gebouwd
-Tijdlijn en dubbelendetectie (fase 3), kansen met disciplineregels en kanban
-(fase 4), de Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
+Kansen met disciplineregels en kanban (fase 4), de Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
 opvolging en Microsoft 365 (fase 9), de AI-assistent (fase 10), rapportages en
 export (fase 11), hostmodus en automatische updates (fase 12). De schermen
 daarvoor tonen in welke fase ze komen.

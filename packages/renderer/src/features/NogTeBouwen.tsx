@@ -6,9 +6,12 @@
  */
 import type { JSX } from 'react';
 const FASE_PER_PAD: Record<string, string> = {
-  '/klanten': 'Fase 3 — CRM: organisaties, contactpersonen, tijdlijn en dubbelendetectie.',
-  '/kansen': 'Fase 4 — Kansen met disciplineregels, kanban en win/verlies per discipline.',
-  '/projecten': 'Fase 6 — Projecten, fasen-editor en de import van de Excel-planning.',
+  '/kansen':
+    'De lijst en de detailpagina werken al. In fase 4 komen de disciplineregels, de kanban ' +
+    'en win/verlies per discipline erbij.',
+  '/projecten':
+    'De lijst en de detailpagina werken al. In fase 6 komen de fasen-editor en de import ' +
+    'van de Excel-planning erbij.',
   '/duurzaamheid': 'Fase 8 — Producten, pakketsamensteller en offertes met bevroren prijzen.',
   '/opvolging': 'Fase 9 — Vandaag-scherm, bellijsten en e-mail via Microsoft 365.',
   '/rapportages': 'Fase 11 — Query-bouwer, beveiligde SQL-modus en export naar Excel, PDF en Word.',

@@ -12,6 +12,8 @@ import { GeneriekDetail } from './features/generiek/GeneriekDetail.tsx';
 import { Velden } from './features/instellingen/Velden.tsx';
 import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
+import { Zoekbalk } from './components/Zoekbalk.tsx';
+import { Dubbelen } from './features/crm/Dubbelen.tsx';
 import type { JSX } from 'react';
 
 export function App(): JSX.Element {
@@ -46,7 +48,11 @@ export function App(): JSX.Element {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Zijbalk pad={pad} navigeer={navigeer} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Bovenbalk gebruiker={gebruiker} onUitloggen={() => void ik.refetch()} />
+        <Bovenbalk
+          gebruiker={gebruiker}
+          onUitloggen={() => void ik.refetch()}
+          navigeer={navigeer}
+        />
         <main style={{ padding: 20, flex: 1, minWidth: 0 }}>
           <Inhoud pad={pad} navigeer={navigeer} />
         </main>
@@ -68,6 +74,7 @@ function Inhoud({ pad, navigeer }: { pad: string; navigeer: (pad: string) => voi
   if (pad.startsWith('/planning')) return <Planning />;
   if (pad.startsWith('/verlof')) return <Verlofkalender />;
   if (pad.startsWith('/instellingen/velden')) return <Velden />;
+  if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/instellingen')) return <Instellingen navigeer={navigeer} />;
 
   for (const [basis, opzet] of Object.entries(GENERIEK)) {
@@ -182,9 +189,11 @@ function Zijbalk({
 function Bovenbalk({
   gebruiker,
   onUitloggen,
+  navigeer,
 }: {
   gebruiker: Gebruiker;
   onUitloggen: () => void;
+  navigeer: (pad: string) => void;
 }): JSX.Element {
   const [versie, setVersie] = useState('');
 
@@ -203,20 +212,7 @@ function Bovenbalk({
         background: 'var(--oppervlak-2)',
       }}
     >
-      <input
-        type="search"
-        placeholder="Zoeken (Ctrl+K)"
-        aria-label="Zoeken"
-        className="focus-ring"
-        style={{
-          flex: '0 1 320px',
-          padding: '6px 10px',
-          borderRadius: 6,
-          border: '1px solid var(--rand)',
-          background: 'var(--oppervlak)',
-          color: 'var(--inkt)',
-        }}
-      />
+      <Zoekbalk navigeer={navigeer} />
 
       {/* Rechtsboven in een oogopslag wie er vandaag is (hoofdstuk 9). */}
       <VandaagBeschikbaar />

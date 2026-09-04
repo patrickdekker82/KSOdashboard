@@ -17,7 +17,8 @@ webadres om te onthouden, werkt volledig offline.
 | Schermen: inloggen, dashboard, planning, verlofkalender | **af** |
 | Veldenregister: velden toevoegen, hernoemen, verplaatsen, verbergen, verwijderen | **af** |
 | Generieke lijst, detailpagina en veldbeheer | **af** |
-| Tijdlijn, kansen-kanban, pakketten, offertes, opvolging, e-mail, AI, rapportages | nog niet gebouwd |
+| CRM: zoeken, tijdlijn, dubbelen samenvoegen, bijlagen, AVG | **af** |
+| Kansen-kanban, pakketten, offertes, opvolging, e-mail, AI, rapportages | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
 fase ze komen. De gegevens erachter staan al wel in de database.
@@ -101,6 +102,23 @@ veldsleutel.
 Een formuleveld rekent over de andere velden van hetzelfde record. Dat gebeurt
 met een eigen parser, niet met `eval`: wat niet in de grammatica staat, kan een
 formule niet doen.
+
+## CRM
+
+`Ctrl+K` zoekt over klanten, contactpersonen, projecten en kansen tegelijk.
+Wat een gebruiker intikt is tekst, geen zoekquery: aanhalingstekens, sterretjes
+en woorden als `AND` of `NEAR` worden opgeschoond voordat ze bij FTS5 komen, en
+er is een terugval op LIKE.
+
+Dubbelendetectie kijkt naar KvK-nummer, e-mailadres, adres en naam. Namen worden
+zo genormaliseerd dat rechtsvormen en woordvolgorde er niet meer toe doen, dus
+"Bouwbedrijf Meesters B.V." en "Meesters Bouwbedrijf bv" worden als hetzelfde
+herkend. Samenvoegen laat u per veld kiezen welke waarde wint en verhuist alles
+mee wat naar het vervallende record wees.
+
+Anonimiseren overschrijft naam en contactgegevens, óók in het auditlog, maar
+laat offertes en kansen staan: het bedrag is bedrijfsadministratie, de naam is
+een persoonsgegeven.
 
 ## De rekenkern
 

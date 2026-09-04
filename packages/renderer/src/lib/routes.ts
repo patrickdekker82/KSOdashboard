@@ -23,6 +23,7 @@ export const ROUTES: Route[] = [
   { pad: '/verlof', label: 'Verlof & inzet', groep: 'werk' },
   { pad: '/duurzaamheid', label: 'Duurzaamheid', groep: 'werk' },
   { pad: '/opvolging', label: 'Opvolging', groep: 'werk' },
+  { pad: '/dubbelen', label: 'Dubbelen', groep: 'beheer' },
   { pad: '/rapportages', label: 'Rapportages', groep: 'beheer' },
   { pad: '/instellingen', label: 'Instellingen', groep: 'beheer' },
 ];

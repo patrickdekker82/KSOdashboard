@@ -123,6 +123,45 @@ export const api = {
 
 export type Lijst<T> = { data: T[]; meta?: Record<string, unknown> };
 
+/** Uploadt een bijlage. Multipart, dus buiten de JSON-helper om. */
+export async function uploadBijlage(
+  entiteit: string,
+  id: number,
+  bestand: File,
+): Promise<{ id: number; filename: string }> {
+  const status = await kernStatus();
+  const basis = window.showroom ? `http://127.0.0.1:${status.port}` : '';
+  const body = new FormData();
+  body.append('file', bestand);
+
+  const response = await fetch(`${basis}/api/v1/${entiteit}/${id}/attachments`, {
+    method: 'POST',
+    credentials: 'include',
+    // Geen content-type meezetten: de browser bepaalt de multipart-grens zelf.
+    headers: status.appToken ? { 'x-showroom-token': status.appToken } : {},
+    body,
+  });
+
+  if (!response.ok) {
+    const fout = (await response.json().catch(() => null)) as
+      | { error?: { code?: string; message?: string } }
+      | null;
+    throw new ApiFout(
+      response.status,
+      fout?.error?.code ?? 'onbekend',
+      fout?.error?.message ?? 'Het bestand kon niet worden opgeslagen.',
+    );
+  }
+  return (await response.json()).data as { id: number; filename: string };
+}
+
+/** Bouwt de download-URL van een bijlage, inclusief het sessietoken. */
+export async function bijlageUrl(bijlageId: number): Promise<string> {
+  const status = await kernStatus();
+  const basis = window.showroom ? `http://127.0.0.1:${status.port}` : '';
+  return `${basis}/api/v1/attachments/${bijlageId}/download`;
+}
+
 export const endpoints = {
   ik: () => api.get<{ gebruiker: Gebruiker }>('/auth/me'),
   inloggen: (email: string, password: string) =>
@@ -199,6 +238,48 @@ export const endpoints = {
   sleutelVoorstellen: (label: string) =>
     api.post<{ data: { field_key: string } }>('/fields/suggest-key', { label }),
 
+  // --- CRM (fase 3) --------------------------------------------------------
+  zoek: (term: string) =>
+    api.get<{ data: { treffers: ZoekTreffer[]; term: string } }>(
+      `/search?q=${encodeURIComponent(term)}`,
+    ),
+  tijdlijn: (entiteit: string, id: number) =>
+    api.get<{ data: TijdlijnItem[] }>(`/${entiteit}/${id}/timeline`),
+  activiteitToevoegen: (entiteit: string, id: number, body: unknown) =>
+    api.post<{ data: unknown }>(`/${entiteit}/${id}/activities`, body),
+  tags: (entiteit: string, id: number) =>
+    api.get<{ data: Array<{ id: number; name: string; color: string | null }> }>(
+      `/${entiteit}/${id}/tags`,
+    ),
+  tagToevoegen: (entiteit: string, id: number, name: string) =>
+    api.post<{ data: { id: number; name: string } }>(`/${entiteit}/${id}/tags`, { name }),
+  tagVerwijderen: (entiteit: string, id: number, tagId: number) =>
+    api.del<{ verwijderd: boolean }>(`/${entiteit}/${id}/tags/${tagId}`),
+
+  dubbelen: (entiteit: string) =>
+    api.get<{
+      data: { paren: DubbelPaar[]; records: Array<Record<string, unknown>> };
+      meta: { entiteit: string; onderzocht: number; gevonden: number };
+    }>(`/duplicates?entity=${entiteit}`),
+  samenvoegen: (entiteit: string, winnaarId: number, verliezerId: number, waarden: Record<string, unknown>) =>
+    api.post<{ data: { verplaatst: Array<{ tabel: string; kolom: string; rijen: number }> } }>(
+      `/${entiteit}/${winnaarId}/merge`,
+      { verliezerId, waarden },
+    ),
+
+  bijlagen: (entiteit: string, id: number) =>
+    api.get<{ data: Bijlage[] }>(`/${entiteit}/${id}/attachments`),
+  bijlageVerwijderen: (id: number) =>
+    api.del<{ verwijderd: boolean }>(`/attachments/${id}`),
+
+  avgDossier: (contactId: number) =>
+    api.get<{ data: Record<string, unknown> }>(`/contacts/${contactId}/gdpr-export`),
+  avgAnonimiseren: (contactId: number) =>
+    api.post<{ data: { overschreven: string[]; behouden: Array<{ wat: string; aantal: number }> } }>(
+      `/contacts/${contactId}/anonymise`,
+      { bevestiging: 'ANONIMISEREN' },
+    ),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -206,6 +287,41 @@ export const endpoints = {
     ),
   gebruikers: () =>
     api.get<Lijst<{ id: number; name: string; initials: string }>>('/users?pageSize=200'),
+};
+
+export type ZoekTreffer = {
+  entiteit: string;
+  id: number;
+  titel: string;
+  ondertitel: string | null;
+  soort: string;
+};
+
+export type TijdlijnItem = {
+  soort: 'activiteit' | 'wijziging' | 'email' | 'offerte' | 'fase';
+  id: number;
+  op: string;
+  titel: string;
+  tekst: string | null;
+  door: string | null;
+};
+
+export type DubbelPaar = {
+  a: number;
+  b: number;
+  score: number;
+  redenen: string[];
+  uitleg: string;
+};
+
+export type Bijlage = {
+  id: number;
+  filename: string;
+  mime: string | null;
+  size_bytes: number;
+  description: string | null;
+  uploaded_at: string;
+  door: string | null;
 };
 
 export type Sectie = {
