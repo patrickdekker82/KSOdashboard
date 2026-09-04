@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type {
   AbsenceInput,
   AllocationInput,
+  ClosureInput,
   DayHours,
+  HolidayInput,
   IsoWeek,
   UserCapacityInput,
 } from '@showroom/shared';
@@ -66,8 +68,11 @@ function allocation(extra: Partial<AllocationInput> = {}): AllocationInput {
   };
 }
 
-const run = (u: UserCapacityInput, holidays = [], closures = []) =>
-  computeUserWeekAvailability(u, WEEK, holidays, closures, DEFAULT_AVAILABILITY_OPTIONS);
+const run = (
+  u: UserCapacityInput,
+  holidays: HolidayInput[] = [],
+  closures: ClosureInput[] = [],
+) => computeUserWeekAvailability(u, WEEK, holidays, closures, DEFAULT_AVAILABILITY_OPTIONS);
 
 // ---------------------------------------------------------------------------
 // Bijlage B2 — de tabel met rekenvoorbeelden, regel voor regel
