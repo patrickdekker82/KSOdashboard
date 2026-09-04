@@ -10,6 +10,10 @@ import { columnsFrom, compileFilter, compileSort, FilterError, type FilterNode }
 import { roleAtLeast } from '../auth/session.ts';
 import { ENTITIES, ENTITY_BY_KEY, type EntityDefinition } from './registry.ts';
 import type { DatabaseHandle } from '../../db/client.ts';
+import { loadFields, optionResolver } from '../fields/repository.ts';
+import { computeFormulaFields, validateCustomFields } from '../fields/validation.ts';
+import { generatedColumnName } from '../fields/index-migration.ts';
+import type { FieldDefinition } from '@showroom/shared';
 
 type Row = Record<string, unknown>;
 
@@ -23,10 +27,88 @@ function definitionFor(key: string): EntityDefinition {
   return definition;
 }
 
-/** Maps a filterable field to its column; unknown fields are rejected. */
-function resolverFor(definition: EntityDefinition) {
+/**
+ * Maps a filterable field to its column; unknown fields are rejected.
+ *
+ * Custom fields resolve to `json_extract(custom_fields, ...)`, except when the
+ * field is indexed: dan wijst hij naar de gegenereerde kolom, zodat SQLite de
+ * index ook echt kan gebruiken in plaats van elke rij open te maken.
+ */
+function resolverFor(definition: EntityDefinition, velden: readonly FieldDefinition[] = []) {
   const mapping = Object.fromEntries(definition.filterable.map((column) => [column, column]));
-  return columnsFrom(definition.customFields ? mapping : mapping);
+  for (const veld of velden) {
+    if (veld.storage !== 'json' || veld.archivedAt) continue;
+    mapping[veld.fieldKey] = veld.indexed
+      ? generatedColumnName(veld.fieldKey)
+      : `json_extract(custom_fields, '$.${veld.fieldKey}')`;
+  }
+  return columnsFrom(mapping);
+}
+
+/** De velddefinities van een entiteit, of een lege lijst als er geen maatwerk is. */
+function veldenVoor(handle: DatabaseHandle, definition: EntityDefinition): FieldDefinition[] {
+  return definition.customFields ? loadFields(handle, definition.key) : [];
+}
+
+/**
+ * Vult de berekende formulevelden aan op een rij die naar buiten gaat.
+ *
+ * Formules worden niet opgeslagen maar bij het lezen uitgerekend, zodat ze
+ * altijd kloppen met de rest van het record.
+ */
+function verrijk(velden: readonly FieldDefinition[], rij: Row): Row {
+  const heeftFormule = velden.some((veld) => veld.type === 'formula' && !veld.archivedAt);
+  const maatwerk =
+    typeof rij.custom_fields === 'string'
+      ? (JSON.parse(rij.custom_fields || '{}') as Record<string, unknown>)
+      : ((rij.custom_fields as Record<string, unknown>) ?? {});
+
+  if (!heeftFormule) return { ...rij, custom_fields: maatwerk };
+
+  const { waarden, fouten } = computeFormulaFields(velden, { ...rij, ...maatwerk });
+  return {
+    ...rij,
+    custom_fields: { ...maatwerk, ...waarden },
+    ...(Object.keys(fouten).length > 0 ? { _formule_fouten: fouten } : {}),
+  };
+}
+
+/**
+ * Valideert de maatwerkvelden uit een verzoek en levert de JSON-tekst op die
+ * in `custom_fields` gaat. Gooit een nette 400 met alle fouten tegelijk.
+ */
+function verwerkMaatwerk(
+  handle: DatabaseHandle,
+  definition: EntityDefinition,
+  binnen: unknown,
+  bestaand: Record<string, unknown>,
+): string {
+  const velden = veldenVoor(handle, definition);
+  const invoer =
+    binnen && typeof binnen === 'object' && !Array.isArray(binnen)
+      ? (binnen as Record<string, unknown>)
+      : {};
+
+  const resultaat = validateCustomFields(velden, invoer, optionResolver(handle), bestaand);
+  if (!resultaat.ok) {
+    throw new ApiError(
+      400,
+      'validatiefout',
+      resultaat.fouten.map((fout) => fout.melding).join(' '),
+      resultaat.fouten,
+    );
+  }
+  return JSON.stringify(resultaat.waarden);
+}
+
+/** De maatwerkvelden zoals ze nu in de database staan. */
+function bestaandMaatwerk(rij: Row | null): Record<string, unknown> {
+  if (!rij || typeof rij.custom_fields !== 'string') return {};
+  try {
+    return JSON.parse(rij.custom_fields || '{}') as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 function decodeFilter(raw: unknown): FilterNode | null {
@@ -98,6 +180,57 @@ function tableColumns(handle: DatabaseHandle, table: string): Set<string> {
   return names;
 }
 
+type Weergave = {
+  id: number;
+  naam: string;
+  kolommen: unknown;
+  filters: unknown;
+  sort: string | undefined;
+  pageSize: number | undefined;
+};
+
+/** Haalt een opgeslagen weergave op, op id of op naam. */
+function laadWeergave(
+  handle: DatabaseHandle,
+  entityKey: string,
+  view: unknown,
+): Weergave | null {
+  const sleutel = String(view);
+  const rij = handle.raw
+    .prepare(
+      `SELECT * FROM saved_views
+        WHERE entity_key = ? AND archived_at IS NULL AND (id = ? OR name = ?)
+        LIMIT 1`,
+    )
+    .get(entityKey, Number.isNaN(Number(sleutel)) ? -1 : Number(sleutel), sleutel) as Row | undefined;
+
+  if (!rij) throw new ApiError(404, 'weergave_onbekend', `Onbekende weergave: "${sleutel}".`);
+
+  const lees = <T>(waarde: unknown, fallback: T): T => {
+    if (typeof waarde !== 'string' || waarde === '') return fallback;
+    try {
+      return JSON.parse(waarde) as T;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const sortering = lees<Array<{ field: string; direction?: string }>>(rij.sort, []);
+  return {
+    id: Number(rij.id),
+    naam: String(rij.name),
+    kolommen: lees<string[]>(rij.columns, []),
+    filters: lees<unknown>(rij.filters, null),
+    sort:
+      sortering.length > 0
+        ? sortering
+            .map((entry) => (entry.direction === 'desc' ? `-${entry.field}` : entry.field))
+            .join(',')
+        : undefined,
+    pageSize: rij.page_size ? Number(rij.page_size) : undefined,
+  };
+}
+
 function readRow(handle: DatabaseHandle, definition: EntityDefinition, id: number): Row | null {
   return (
     (handle.raw.prepare(`SELECT * FROM ${definition.table} WHERE id = ?`).get(id) as Row) ?? null
@@ -141,9 +274,21 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
   // --- lijst ---------------------------------------------------------------
   app.get('/api/v1/:entity', async (request) => {
     const definition = definitionFor((request.params as { entity: string }).entity);
-    const query = request.query as Record<string, unknown>;
+    const query = { ...(request.query as Record<string, unknown>) };
     const handle = request.core.handle;
-    const columns = resolverFor(definition);
+    const velden = veldenVoor(handle, definition);
+    const columns = resolverFor(definition, velden);
+
+    // Een opgeslagen weergave levert kolommen, filter en sortering aan; wat de
+    // aanroeper zelf meegeeft wint, zodat je vanuit een weergave kunt bijsturen.
+    const weergave = query.view ? laadWeergave(handle, definition.key, query.view) : null;
+    if (weergave) {
+      if (query.filter === undefined && weergave.filters) {
+        query.filter = Buffer.from(JSON.stringify(weergave.filters)).toString('base64');
+      }
+      if (query.sort === undefined && weergave.sort) query.sort = weergave.sort;
+      if (query.pageSize === undefined && weergave.pageSize) query.pageSize = weergave.pageSize;
+    }
 
     const page = Math.max(1, Number(query.page ?? 1));
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(query.pageSize ?? 50)));
@@ -193,8 +338,14 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       .all(...([...params, pageSize, (page - 1) * pageSize] as never[])) as Row[];
 
     return {
-      data: rows,
-      meta: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+      data: rows.map((rij) => verrijk(velden, rij)),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        ...(weergave ? { weergave: { id: weergave.id, naam: weergave.naam, kolommen: weergave.kolommen } } : {}),
+      },
     };
   });
 
@@ -202,9 +353,10 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/v1/:entity/:id', async (request) => {
     const definition = definitionFor((request.params as { entity: string }).entity);
     const id = Number((request.params as { id: string }).id);
-    const row = readRow(request.core.handle, definition, id);
+    const handle = request.core.handle;
+    const row = readRow(handle, definition, id);
     if (!row) throw new ApiError(404, 'niet_gevonden', 'Dit record bestaat niet.');
-    return { data: row };
+    return { data: verrijk(veldenVoor(handle, definition), row) };
   });
 
   // --- aanmaken ------------------------------------------------------------
@@ -214,12 +366,19 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       ? requireRole(request, definition.writeRole as 'manager' | 'admin')
       : currentUser(request);
 
-    const { columns, values } = writableValues(definition, (request.body ?? {}) as Row);
+    const handle = request.core.handle;
+    const body = { ...((request.body ?? {}) as Row) };
+
+    // Maatwerkvelden gaan niet ongezien de JSON-kolom in: ze worden eerst
+    // tegen het veldenregister gehouden.
+    if (definition.customFields) {
+      body.custom_fields = verwerkMaatwerk(handle, definition, body.custom_fields, {});
+    }
+
+    const { columns, values } = writableValues(definition, body);
     if (columns.length === 0) {
       throw new ApiError(400, 'leeg', 'Er zijn geen velden om op te slaan.');
     }
-
-    const handle = request.core.handle;
     const present = tableColumns(handle, definition.table);
     const allColumns = [...columns];
     const allValues = [...values];
@@ -240,7 +399,7 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     const id = Number(result.lastInsertRowid);
     const row = readRow(handle, definition, id);
     auditWrite(handle, user.id, definition.key, id, 'aangemaakt', null, row);
-    return reply.code(201).send({ data: row });
+    return reply.code(201).send({ data: verrijk(veldenVoor(handle, definition), row!) });
   });
 
   // --- bijwerken -----------------------------------------------------------
@@ -255,8 +414,21 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     const before = readRow(handle, definition, id);
     if (!before) throw new ApiError(404, 'niet_gevonden', 'Dit record bestaat niet.');
 
-    const { columns, values } = writableValues(definition, (request.body ?? {}) as Row);
-    if (columns.length === 0) return { data: before };
+    const body = { ...((request.body ?? {}) as Row) };
+
+    // Bij een wijziging worden alleen de meegestuurde maatwerkvelden aangeraakt;
+    // de rest van custom_fields blijft staan.
+    if (definition.customFields && 'custom_fields' in body) {
+      body.custom_fields = verwerkMaatwerk(
+        handle,
+        definition,
+        body.custom_fields,
+        bestaandMaatwerk(before),
+      );
+    }
+
+    const { columns, values } = writableValues(definition, body);
+    if (columns.length === 0) return { data: verrijk(veldenVoor(handle, definition), before) };
 
     const present = tableColumns(handle, definition.table);
     const assignments = columns.map((column) => `${column} = ?`);
@@ -272,7 +444,7 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
 
     const after = readRow(handle, definition, id);
     auditWrite(handle, user.id, definition.key, id, 'gewijzigd', before, after);
-    return { data: after };
+    return { data: verrijk(veldenVoor(handle, definition), after!) };
   });
 
   // --- verwijderen (soft delete) -------------------------------------------

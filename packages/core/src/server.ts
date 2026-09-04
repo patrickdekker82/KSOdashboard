@@ -26,6 +26,7 @@ import { hashPassword, validatePassword, verifyPassword } from './modules/auth/p
 import { registerCapacityRoutes } from './modules/capacity/routes.ts';
 import { registerAvailabilityRoutes } from './modules/availability/routes.ts';
 import { registerCrudRoutes } from './modules/crud/routes.ts';
+import { registerFieldRoutes } from './modules/fields/routes.ts';
 
 export type NetworkMode = 'standalone' | 'host' | 'client';
 
@@ -144,6 +145,7 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   registerAuthRoutes(app);
   await registerCapacityRoutes(app);
   await registerAvailabilityRoutes(app);
+  await registerFieldRoutes(app);
   await registerCrudRoutes(app);
 
   return app;

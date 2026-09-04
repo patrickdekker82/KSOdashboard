@@ -34,6 +34,8 @@ function entity(definition: EntityDefinition): EntityDefinition {
   return { softDelete: true, customFields: true, writeRole: 'user', ...definition };
 }
 
+// `field-definitions` staat hier bewust NIET in: velden hebben regels die de
+// generieke factory niet kent, en worden door modules/fields/routes.ts bediend.
 export const ENTITIES: EntityDefinition[] = [
   entity({
     key: 'organizations',
@@ -281,20 +283,6 @@ export const ENTITIES: EntityDefinition[] = [
     table: 'picklist_items',
     writable: ['picklist_id', 'value', 'label', 'color', 'sort_order', 'is_default', 'metadata'],
     filterable: ['id', 'picklist_id', 'value', 'label'],
-    defaultSort: 'sort_order ASC',
-    customFields: false,
-    writeRole: 'admin',
-  }),
-  entity({
-    key: 'field-definitions',
-    table: 'field_definitions',
-    writable: [
-      'entity_key', 'field_key', 'label', 'help_text', 'type', 'storage', 'required',
-      'unique_value', 'default_value', 'options_source', 'picklist_id', 'relation_entity',
-      'validation', 'indexed', 'section_id', 'sort_order', 'column_width',
-      'visible_in_list', 'visible_in_detail', 'editable',
-    ],
-    filterable: ['id', 'entity_key', 'field_key', 'type', 'storage', 'is_system', ...AUDIT],
     defaultSort: 'sort_order ASC',
     customFields: false,
     writeRole: 'admin',
