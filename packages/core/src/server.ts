@@ -27,6 +27,8 @@ import { registerCapacityRoutes } from './modules/capacity/routes.ts';
 import { registerAvailabilityRoutes } from './modules/availability/routes.ts';
 import { registerCrudRoutes } from './modules/crud/routes.ts';
 import { registerFieldRoutes } from './modules/fields/routes.ts';
+import { registerCrmRoutes } from './modules/crm/routes.ts';
+import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 
 export type NetworkMode = 'standalone' | 'host' | 'client';
 
@@ -38,6 +40,8 @@ export type CoreOptions = {
    */
   appToken: string;
   mode: NetworkMode;
+  /** Map met de database, bijlagen, back-ups en logboeken. */
+  dataDirectory: string;
   logger?: boolean;
 };
 
@@ -146,6 +150,8 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   await registerCapacityRoutes(app);
   await registerAvailabilityRoutes(app);
   await registerFieldRoutes(app);
+  await registerCrmRoutes(app);
+  await registerAttachmentRoutes(app);
   await registerCrudRoutes(app);
 
   return app;

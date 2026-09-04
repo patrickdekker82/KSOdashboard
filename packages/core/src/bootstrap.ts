@@ -124,7 +124,13 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
   }
 
   const appToken = randomBytes(32).toString('base64url');
-  const app = await buildCore({ handle, appToken, mode, logger: options.logger ?? false });
+  const app = await buildCore({
+    handle,
+    appToken,
+    mode,
+    dataDirectory: options.dataDirectory,
+    logger: options.logger ?? false,
+  });
 
   // Alleenstaand luistert alleen op loopback; hostmodus ook op het LAN.
   const host = mode === 'host' ? '0.0.0.0' : '127.0.0.1';

@@ -31,7 +31,7 @@ beforeEach(async () => {
   runMigrations(handle);
   applyViews(handle);
   await seed(handle, { referenceDate: new Date('2026-09-07T00:00:00Z'), demo: true });
-  app = await buildCore({ handle, appToken: APP_TOKEN, mode: 'standalone' });
+  app = await buildCore({ handle, appToken: APP_TOKEN, mode: 'standalone', dataDirectory: directory });
   await app.ready();
   beheerder = await login('patrick@showroom.local');
 });

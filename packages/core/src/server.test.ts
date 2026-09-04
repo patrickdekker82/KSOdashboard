@@ -22,7 +22,7 @@ beforeEach(async () => {
   runMigrations(handle);
   applyViews(handle);
   await seed(handle, { referenceDate: REFERENCE, demo: true });
-  app = await buildCore({ handle, appToken: APP_TOKEN, mode: 'standalone' });
+  app = await buildCore({ handle, appToken: APP_TOKEN, mode: 'standalone', dataDirectory: directory });
   await app.ready();
 });
 
