@@ -4,7 +4,13 @@
  * The renderer never talks to the database; it talks HTTP to the utility
  * process over loopback, with the session token preload handed it.
  */
-import type { CapacityGap, CapacityWeek, UserWeekAvailability } from '@showroom/shared';
+import type {
+  CapacityGap,
+  CapacityWeek,
+  FieldDefinition,
+  FieldType,
+  UserWeekAvailability,
+} from '@showroom/shared';
 
 export type HostStatus = {
   port: number;
@@ -151,4 +157,63 @@ export const endpoints = {
     }>(`/availability/calendar${from ? `?from=${from}${to ? `&to=${to}` : ''}` : ''}`),
 
   lijst: <T>(entiteit: string, query = '') => api.get<Lijst<T>>(`/${entiteit}${query}`),
+  record: <T>(entiteit: string, id: number) => api.get<{ data: T }>(`/${entiteit}/${id}`),
+  bewaar: <T>(entiteit: string, id: number | null, body: unknown) =>
+    id === null
+      ? api.post<{ data: T }>(`/${entiteit}`, body)
+      : api.patch<{ data: T }>(`/${entiteit}/${id}`, body),
+  verwijder: (entiteit: string, id: number) =>
+    api.del<{ verwijderd: boolean; herstelbaar: boolean }>(`/${entiteit}/${id}`),
+  herstel: (entiteit: string, id: number) =>
+    api.post<{ data: unknown }>(`/${entiteit}/${id}/restore`),
+
+  // --- veldenregister ------------------------------------------------------
+  velden: (entiteit: string, includeArchived = false) =>
+    api.get<{ data: { velden: FieldDefinition[]; secties: Sectie[] } }>(
+      `/fields?entity=${entiteit}${includeArchived ? '&includeArchived=true' : ''}`,
+    ),
+  veldtypes: () =>
+    api.get<{
+      data: {
+        types: Array<{ type: FieldType; label: string; align: string; defaultWidth: number; operators: string[] }>;
+        functies: string[];
+        entiteiten: string[];
+      };
+    }>('/field-types'),
+  veldToevoegen: (body: unknown) => api.post<{ data: FieldDefinition }>('/fields', body),
+  veldWijzigen: (id: number, body: unknown) =>
+    api.patch<{ data: FieldDefinition }>(`/fields/${id}`, body),
+  veldVerbergen: (id: number) =>
+    api.del<{ gearchiveerd?: boolean; verborgen?: boolean; melding: string }>(`/fields/${id}`),
+  veldHerstellen: (id: number) => api.post<{ data: FieldDefinition }>(`/fields/${id}/restore`),
+  veldDefinitiefVerwijderen: (id: number, bevestiging: string) =>
+    api.post<{ verwijderd: boolean; rijen: number; melding: string }>(`/fields/${id}/purge`, {
+      bevestiging,
+    }),
+  veldenHerordenen: (entiteit: string, volgorde: Array<{ id: number; section_id: number | null; sort_order: number }>) =>
+    api.post<{ data: FieldDefinition[] }>('/fields/reorder', { entity_key: entiteit, volgorde }),
+  formuleControleren: (expression: string) =>
+    api.post<{ data: { ok: boolean; velden?: string[]; fout?: string } }>('/fields/check-formula', {
+      expression,
+    }),
+  sleutelVoorstellen: (label: string) =>
+    api.post<{ data: { field_key: string } }>('/fields/suggest-key', { label }),
+
+  keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
+  keuzelijstItems: (picklistId: number) =>
+    api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
+      `/picklist-items?filter=${btoa(JSON.stringify({ field: 'picklist_id', operator: 'eq', value: picklistId }))}`,
+    ),
+  gebruikers: () =>
+    api.get<Lijst<{ id: number; name: string; initials: string }>>('/users?pageSize=200'),
+};
+
+export type Sectie = {
+  id: number;
+  entityKey: string;
+  name: string;
+  sortOrder: number;
+  columns: number;
+  collapsible: boolean;
+  defaultOpen: boolean;
 };

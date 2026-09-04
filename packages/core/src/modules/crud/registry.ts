@@ -38,6 +38,20 @@ function entity(definition: EntityDefinition): EntityDefinition {
 // generieke factory niet kent, en worden door modules/fields/routes.ts bediend.
 export const ENTITIES: EntityDefinition[] = [
   entity({
+    key: 'users',
+    table: 'users',
+    // password_hash staat hier bewust niet bij: niet schrijfbaar, niet
+    // filterbaar en dus ook niet per ongeluk te doorzoeken.
+    writable: [
+      'name', 'initials', 'email', 'role', 'color', 'active', 'is_kopersbegeleider',
+      'windows_account', 'custom_fields',
+    ],
+    filterable: ['id', 'name', 'initials', 'email', 'role', 'active', 'is_kopersbegeleider', ...AUDIT],
+    searchable: ['name', 'initials', 'email'],
+    defaultSort: 'initials ASC',
+    writeRole: 'admin',
+  }),
+  entity({
     key: 'organizations',
     table: 'organizations',
     writable: [
@@ -124,6 +138,27 @@ export const ENTITIES: EntityDefinition[] = [
     ],
     filterable: ['id', 'opportunity_id', 'discipline_id', 'status', ...AUDIT],
     defaultSort: 'sort_order ASC',
+  }),
+  entity({
+    key: 'pipelines',
+    table: 'pipelines',
+    writable: ['name', 'entity_target', 'is_default', 'active'],
+    filterable: ['id', 'name', 'is_default', 'active'],
+    defaultSort: 'name ASC',
+    customFields: false,
+    writeRole: 'admin',
+  }),
+  entity({
+    key: 'pipeline-stages',
+    table: 'pipeline_stages',
+    writable: [
+      'pipeline_id', 'name', 'sort_order', 'default_probability_bp', 'is_won', 'is_lost',
+      'rotting_days', 'color',
+    ],
+    filterable: ['id', 'pipeline_id', 'name', 'is_won', 'is_lost'],
+    defaultSort: 'sort_order ASC',
+    customFields: false,
+    writeRole: 'admin',
   }),
   entity({
     key: 'disciplines',

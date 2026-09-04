@@ -7,6 +7,10 @@ import { Dashboard } from './features/Dashboard.tsx';
 import { Planning } from './features/Planning.tsx';
 import { Verlofkalender } from './features/Verlofkalender.tsx';
 import { NogTeBouwen } from './features/NogTeBouwen.tsx';
+import { GeneriekeLijst } from './features/generiek/GeneriekeLijst.tsx';
+import { GeneriekDetail } from './features/generiek/GeneriekDetail.tsx';
+import { Velden } from './features/instellingen/Velden.tsx';
+import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import type { JSX } from 'react';
 
@@ -44,17 +48,50 @@ export function App(): JSX.Element {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Bovenbalk gebruiker={gebruiker} onUitloggen={() => void ik.refetch()} />
         <main style={{ padding: 20, flex: 1, minWidth: 0 }}>
-          <Inhoud pad={pad} />
+          <Inhoud pad={pad} navigeer={navigeer} />
         </main>
       </div>
     </div>
   );
 }
 
-function Inhoud({ pad }: { pad: string }): JSX.Element {
+/** Entiteiten die via de generieke lijst en detailpagina lopen. */
+const GENERIEK: Record<string, { entiteit: string; titel: string }> = {
+  '/klanten': { entiteit: 'organizations', titel: 'Klanten' },
+  '/contactpersonen': { entiteit: 'contacts', titel: 'Contactpersonen' },
+  '/kansen': { entiteit: 'opportunities', titel: 'Kansen' },
+  '/projecten': { entiteit: 'projects', titel: 'Projecten' },
+};
+
+function Inhoud({ pad, navigeer }: { pad: string; navigeer: (pad: string) => void }): JSX.Element {
   if (pad.startsWith('/dashboard')) return <Dashboard />;
   if (pad.startsWith('/planning')) return <Planning />;
   if (pad.startsWith('/verlof')) return <Verlofkalender />;
+  if (pad.startsWith('/instellingen/velden')) return <Velden />;
+  if (pad.startsWith('/instellingen')) return <Instellingen navigeer={navigeer} />;
+
+  for (const [basis, opzet] of Object.entries(GENERIEK)) {
+    if (!pad.startsWith(basis)) continue;
+    const rest = pad.slice(basis.length).replace(/^\//, '');
+    const id = Number(rest);
+    if (rest !== '' && Number.isInteger(id) && id > 0) {
+      return (
+        <GeneriekDetail
+          entiteit={opzet.entiteit}
+          id={id}
+          titel={opzet.titel}
+          onTerug={() => navigeer(basis)}
+        />
+      );
+    }
+    return (
+      <GeneriekeLijst
+        entiteit={opzet.entiteit}
+        titel={opzet.titel}
+        onOpen={(recordId) => navigeer(`${basis}/${recordId}`)}
+      />
+    );
+  }
 
   const route = ROUTES.find((entry) => pad.startsWith(entry.pad));
   return <NogTeBouwen titel={route?.label ?? 'Onbekend scherm'} pad={route?.pad ?? pad} />;

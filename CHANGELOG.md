@@ -56,7 +56,24 @@ telt is welke fase is opgeleverd.
   kleurenblinden, in licht en donker. Prognose, gesloten weken en verlofblokken
   zijn ook zonder kleur te onderscheiden.
 
+### Fase 2 — configureerbaar veldsysteem
+- Veldenregister met alle 21 types uit 3.2, validatie per type en Nederlandse
+  foutmeldingen die allemaal tegelijk worden gemeld.
+- Formulevelden met een eigen parser en evaluator; geen `eval`, geen toegang
+  tot iets buiten het record.
+- Index-migraties voor maatwerkvelden: een virtuele gegenereerde kolom plus
+  index, die SQLite in het queryplan ook echt gebruikt.
+- Een beheerder kan zonder code een veld toevoegen, hernoemen, verplaatsen,
+  verbergen en verwijderen. Een maatwerkveld kan definitief weg inclusief data,
+  na het overtypen van de sleutel; een systeemveld alleen verborgen.
+- Generieke lijst met kolomkiezer, filters per veldtype, sortering en
+  paginering; generieke detailpagina volgens de layout-secties; beheerscherm
+  voor velden.
+- Opgeslagen weergaven leveren kolommen, filter en sortering aan.
+
 ### Nog niet gebouwd
-CRM, kansen, projectbeheer, duurzaamheidspakketten, opvolging, Microsoft 365,
-de AI-assistent, rapportages en export, import, hostmodus en automatische
-updates. De schermen daarvoor tonen in welke fase ze komen.
+Tijdlijn en dubbelendetectie (fase 3), kansen met disciplineregels en kanban
+(fase 4), de Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
+opvolging en Microsoft 365 (fase 9), de AI-assistent (fase 10), rapportages en
+export (fase 11), hostmodus en automatische updates (fase 12). De schermen
+daarvoor tonen in welke fase ze komen.

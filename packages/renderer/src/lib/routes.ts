@@ -16,6 +16,7 @@ export type Route = {
 export const ROUTES: Route[] = [
   { pad: '/dashboard', label: 'Dashboard', groep: 'werk' },
   { pad: '/klanten', label: 'Klanten', groep: 'werk' },
+  { pad: '/contactpersonen', label: 'Contactpersonen', groep: 'werk' },
   { pad: '/kansen', label: 'Kansen', groep: 'werk' },
   { pad: '/projecten', label: 'Projecten', groep: 'werk' },
   { pad: '/planning', label: 'Planning', groep: 'werk' },

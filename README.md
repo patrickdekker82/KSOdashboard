@@ -15,7 +15,9 @@ webadres om te onthouden, werkt volledig offline.
 | API: authenticatie, autorisatie, generieke CRUD, capaciteit, verlof | **af** |
 | Electron-schil: venster, Nederlands menu, systeemvak, diepe links, PDF | **af** |
 | Schermen: inloggen, dashboard, planning, verlofkalender | **af** |
-| CRM, kansen, pakketten, offertes, opvolging, e-mail, AI, rapportages | nog niet gebouwd |
+| Veldenregister: velden toevoegen, hernoemen, verplaatsen, verbergen, verwijderen | **af** |
+| Generieke lijst, detailpagina en veldbeheer | **af** |
+| Tijdlijn, kansen-kanban, pakketten, offertes, opvolging, e-mail, AI, rapportages | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
 fase ze komen. De gegevens erachter staan al wel in de database.
@@ -79,6 +81,26 @@ packages/
 ├── main/       Electron main + preload
 └── renderer/   React
 ```
+
+## Het veldsysteem
+
+Elk veld van elke entiteit staat in één register, ook de systeemvelden. Een
+beheerder voegt bij Instellingen → Velden een veld toe en het werkt meteen in
+het formulier, de lijst, het filter en de export — zonder dat er code bij hoeft.
+
+Maatwerkvelden staan als JSON in `custom_fields`, dus één record blijft één rij.
+Zet een beheerder "indexeren" aan, dan genereert het systeem een virtuele kolom
+met een index erop, en gebruikt SQLite die ook echt in plaats van elke rij open
+te maken.
+
+Systeemvelden hebben een echte kolom en kunnen daarom wel verborgen en hernoemd
+worden, maar niet verwijderd; de UI legt dat uit. Maatwerkvelden kunnen wel
+definitief weg, inclusief de ingevoerde waarden, na het overtypen van de
+veldsleutel.
+
+Een formuleveld rekent over de andere velden van hetzelfde record. Dat gebeurt
+met een eigen parser, niet met `eval`: wat niet in de grammatica staat, kan een
+formule niet doen.
 
 ## De rekenkern
 

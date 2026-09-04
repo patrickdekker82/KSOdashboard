@@ -1126,6 +1126,10 @@ type SysteemVeld = [
     inLijst?: boolean;
     relatie?: string;
     breedte?: number;
+    /** Sleutel van een keuzelijst uit `picklists`. */
+    keuzelijst?: string;
+    /** Vaste keuzes, voor velden met een CHECK-constraint in het schema. */
+    opties?: Array<[waarde: string, label: string]>;
   },
 ];
 
@@ -1134,7 +1138,7 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
     secties: ['Algemeen', 'Adres', 'Relatie'],
     velden: [
       ['name', 'Naam', 'text', { sectie: 'Algemeen', locked: true, verplicht: true, breedte: 220 }],
-      ['org_type_id', 'Soort', 'select', { sectie: 'Algemeen' }],
+      ['org_type_id', 'Soort', 'select', { sectie: 'Algemeen', keuzelijst: 'organisatiesoort' }],
       ['kvk_number', 'KvK-nummer', 'text', { sectie: 'Algemeen' }],
       ['email', 'E-mailadres', 'email', { sectie: 'Algemeen' }],
       ['phone', 'Telefoonnummer', 'phone', { sectie: 'Algemeen' }],
@@ -1144,7 +1148,7 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
       ['postcode', 'Postcode', 'text', { sectie: 'Adres' }],
       ['city', 'Plaats', 'text', { sectie: 'Adres' }],
       ['owner_user_id', 'Eigenaar', 'user', { sectie: 'Relatie' }],
-      ['status_id', 'Status', 'select', { sectie: 'Relatie' }],
+      ['status_id', 'Status', 'select', { sectie: 'Relatie', keuzelijst: 'projectstatus' }],
       ['description', 'Omschrijving', 'textarea', { sectie: 'Relatie', inLijst: false }],
     ],
   },
@@ -1173,7 +1177,7 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
       ['city', 'Plaats', 'text', { sectie: 'Project' }],
       ['unit_count', 'Aantal woningen', 'integer', { sectie: 'Project' }],
       ['contractor_organization_id', 'Aannemer', 'relation', { sectie: 'Project', relatie: 'organizations' }],
-      ['status_id', 'Status', 'select', { sectie: 'Project' }],
+      ['status_id', 'Status', 'select', { sectie: 'Project', keuzelijst: 'projectstatus' }],
       ['counts_as_showroom', 'Telt als showroom', 'boolean', { sectie: 'Showroom' }],
       ['appointments_per_unit', 'Afspraken per woning (V)', 'number', { sectie: 'Showroom', inLijst: false }],
       ['lead_time_weeks', 'Doorlooptijd in weken (D)', 'number', { sectie: 'Showroom', inLijst: false }],
@@ -1189,13 +1193,13 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
       ['name', 'Naam', 'text', { sectie: 'Kans', locked: true, verplicht: true, breedte: 220 }],
       ['organization_id', 'Organisatie', 'relation', { sectie: 'Kans', relatie: 'organizations' }],
       ['owner_user_id', 'Eigenaar', 'user', { sectie: 'Kans' }],
-      ['stage_id', 'Fase', 'select', { sectie: 'Kans' }],
+      ['stage_id', 'Fase', 'relation', { sectie: 'Kans', relatie: 'pipeline-stages' }],
       ['probability_bp', 'Kans', 'percent', { sectie: 'Verwachting' }],
       ['expected_close_date', 'Verwachte sluitdatum', 'date', { sectie: 'Verwachting' }],
       ['expected_showroom_start', 'Verwachte showroomstart', 'date', { sectie: 'Verwachting' }],
       ['expected_units', 'Verwacht aantal woningen', 'integer', { sectie: 'Verwachting' }],
-      ['status', 'Status', 'select', { sectie: 'Afloop', locked: true }],
-      ['loss_reason_id', 'Verliesreden', 'select', { sectie: 'Afloop', inLijst: false }],
+      ['status', 'Status', 'select', { sectie: 'Afloop', locked: true, opties: [['open', 'Open'], ['won', 'Gewonnen'], ['lost', 'Verloren']] }],
+      ['loss_reason_id', 'Verliesreden', 'select', { sectie: 'Afloop', inLijst: false, keuzelijst: 'verliesreden' }],
       ['next_step', 'Volgende stap', 'text', { sectie: 'Afloop', inLijst: false }],
     ],
   },
@@ -1203,11 +1207,11 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
     secties: ['Afwezigheid', 'Beoordeling'],
     velden: [
       ['user_id', 'Medewerker', 'user', { sectie: 'Afwezigheid', locked: true, verplicht: true }],
-      ['absence_type_id', 'Soort', 'select', { sectie: 'Afwezigheid', verplicht: true }],
+      ['absence_type_id', 'Soort', 'relation', { sectie: 'Afwezigheid', verplicht: true, relatie: 'absence-types' }],
       ['start_date', 'Van', 'date', { sectie: 'Afwezigheid', verplicht: true }],
       ['end_date', 'Tot en met', 'date', { sectie: 'Afwezigheid' }],
-      ['day_part', 'Dagdeel', 'select', { sectie: 'Afwezigheid' }],
-      ['status', 'Status', 'select', { sectie: 'Beoordeling', locked: true }],
+      ['day_part', 'Dagdeel', 'select', { sectie: 'Afwezigheid', opties: [['hele_dag', 'Hele dag'], ['ochtend', 'Ochtend'], ['middag', 'Middag']] }],
+      ['status', 'Status', 'select', { sectie: 'Beoordeling', locked: true, opties: [['aangevraagd', 'Aangevraagd'], ['goedgekeurd', 'Goedgekeurd'], ['afgewezen', 'Afgewezen'], ['geannuleerd', 'Geannuleerd']] }],
       ['note', 'Notitie', 'textarea', { sectie: 'Beoordeling', inLijst: false }],
     ],
   },
@@ -1216,13 +1220,13 @@ const SYSTEEMVELDEN: Record<string, { secties: string[]; velden: SysteemVeld[] }
     velden: [
       ['user_id', 'Medewerker', 'user', { sectie: 'Inzet', locked: true, verplicht: true }],
       ['title', 'Omschrijving', 'text', { sectie: 'Inzet', verplicht: true, breedte: 220 }],
-      ['allocation_type_id', 'Soort', 'select', { sectie: 'Inzet', verplicht: true }],
+      ['allocation_type_id', 'Soort', 'relation', { sectie: 'Inzet', verplicht: true, relatie: 'allocation-types' }],
       ['project_id', 'Project', 'relation', { sectie: 'Inzet', relatie: 'projects' }],
       ['start_date', 'Van', 'date', { sectie: 'Omvang', verplicht: true }],
       ['end_date', 'Tot en met', 'date', { sectie: 'Omvang', verplicht: true }],
-      ['allocation_mode', 'Eenheid', 'select', { sectie: 'Omvang' }],
+      ['allocation_mode', 'Eenheid', 'select', { sectie: 'Omvang', opties: [['percentage', 'Percentage'], ['dagen_per_week', 'Dagen per week'], ['uren_per_week', 'Uren per week']] }],
       ['allocation_value', 'Omvang', 'number', { sectie: 'Omvang' }],
-      ['status', 'Status', 'select', { sectie: 'Omvang', locked: true }],
+      ['status', 'Status', 'select', { sectie: 'Omvang', locked: true, opties: [['gepland', 'Gepland'], ['actief', 'Actief'], ['afgerond', 'Afgerond'], ['geannuleerd', 'Geannuleerd']] }],
     ],
   },
 };
@@ -1242,13 +1246,28 @@ export function seedFieldDefinitions(handle: DatabaseHandle): void {
     });
 
     opzet.velden.forEach(([sleutel, label, type, extras], index) => {
+      const keuzelijstId = extras?.keuzelijst
+        ? Number(
+            (
+              raw.prepare('SELECT id FROM picklists WHERE key = ?').get(extras.keuzelijst) as
+                | { id: number }
+                | undefined
+            )?.id ?? 0,
+          ) || null
+        : null;
+
+      const optiesBron = extras?.opties ? 'static' : keuzelijstId ? 'picklist' : null;
+      const validatie = extras?.opties
+        ? { options: extras.opties.map(([value, label]) => ({ value, label })) }
+        : {};
+
       raw
         .prepare(
           `INSERT INTO field_definitions
              (entity_key, field_key, label, type, storage, is_system, is_locked, required,
-              relation_entity, section_id, sort_order, column_width, visible_in_list,
-              visible_in_detail, editable)
-           VALUES (?, ?, ?, ?, 'column', 1, ?, ?, ?, ?, ?, ?, ?, 1, 1)`,
+              relation_entity, options_source, picklist_id, validation, section_id, sort_order,
+              column_width, visible_in_list, visible_in_detail, editable)
+           VALUES (?, ?, ?, ?, 'column', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)`,
         )
         .run(
           entityKey,
@@ -1258,6 +1277,9 @@ export function seedFieldDefinitions(handle: DatabaseHandle): void {
           extras?.locked ? 1 : 0,
           extras?.verplicht ? 1 : 0,
           extras?.relatie ?? null,
+          optiesBron,
+          keuzelijstId,
+          JSON.stringify(validatie),
           extras?.sectie ? (sectieIds.get(extras.sectie) ?? null) : null,
           index,
           extras?.breedte ?? null,
