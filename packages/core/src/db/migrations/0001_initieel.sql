@@ -469,6 +469,8 @@ CREATE TABLE disciplines (
   custom_fields      TEXT    NOT NULL DEFAULT '{}',
   created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+  created_by         INTEGER REFERENCES users(id),
+  updated_by         INTEGER REFERENCES users(id),
   archived_at        TEXT
 );
 
