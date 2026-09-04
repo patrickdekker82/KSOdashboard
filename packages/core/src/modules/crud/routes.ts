@@ -369,6 +369,14 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     const handle = request.core.handle;
     const body = { ...((request.body ?? {}) as Row) };
 
+    definition.beforeWrite?.({
+      handle,
+      gebruiker: user,
+      invoer: body,
+      bestaand: null,
+      actie: 'aangemaakt',
+    });
+
     // Maatwerkvelden gaan niet ongezien de JSON-kolom in: ze worden eerst
     // tegen het veldenregister gehouden.
     if (definition.customFields) {
@@ -421,6 +429,14 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
 
     const body = { ...((request.body ?? {}) as Row) };
 
+    definition.beforeWrite?.({
+      handle,
+      gebruiker: user,
+      invoer: body,
+      bestaand: before,
+      actie: 'gewijzigd',
+    });
+
     // Bij een wijziging worden alleen de meegestuurde maatwerkvelden aangeraakt;
     // de rest van custom_fields blijft staan.
     if (definition.customFields && 'custom_fields' in body) {
@@ -468,6 +484,14 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     const before = readRow(handle, definition, id);
     if (!before) throw new ApiError(404, 'niet_gevonden', 'Dit record bestaat niet.');
 
+    definition.beforeWrite?.({
+      handle,
+      gebruiker: user,
+      invoer: {},
+      bestaand: before,
+      actie: 'verwijderd',
+    });
+
     if (!definition.softDelete) {
       handle.raw.prepare(`DELETE FROM ${definition.table} WHERE id = ?`).run(id);
       auditWrite(handle, user.id, definition.key, id, 'verwijderd', before, null);
@@ -494,6 +518,22 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
       throw new ApiError(400, 'niet_herstelbaar', 'Dit soort record wordt definitief verwijderd.');
     }
     const handle = request.core.handle;
+
+    // De rij staat gearchiveerd, dus readRow ziet hem niet; voor de bewaker
+    // halen we hem rechtstreeks op.
+    const gearchiveerd = handle.raw
+      .prepare(`SELECT * FROM ${definition.table} WHERE id = ?`)
+      .get(id) as Row | undefined;
+    if (!gearchiveerd) throw new ApiError(404, 'niet_gevonden', 'Dit record bestaat niet.');
+
+    definition.beforeWrite?.({
+      handle,
+      gebruiker: user,
+      invoer: {},
+      bestaand: gearchiveerd,
+      actie: 'hersteld',
+    });
+
     const result = handle.raw
       .prepare(`UPDATE ${definition.table} SET archived_at = NULL WHERE id = ?`)
       .run(id);
@@ -521,6 +561,25 @@ export async function registerCrudRoutes(app: FastifyInstance): Promise<void> {
     const handle = request.core.handle;
     const placeholders = ids.map(() => '?').join(', ');
     let changed = 0;
+
+    // Eerst alle rijen langs de bewaker, en pas daarna schrijven: een bulk die
+    // halverwege op een record van een collega stuit, mag de eerste helft niet
+    // al hebben doorgevoerd.
+    if (definition.beforeWrite) {
+      for (const id of ids) {
+        const bestaand = handle.raw
+          .prepare(`SELECT * FROM ${definition.table} WHERE id = ?`)
+          .get(id) as Row | undefined;
+        if (!bestaand) continue;
+        definition.beforeWrite({
+          handle,
+          gebruiker: user,
+          invoer: { ...(body.payload ?? {}) },
+          bestaand,
+          actie: 'bulk',
+        });
+      }
+    }
 
     switch (body.action) {
       case 'archive': {

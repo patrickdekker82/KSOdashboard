@@ -370,6 +370,228 @@ describe('autorisatie per rol', () => {
   });
 });
 
+describe('verlof en inzet horen bij een persoon', () => {
+  /** Het id van een medewerker op zijn initialen. */
+  const gebruikerId = (initialen: string): number =>
+    Number(
+      (handle.raw.prepare('SELECT id FROM users WHERE initials = ?').get(initialen) as { id: number })
+        .id,
+    );
+
+  const verlofType = (): number =>
+    Number(
+      (
+        handle.raw.prepare("SELECT id FROM absence_types WHERE code = 'VERLOF'").get() as {
+          id: number;
+        }
+      ).id,
+    );
+
+  it('vult de medewerker in als de aanvrager die weglaat', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: verlofType(), start_date: '2026-12-21', end_date: '2026-12-24' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().data.user_id).toBe(gebruikerId('DM'));
+  });
+
+  it('laat een gewone gebruiker geen verlof voor een collega boeken', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        user_id: gebruikerId('RB'),
+        absence_type_id: verlofType(),
+        start_date: '2026-12-21',
+        end_date: '2026-12-24',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe('alleen_eigen');
+  });
+
+  // Dit was het gat: /approve eist de rol manager, maar een gewone POST met
+  // status 'goedgekeurd' liep daar zo omheen.
+  it('laat een gebruiker zijn eigen aanvraag niet meteen goedkeuren', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        absence_type_id: verlofType(),
+        start_date: '2026-12-21',
+        end_date: '2026-12-24',
+        status: 'goedgekeurd',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe('status_via_stroom');
+  });
+
+  it('laat een gebruiker een bestaande aanvraag ook niet omzetten naar goedgekeurd', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const aangemaakt = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: verlofType(), start_date: '2026-12-21', end_date: '2026-12-24' },
+    });
+    const id = Number(aangemaakt.json().data.id);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/absences/${id}`,
+      headers: headers(cookie),
+      payload: { status: 'goedgekeurd' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    const rij = handle.raw.prepare('SELECT status FROM absences WHERE id = ?').get(id) as {
+      status: string;
+    };
+    expect(rij.status).toBe('aangevraagd');
+  });
+
+  it('laat een gebruiker de aanvraag van een collega niet wijzigen', async () => {
+    const vanRobert = handle.raw
+      .prepare(
+        `INSERT INTO absences (user_id, absence_type_id, start_date, end_date, status)
+         VALUES (?, ?, '2026-11-02', '2026-11-06', 'aangevraagd')`,
+      )
+      .run(gebruikerId('RB'), verlofType());
+    const id = Number(vanRobert.lastInsertRowid);
+
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/absences/${id}`,
+      headers: headers(cookie),
+      payload: { note: 'toch maar niet' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe('alleen_eigen');
+  });
+
+  it('laat een gebruiker de aanvraag van een collega niet verwijderen', async () => {
+    const vanRobert = handle.raw
+      .prepare(
+        `INSERT INTO absences (user_id, absence_type_id, start_date, end_date, status)
+         VALUES (?, ?, '2026-11-02', '2026-11-06', 'aangevraagd')`,
+      )
+      .run(gebruikerId('RB'), verlofType());
+    const id = Number(vanRobert.lastInsertRowid);
+
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/absences/${id}`,
+      headers: headers(cookie),
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  // Een bulk die halverwege op een record van een collega stuit, mag de eerste
+  // helft niet al hebben doorgevoerd.
+  it('voert een bulkactie niet half uit als er een collega tussen zit', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const eigen = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: verlofType(), start_date: '2026-12-21', end_date: '2026-12-24' },
+    });
+    const eigenId = Number(eigen.json().data.id);
+
+    const vanRobert = handle.raw
+      .prepare(
+        `INSERT INTO absences (user_id, absence_type_id, start_date, end_date, status)
+         VALUES (?, ?, '2026-11-02', '2026-11-06', 'aangevraagd')`,
+      )
+      .run(gebruikerId('RB'), verlofType());
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences/bulk',
+      headers: headers(cookie),
+      payload: { action: 'archive', ids: [eigenId, Number(vanRobert.lastInsertRowid)] },
+    });
+
+    expect(response.statusCode).toBe(403);
+    const rij = handle.raw.prepare('SELECT archived_at FROM absences WHERE id = ?').get(eigenId) as {
+      archived_at: string | null;
+    };
+    expect(rij.archived_at).toBeNull();
+  });
+
+  it('laat een manager wel voor een collega plannen', async () => {
+    const cookie = await login('manager@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        user_id: gebruikerId('RB'),
+        absence_type_id: verlofType(),
+        start_date: '2026-12-21',
+        end_date: '2026-12-24',
+        status: 'goedgekeurd',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().data.status).toBe('goedgekeurd');
+  });
+
+  it('geldt dezelfde regel voor inzet elders', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const type = handle.raw.prepare('SELECT id FROM allocation_types LIMIT 1').get() as { id: number };
+
+    const eigen = await app.inject({
+      method: 'POST',
+      url: '/api/v1/capacity-allocations',
+      headers: headers(cookie),
+      payload: {
+        allocation_type_id: type.id,
+        title: 'Meewerken aan de nieuwbouwshowroom',
+        start_date: '2026-10-05',
+        end_date: '2026-10-16',
+        allocation_mode: 'percentage',
+        allocation_value: 40,
+      },
+    });
+    expect(eigen.statusCode).toBe(201);
+    expect(eigen.json().data.user_id).toBe(gebruikerId('DM'));
+
+    const vanCollega = await app.inject({
+      method: 'POST',
+      url: '/api/v1/capacity-allocations',
+      headers: headers(cookie),
+      payload: {
+        user_id: gebruikerId('RB'),
+        allocation_type_id: type.id,
+        title: 'Voor een ander plannen',
+        start_date: '2026-10-05',
+        end_date: '2026-10-16',
+        allocation_mode: 'percentage',
+        allocation_value: 40,
+      },
+    });
+    expect(vanCollega.statusCode).toBe(403);
+  });
+});
+
 describe('capaciteit en beschikbaarheid', () => {
   it('levert een weekreeks met belasting, capaciteit en status', async () => {
     const cookie = await login();
@@ -475,6 +697,49 @@ describe('capaciteit en beschikbaarheid', () => {
     expect(data.afwezigheid.length).toBeGreaterThan(0);
     expect(data.inzet.length).toBeGreaterThan(0);
     expect(data.weken.length).toBe(9);
+  });
+});
+
+describe('verlofsaldo', () => {
+  it('geeft per medewerker recht, opgenomen en wat er nog vrij te plannen is', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/leave-balances/overview?year=${REFERENCE.getUTCFullYear()}`,
+      headers: headers(cookie),
+    });
+
+    expect(response.statusCode).toBe(200);
+    const saldi = response.json().data as Array<Record<string, number | string | boolean>>;
+
+    const robert = saldi.find((saldo) => saldo.initials === 'RB')!;
+    expect(robert.rechtUren).toBe(160); // vier dagen van acht uur, 25 dagen recht
+    expect(robert.overgeheveldUren).toBe(8);
+    // Twee weken vakantie op een vierdaags rooster is acht werkdagen.
+    expect(robert.opgenomenUren).toBe(64);
+    expect(robert.resterendUren).toBe(104);
+    expect(robert.rechtVastgelegd).toBe(true);
+
+    // De ziekmelding van RB gaat niet van zijn verlof af.
+    const dennis = saldi.find((saldo) => saldo.initials === 'DM')!;
+    expect(dennis.opgenomenUren).toBe(24); // drie losse verlofdagen
+
+    // Wie geen recht heeft vastgelegd, staat er ook bij — juist dat wil een
+    // manager zien.
+    const acquisitie = saldi.find((saldo) => saldo.initials === 'MA')!;
+    expect(acquisitie.rechtVastgelegd).toBe(false);
+  });
+
+  it('weigert een onzinnig jaartal', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/leave-balances/overview?year=12',
+      headers: headers(cookie),
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.code).toBe('ongeldig_jaar');
   });
 });
 

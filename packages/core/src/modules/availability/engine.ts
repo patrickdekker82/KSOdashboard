@@ -64,12 +64,18 @@ export function scheduleOn(
 }
 
 /** Scheduled hours for one weekday (ISO: Monday = 1 ... Sunday = 7). */
-function hoursForWeekday(dayHours: DayHours, weekday: number): number {
+export function hoursForWeekday(dayHours: DayHours, weekday: number): number {
   return dayHours[weekday - 1] ?? 0;
 }
 
-/** Fraction of a day covered by an absence, honouring day part and overrides. */
-function absenceHoursForDay(
+/**
+ * Fraction of a day covered by an absence, honouring day part and overrides.
+ *
+ * Exported because the leave balance (hoofdstuk 6.4.4) has to count exactly the
+ * same hours. Two implementations of "how long is half a Wednesday for someone
+ * who works four days" would drift apart the moment one of them is corrected.
+ */
+export function absenceHoursForDay(
   absence: AbsenceInput,
   dayScheduledHours: number,
   date: Date,

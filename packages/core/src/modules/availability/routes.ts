@@ -13,6 +13,7 @@ import { computeUserWeekAvailability } from './engine.ts';
 import { generateHolidays } from './holidays.ts';
 import { maySeeAbsenceType, type SessionUser } from '../auth/session.ts';
 import { parseWeekParam } from '../capacity/routes.ts';
+import { laadSaldi } from '../leave/repository.ts';
 import type { DatabaseHandle } from '../../db/client.ts';
 
 type Row = Record<string, unknown>;
@@ -267,6 +268,19 @@ export async function registerAvailabilityRoutes(app: FastifyInstance): Promise<
     }
 
     return { jaar: year, toegevoegd, totaal: holidays.length };
+  });
+
+  /**
+   * Het verlofsaldo per medewerker: recht, overheveling, opgenomen en wat er
+   * nog vrij te plannen valt. Alles in uren (hoofdstuk 6.4.4).
+   */
+  app.get('/api/v1/leave-balances/overview', async (request) => {
+    const query = request.query as Record<string, unknown>;
+    const jaar = Number(query.year ?? new Date().getUTCFullYear());
+    if (!Number.isInteger(jaar) || jaar < 1970 || jaar > 2200) {
+      throw new ApiError(400, 'ongeldig_jaar', 'Geef een geldig jaartal op.');
+    }
+    return { data: laadSaldi(request.core.handle, jaar), meta: { jaar } };
   });
 
   app.get('/api/v1/leave-balances', async (request) => {

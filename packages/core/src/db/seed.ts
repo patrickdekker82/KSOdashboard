@@ -752,6 +752,25 @@ export function seedDemo(handle: DatabaseHandle, reference: IsoWeek): void {
     }
   });
 
+  // --- verlofrecht ----------------------------------------------------------
+  // Vijfentwintig vakantiedagen naar rato van het rooster: acht uur maal vijf
+  // dagen is tweehonderd uur, en Robert werkt vier dagen dus honderdzestig.
+  // Alleen demodata: welk recht er echt geldt, vult een beheerder zelf in.
+  for (const [userId, recht, overgeheveld] of [
+    [dm, 200, 12],
+    [pd, 200, 0],
+    [rb, 160, 8],
+  ] as const) {
+    run(
+      `INSERT INTO leave_balances (user_id, year, entitlement_hours, carried_over_hours, note)
+       VALUES (?, ?, ?, ?, 'Demogegeven: 25 vakantiedagen naar rato van het rooster')`,
+      userId,
+      reference.year,
+      recht,
+      overgeheveld,
+    );
+  }
+
   // --- afwezigheid ----------------------------------------------------------
   const absenceTypeId = (code: string): number =>
     scalar('SELECT id FROM absence_types WHERE code = ?', code);

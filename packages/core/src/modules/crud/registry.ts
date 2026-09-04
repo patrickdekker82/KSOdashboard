@@ -9,6 +9,7 @@
 import type { UserRole } from '@showroom/shared';
 import type { DatabaseHandle } from '../../db/client.ts';
 import { herberekenKans, herberekenViaRegel } from '../opportunities/recalculate.ts';
+import { eigenRegistratie } from './guards.ts';
 
 export type EntityDefinition = {
   /** URL segment, e.g. `capacity-allocations`. */
@@ -39,9 +40,28 @@ export type EntityDefinition = {
     handle: DatabaseHandle;
     rij: Record<string, unknown> | null;
     id: number;
-    actie: 'aangemaakt' | 'gewijzigd' | 'verwijderd' | 'hersteld' | 'bulk';
+    actie: SchrijfActie;
+  }) => void;
+  /**
+   * Draait vóór elke schrijfactie, als laatste horde voor de database.
+   *
+   * Bedoeld voor regels die de factory zelf niet kent: wie een record mag
+   * aanraken, en welke kolommen buiten bereik van een gewone gebruiker
+   * blijven. De haak mag `invoer` aanpassen — een ontbrekende medewerker
+   * invullen bijvoorbeeld — en gooit een ApiError om de schrijfactie te
+   * weigeren. `bestaand` is de rij zoals die nu in de database staat, en is
+   * `null` bij het aanmaken.
+   */
+  beforeWrite?: (context: {
+    handle: DatabaseHandle;
+    gebruiker: { id: number; role: UserRole };
+    invoer: Record<string, unknown>;
+    bestaand: Record<string, unknown> | null;
+    actie: SchrijfActie;
   }) => void;
 };
+
+export type SchrijfActie = 'aangemaakt' | 'gewijzigd' | 'verwijderd' | 'hersteld' | 'bulk';
 
 const AUDIT = ['created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at'];
 
@@ -198,6 +218,10 @@ export const ENTITIES: EntityDefinition[] = [
     ],
     filterable: ['id', 'user_id', 'absence_type_id', 'start_date', 'end_date', 'status', ...AUDIT],
     defaultSort: 'start_date DESC',
+    // Verlof is van een persoon en kent een goedkeuringsstroom: zonder deze
+    // bewaker kon iedereen verlof voor een collega boeken en zijn eigen
+    // aanvraag meteen goedkeuren.
+    beforeWrite: eigenRegistratie({ wat: 'verlofaanvraag', statusViaStroom: true }),
   }),
   entity({
     key: 'capacity-allocations',
@@ -210,6 +234,7 @@ export const ENTITIES: EntityDefinition[] = [
     filterable: ['id', 'user_id', 'allocation_type_id', 'project_id', 'start_date', 'end_date', 'status', ...AUDIT],
     searchable: ['title', 'external_project_name'],
     defaultSort: 'start_date DESC',
+    beforeWrite: eigenRegistratie({ wat: 'inzet elders' }),
   }),
   entity({
     key: 'work-schedules',
