@@ -48,13 +48,18 @@ declare module 'fastify' {
 }
 
 export class ApiError extends Error {
-  constructor(
-    readonly statusCode: number,
-    readonly code: string,
-    message: string,
-    readonly details?: unknown,
-  ) {
+  // Geen parameter properties: Node kan TypeScript alleen strippen, niet
+  // omzetten, en struikelt daarover bij het draaien van de kern zonder build.
+  readonly statusCode: number;
+  readonly code: string;
+  readonly details?: unknown;
+
+  constructor(statusCode: number, code: string, message: string, details?: unknown) {
     super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
   }
 }
 

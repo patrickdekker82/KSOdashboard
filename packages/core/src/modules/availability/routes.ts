@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify';
 import {
   addIsoWeeks,
   getIsoWeek,
-  isoWeekKey,
   isoWeekRange,
   type IsoWeek,
 } from '@showroom/shared';

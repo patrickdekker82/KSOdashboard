@@ -1,0 +1,58 @@
+appId: nl.showroom.suite
+productName: Showroom Suite
+copyright: Afdeling Showroom
+
+directories:
+  output: release
+  buildResources: build
+
+asar: true
+asarUnpack:
+  # Een .node-binary moet als bestand op schijf staan om geladen te kunnen worden.
+  - '**/node_modules/@node-rs/**'
+
+files:
+  - out/**/*
+  - package.json
+  - node_modules/@node-rs/**
+  - '!**/*.map'
+
+extraResources:
+  # De migraties en views worden als bestand ingelezen, niet gebundeld, zodat
+  # ze leesbaar en controleerbaar blijven.
+  - from: packages/core/src/db/migrations
+    to: db/migrations
+  - from: packages/core/src/db/views.sql
+    to: db/views.sql
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: ShowroomSuite-Setup-${version}.${ext}
+
+nsis:
+  # Installatie per gebruiker: geen adminrechten nodig (hoofdstuk 15.1).
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Showroom Suite
+  language: '1043'  # Nederlands
+  installerLanguages:
+    - nl_NL
+
+# macOS en Linux staan hier wel, maar zijn buiten scope (hoofdstuk 16.1).
+mac:
+  target: [dmg]
+  category: public.app-category.business
+linux:
+  target: [AppImage]
+  category: Office
+
+publish:
+  provider: generic
+  url: https://example.invalid/showroom-updates
+  # De echte bron (netwerkmap of GitHub Releases) staat in de instellingen.

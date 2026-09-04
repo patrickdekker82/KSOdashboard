@@ -5,12 +5,27 @@
  * recorded in `schema_migrations`. No ORM generates or reorders them, so what
  * runs in production is exactly what is in the repository (hoofdstuk 0).
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DatabaseHandle } from './client.ts';
 
-const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'migrations');
+/**
+ * Where the .sql files live.
+ *
+ * In development they sit next to this module. In a packaged app they are
+ * shipped as extraResources under `resources/db`, deliberately unbundled so
+ * they stay readable and auditable on the installed machine.
+ */
+function resolveSqlDir(name: 'migrations' | '.'): string {
+  const packaged = process.resourcesPath
+    ? join(process.resourcesPath, 'db', name === 'migrations' ? 'migrations' : '')
+    : null;
+  if (packaged && existsSync(packaged)) return packaged;
+  return join(dirname(fileURLToPath(import.meta.url)), name === 'migrations' ? 'migrations' : '');
+}
+
+const MIGRATIONS_DIR = resolveSqlDir('migrations');
 
 export type AppliedMigration = { name: string; appliedAt: string };
 
@@ -80,7 +95,7 @@ export function schemaVersion(handle: DatabaseHandle): string {
   return migrations.at(-1)?.name ?? '0000_leeg';
 }
 
-const VIEWS_FILE = join(dirname(fileURLToPath(import.meta.url)), 'views.sql');
+const VIEWS_FILE = join(resolveSqlDir('.'), 'views.sql');
 
 /**
  * (Re)creates the reporting views. Views hold no data, so they are simply

@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+/*
+ * Thematokens. De kleuren komen uit packages/shared/src/constants.ts en zijn
+ * gecontroleerd op leesbaarheid voor kleurenblinden, apart voor licht en
+ * donker (hoofdstuk 9).
+ */
+@theme {
+  --color-belasting: #2563eb;
+  --color-capaciteit: #16a34a;
+  --color-verlof: #64748b;
+  --color-ziekte: #dc2626;
+  --color-inzet: #7c3aed;
+}
+
+:root {
+  color-scheme: light dark;
+  --oppervlak: #fcfcfb;
+  --oppervlak-2: #ffffff;
+  --rand: #e2e8f0;
+  --inkt: #0f172a;
+  --inkt-zacht: #475569;
+  --inkt-stil: #64748b;
+  --belasting: #2563eb;
+  --capaciteit: #16a34a;
+  --verlof: #64748b;
+  --ziekte: #dc2626;
+  --inzet: #7c3aed;
+  --gesloten: #e2e8f0;
+}
+
+/* Systeemvoorkeur, tenzij de gebruiker zelf een thema koos. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-thema='licht']) {
+    --oppervlak: #0b0f19;
+    --oppervlak-2: #131a29;
+    --rand: #1e293b;
+    --inkt: #e2e8f0;
+    --inkt-zacht: #94a3b8;
+    --belasting: #3b82f6;
+    --ziekte: #ef4444;
+    --inzet: #8b5cf6;
+    --gesloten: #1e293b;
+  }
+}
+
+/* Een expliciete keuze wint altijd, in beide richtingen. */
+:root[data-thema='donker'] {
+  --oppervlak: #0b0f19;
+  --oppervlak-2: #131a29;
+  --rand: #1e293b;
+  --inkt: #e2e8f0;
+  --inkt-zacht: #94a3b8;
+  --inkt-stil: #64748b;
+  --belasting: #3b82f6;
+  --ziekte: #ef4444;
+  --inzet: #8b5cf6;
+  --gesloten: #1e293b;
+}
+
+body {
+  margin: 0;
+  background: var(--oppervlak);
+  color: var(--inkt);
+  font-family:
+    'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Gesloten weken en prognose krijgen een arcering, zodat ze ook zonder kleur
+   te onderscheiden zijn. */
+.arcering-gesloten {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    var(--rand) 4px,
+    var(--rand) 6px
+  );
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--belasting);
+  outline-offset: 2px;
+}
+
+table.compact td,
+table.compact th {
+  height: 36px;
+}
