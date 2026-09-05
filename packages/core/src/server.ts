@@ -37,6 +37,7 @@ import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
 import { registerAiRoutes } from './modules/ai/routes.ts';
 import { registerQueryRoutes } from './modules/query/routes.ts';
+import { registerBackupRoutes } from './modules/backup/routes.ts';
 
 export { ApiError };
 
@@ -173,6 +174,7 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   await registerEmailRoutes(app);
   await registerAiRoutes(app);
   await registerQueryRoutes(app);
+  await registerBackupRoutes(app);
   await registerCrudRoutes(app);
 
   return app;

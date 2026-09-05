@@ -110,35 +110,119 @@ verlof).
 
 ## Back-up en herstel
 
-Elke nacht om 23:00 maakt de app een back-up met `VACUUM INTO`, plus een
-back-up bij het afsluiten als er die dag nog geen was. Bewaartermijn: 30
-dagelijkse en 12 maandelijkse.
+Alles staat bij **Instellingen → Back-up & herstel**.
 
-Voordat een migratie draait, maakt de app altijd eerst een kopie. Mislukt de
-migratie, dan wordt hij teruggedraaid en blijft de database op de vorige versie
-staan.
+### Wat er automatisch gebeurt
 
-**Stel een tweede back-uppad in** op een netwerkschijf of in OneDrive. Dat is
-juist de plek waar kopieën horen. De actieve database mag daar nooit staan —
-dat blokkeert de app.
+Elke nacht op het ingestelde tijdstip (standaard 23:00) maakt de app een
+back-up met `VACUUM INTO`. Dat is geen bestandskopie maar een consistente
+kopie die SQLite zelf wegschrijft: bij een gewone kopie zou een wijziging van
+vlak daarvoor nog in het `-wal`-bestand kunnen staan en dus niet in de back-up.
 
-Herstellen: Instellingen → Back-up & herstel → kies een back-up. De huidige
-database wordt hernoemd naar `showroom-voor-herstel-*.db`, dus u kunt altijd
-terug.
+De app kijkt elke tien minuten of de back-up van vandaag al gedraaid heeft.
+Stond de pc 's nachts uit, dan wordt hij alsnog gemaakt zodra de machine aan
+gaat. Er komt hooguit één automatische back-up per dag.
+
+Standaard blijven de laatste 30 automatische back-ups staan; oudere worden bij
+de loop opgeruimd. Handmatige back-ups worden nooit automatisch weggegooid.
+
+Voordat een migratie draait, maakt de app altijd eerst een kopie.
+
+### Een tweede doelmap
+
+**Stel een tweede back-uppad in** op een netwerkschijf. Dat is juist de plek
+waar kopieën horen. De *actieve database* mag daar nooit staan — dat blokkeert
+de app, en het scherm waarschuwt als de database toch op zo'n plek terecht is
+gekomen.
+
+### Controleren
+
+Bij elke back-up staat een knop **Controleren**. Die kijkt of het bestand heel
+is en of het echt een database van deze applicatie is, zonder iets terug te
+zetten. Doe dat af en toe: een back-up die u nooit controleert is een aanname,
+geen back-up.
+
+### Terugzetten
+
+Instellingen → Back-up & herstel → **Terugzetten…** bij de gewenste back-up, en
+daarna bevestigen. Wat er dan gebeurt:
+
+1. De back-up wordt gecontroleerd. Is hij beschadigd of van een andere
+   applicatie, dan stopt het hier en blijft de database ongemoeid.
+2. Van de huidige database wordt een kopie gemaakt als
+   `showroom-voor-herstel-*.db` in de back-upmap. U kunt dus altijd terug.
+3. De back-up wordt naast de database gezet en pas dan omgewisseld, zodat er
+   geen moment is waarop er geen database is.
+4. De applicatie start opnieuw.
+
+Alles wat ná die back-up is ingevoerd is daarna weg. Het scherm zegt dat er ook
+bij voordat u bevestigt.
+
+### Logboek
+
+Onderaan het scherm staat elke loop: wanneer, welke soort, door wie, hoe groot,
+hoe lang, en of het lukte. Ook mislukte pogingen staan erin — dat is het hele
+punt. De signaleringsregel **Back-up mislukt** leest dit logboek en meldt het op
+het dashboard als de laatste poging mislukte, als er twee dagen niets gelukt is,
+of als er nog nooit een back-up gemaakt is.
 
 ## Netwerkstand
+
+Bij **Instellingen → Netwerk & updates**.
 
 | Stand | Wat het doet |
 |---|---|
 | Alleenstaand | alleen deze pc. De standaard. |
-| Host | ook bereikbaar op het netwerk, bijvoorbeeld `http://192.168.1.42:4317` |
-| Client | verbindt met een host in plaats van een eigen database te openen |
+| Host | ook bereikbaar op het bedrijfsnetwerk |
 
-In hostmodus is inloggen met wachtwoord verplicht en moet de host-pc aan staan.
-Een telefoon op hetzelfde netwerk kan het adres in de browser openen en als app
-installeren. Buiten kantoor werkt dat alleen via een VPN zoals Tailscale.
+In de hostmodus toont het scherm de adressen die een collega in zijn browser
+moet typen, bijvoorbeeld `http://192.168.1.42:4317`. Er is geen aparte
+clientinstallatie: wie meekijkt doet dat in de browser. Dat is met opzet —
+één versie van de schermen, en niets om apart bij te werken.
 
-Zet bij hostmodus ook "automatisch starten bij aanmelden" aan.
+De database blijft op de host-pc staan, en dat is de bedoeling: een database op
+een netwerkschijf raakt beschadigd. De host-pc moet dus aan staan; zet daar ook
+**automatisch starten bij aanmelden** aan.
+
+Inloggen met wachtwoord blijft verplicht, ook op het netwerk. Windows Firewall
+vraagt de eerste keer om toestemming voor de poort; sta die toe voor het
+*particuliere* netwerk, niet voor het openbare.
+
+Een telefoon op hetzelfde netwerk kan het adres in de browser openen en via
+"aan beginscherm toevoegen" als app neerzetten — met eigen pictogram en zonder
+adresbalk. De schermen schakelen dan naar de mobiele opzet: het menu wordt een
+lade, tabellen scrollen zijwaarts. Er wordt niets op de telefoon bewaard; zonder
+verbinding met de host werkt hij niet, en dat is met opzet zo.
+
+Buiten kantoor werkt dit alleen via een VPN zoals Tailscale. Dat valt buiten
+deze applicatie.
+
+## Updates
+
+Bij **Instellingen → Netwerk & updates**, onderaan.
+
+De applicatie haalt uit zichzelf nergens iets op. Wijs een map aan waar u de
+installer neerzet — meestal een map op de netwerkschijf. Blijft het veld leeg,
+dan wordt er nooit ergens gekeken, en dat is de stand waarin de applicatie
+geleverd wordt.
+
+Zet in die map naast de installer een bestand `versie.json`:
+
+```json
+{
+  "versie": "0.2.0",
+  "bestand": "ShowroomSuite-Setup-0.2.0.exe",
+  "uitgebracht": "2026-09-07",
+  "opmerkingen": "Rapportages en export toegevoegd"
+}
+```
+
+Klikt een gebruiker op **Nu controleren**, dan leest de app dat bestand en
+vergelijkt het versienummer. Is er iets nieuwers, dan zegt hij dat en kan de
+gebruiker met één knop het installatiebestand in de verkenner tonen. De
+applicatie vervangt zichzelf niet: dat dubbelklikken doet de gebruiker zelf, op
+een moment dat hem uitkomt. De installatie is per gebruiker, dus daar zijn geen
+beheerdersrechten voor nodig, en de gegevens blijven staan.
 
 ## Microsoft 365 koppelen
 

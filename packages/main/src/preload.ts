@@ -18,6 +18,34 @@ export type HostStatus = {
 
 export type SaveResult = { opgeslagen: boolean; pad?: string };
 
+/** Wat `config:lezen` teruggeeft: de instellingen van déze werkplek. */
+export type AppInstellingen = {
+  mode: 'standalone' | 'host' | 'client';
+  port: number;
+  hostAddress?: string;
+  dataDirectory?: string;
+  minimiseToTray: boolean;
+  globalShortcut: string;
+  autoStart: boolean;
+  updateLocatie: string;
+  gegevensmap: string;
+  versie: string;
+  /** De IPv4-adressen waarop deze pc in de hostmodus bereikbaar is. */
+  adressen: string[];
+};
+
+export type Updateuitkomst = {
+  ingeschakeld: boolean;
+  huidigeVersie: string;
+  nieuwsteVersie: string | null;
+  nieuwerBeschikbaar: boolean;
+  installer: string | null;
+  uitgebracht: string | null;
+  opmerkingen: string | null;
+  fout: string | null;
+  gecontroleerdOp: string;
+};
+
 const api = {
   appVersie: (): Promise<string> => ipcRenderer.invoke('app:versie'),
   hostStatus: (): Promise<HostStatus> => ipcRenderer.invoke('kern:status'),
@@ -35,6 +63,19 @@ const api = {
   meldingTonen: (titel: string, tekst: string, link?: string): Promise<void> =>
     ipcRenderer.invoke('melding:tonen', titel, tekst, link),
   externeLink: (url: string): Promise<void> => ipcRenderer.invoke('link:extern', url),
+  // --- fase 12: appinstellingen, herstel en updates -------------------------
+  configLezen: (): Promise<AppInstellingen> => ipcRenderer.invoke('config:lezen'),
+  configSchrijven: (
+    wijziging: Partial<AppInstellingen>,
+  ): Promise<{ opgeslagen: boolean; herstartNodig: boolean }> =>
+    ipcRenderer.invoke('config:schrijven', wijziging),
+  backupHerstellen: (
+    bestandsnaam: string,
+  ): Promise<{ hersteld: boolean; veiligheidskopie?: string }> =>
+    ipcRenderer.invoke('backup:herstellen', bestandsnaam),
+  updateControleren: (): Promise<Updateuitkomst> => ipcRenderer.invoke('update:controleren'),
+  installerTonen: (pad: string): Promise<void> => ipcRenderer.invoke('update:installer-tonen', pad),
+
   onNavigatie: (handler: (route: string) => void): (() => void) => {
     const listener = (_event: unknown, route: string): void => handler(route);
     ipcRenderer.on('navigeer', listener);

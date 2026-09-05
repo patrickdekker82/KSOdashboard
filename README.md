@@ -21,15 +21,23 @@ webadres om te onthouden, werkt volledig offline.
 | Kansen: kanban, disciplineregels, winnen/verliezen, trechterrapport | **af** |
 | Verlof: aanvragen, goedkeuren, saldo in uren, inzet elders | **af** |
 | Projecten met fasering en de Excel-/CSV-planningimport | **af** |
-| Dashboard met KPI's en zeventien signaleringsregels | **af** |
+| Dashboard met KPI's en achttien signaleringsregels | **af** |
 | Duurzaamheidspakketten, offertes en PDF | **af** |
 | Opvolging, bellijsten en e-mail uit sjablonen | **af** |
 | AI-assistent: standaard uit, anonimiseert, logt elke aanroep | **af** |
 | Rapportages: query-bouwer, SQL-modus, export naar Excel, Word, CSV en PDF | **af** |
-| Hostmodus, mobiele weergave en automatische updates (fase 12) | nog niet gebouwd |
+| Back-up, herstel en de achttiende signaleringsregel | **af** |
+| Hostmodus, mobiele weergave, updatecontrole en de beheerschermen | **af** |
 
-De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
-fase ze komen. De gegevens erachter staan al wel in de database.
+Alle twaalf bouwfasen uit de opdracht zijn opgeleverd. Wat er bewust niet in
+zit — de Microsoft Graph-koppeling voor automatisch mailen — staat met de
+afweging erbij in `docs/BESLISSINGEN.md`, en het scherm zegt het zelf.
+
+Twee dingen zijn niet geverifieerd en dat hoort u te weten voordat u dit in
+gebruik neemt: `npm run build:win` is nooit gedraaid (er is hier geen Windows en
+geen wine), en het Electron-venster is nooit geopend. De kern, de API en alle
+bestandsformaten zijn wél tegen een draaiende server getest, en de export is
+gecontroleerd met andermans lezers (openpyxl, python-docx, sqlite3).
 
 Zie `CHANGELOG.md` voor wat er per stap is opgeleverd en `docs/BESLISSINGEN.md`
 voor de keuzes die onderweg zijn gemaakt.
@@ -212,9 +220,9 @@ module.
 
 ## Signaleringen
 
-Elk uur rekent de kern zeventien regels door: capaciteitsgaten, overbezette
+Elk uur rekent de kern achttien regels door: capaciteitsgaten, overbezette
 weken, projecten zonder planning, kansen die stilstaan, offertes waar niets op
-terugkomt, en zo verder. Wat eruit komt zijn meldingen op het dashboard, op
+terugkomt, een back-up die mislukte, en zo verder. Wat eruit komt zijn meldingen op het dashboard, op
 ernst gesorteerd — met het woord "urgent" of "let op" erbij, niet alleen een
 kleur.
 

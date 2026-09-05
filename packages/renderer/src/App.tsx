@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ApiFout, endpoints, type Gebruiker } from './lib/api.ts';
 import { ROUTES, useRoute } from './lib/routes.ts';
+import { useSmalScherm } from './lib/schermformaat.ts';
 import { Inloggen } from './features/Inloggen.tsx';
 import { Dashboard } from './features/Dashboard.tsx';
 import { Planning } from './features/Planning.tsx';
@@ -16,6 +17,14 @@ import { Opvolging } from './features/opvolging/Opvolging.tsx';
 import { OfferteDetail } from './features/duurzaamheid/OfferteDetail.tsx';
 import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { AiInstellingen } from './features/ai/AiInstellingen.tsx';
+import { Backup } from './features/instellingen/Backup.tsx';
+import { Netwerk } from './features/instellingen/Netwerk.tsx';
+import {
+  Capaciteit,
+  Gebruikers,
+  Keuzelijsten,
+  Werkroosters,
+} from './features/instellingen/Beheer.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import { Zoekbalk } from './components/Zoekbalk.tsx';
 import { Dubbelen } from './features/crm/Dubbelen.tsx';
@@ -28,6 +37,16 @@ import type { JSX } from 'react';
 
 export function App(): JSX.Element {
   const [pad, navigeer] = useRoute();
+  const smal = useSmalScherm();
+  // Op een telefoon begint het menu dicht: anders zie je bij het openen van de
+  // applicatie alleen navigatie en geen inhoud.
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Na het kiezen van een pagina hoort de lade dicht te gaan; blijft hij open,
+  // dan staat hij over de pagina heen die je net gekozen hebt.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pad]);
 
   const ik = useQuery({
     queryKey: ['ik'],
@@ -56,12 +75,20 @@ export function App(): JSX.Element {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Zijbalk pad={pad} navigeer={navigeer} />
+      {(!smal || menuOpen) && (
+        <Zijbalk
+          pad={pad}
+          navigeer={navigeer}
+          alsLade={smal}
+          onSluit={() => setMenuOpen(false)}
+        />
+      )}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Bovenbalk
           gebruiker={gebruiker}
           onUitloggen={() => void ik.refetch()}
           navigeer={navigeer}
+          onMenu={smal ? () => setMenuOpen((open) => !open) : undefined}
         />
         <main style={{ padding: 20, flex: 1, minWidth: 0 }}>
           <Inhoud pad={pad} navigeer={navigeer} gebruiker={gebruiker} />
@@ -101,6 +128,20 @@ function Inhoud({
     return <Regels onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/instellingen/ai'))
     return <AiInstellingen onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/backup'))
+    return <Backup onTerug={() => navigeer('/instellingen')} />;
+  // Zowel het menu-item "Controleer op updates" als de netwerkinstellingen
+  // komen hier uit; het is één scherm over deze werkplek.
+  if (pad.startsWith('/instellingen/netwerk') || pad.startsWith('/instellingen/updates'))
+    return <Netwerk onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/gebruikers'))
+    return <Gebruikers onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/roosters'))
+    return <Werkroosters onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/keuzelijsten'))
+    return <Keuzelijsten onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/capaciteit'))
+    return <Capaciteit onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Rapportages ik={gebruiker} />;
 
@@ -209,17 +250,25 @@ function Inhoud({
 function Zijbalk({
   pad,
   navigeer,
+  alsLade = false,
+  onSluit,
 }: {
   pad: string;
   navigeer: (pad: string) => void;
+  /** Op een telefoon schuift het menu over de inhoud in plaats van ernaast. */
+  alsLade?: boolean;
+  onSluit?: () => void;
 }): JSX.Element {
   const [ingeklapt, setIngeklapt] = useState(false);
+  // Een lade half ingeklapt tonen slaat nergens op; die is altijd uitgeklapt.
+  const smal = ingeklapt && !alsLade;
 
   return (
     <nav
       aria-label="Hoofdnavigatie"
+      className={alsLade ? 'zijbalk-lade' : undefined}
       style={{
-        width: ingeklapt ? 56 : 208,
+        width: smal ? 56 : 208,
         flexShrink: 0,
         background: 'var(--oppervlak-2)',
         borderRight: '1px solid var(--rand)',
@@ -228,13 +277,14 @@ function Zijbalk({
         flexDirection: 'column',
         gap: 2,
         transition: 'width 120ms ease',
+        overflowY: 'auto',
       }}
     >
       <button
         type="button"
         className="focus-ring"
-        aria-label={ingeklapt ? 'Menu uitklappen' : 'Menu inklappen'}
-        onClick={() => setIngeklapt((huidig) => !huidig)}
+        aria-label={alsLade ? 'Menu sluiten' : smal ? 'Menu uitklappen' : 'Menu inklappen'}
+        onClick={() => (alsLade ? onSluit?.() : setIngeklapt((huidig) => !huidig))}
         style={{
           background: 'transparent',
           border: 0,
@@ -246,7 +296,7 @@ function Zijbalk({
           fontWeight: 600,
         }}
       >
-        {ingeklapt ? '»' : '« Showroom Suite'}
+        {alsLade ? '× Sluiten' : smal ? '»' : '« Showroom Suite'}
       </button>
 
       {ROUTES.map((route, index) => {
@@ -279,7 +329,7 @@ function Zijbalk({
               }}
               title={route.label}
             >
-              {ingeklapt ? route.label.slice(0, 1) : route.label}
+              {smal ? route.label.slice(0, 1) : route.label}
             </a>
           </div>
         );
@@ -292,10 +342,13 @@ function Bovenbalk({
   gebruiker,
   onUitloggen,
   navigeer,
+  onMenu,
 }: {
   gebruiker: Gebruiker;
   onUitloggen: () => void;
   navigeer: (pad: string) => void;
+  /** Alleen op een smal scherm: de knop die de menulade opent. */
+  onMenu?: () => void;
 }): JSX.Element {
   const [versie, setVersie] = useState('');
 
@@ -314,6 +367,26 @@ function Bovenbalk({
         background: 'var(--oppervlak-2)',
       }}
     >
+      {onMenu !== undefined && (
+        <button
+          type="button"
+          className="focus-ring"
+          aria-label="Menu openen"
+          onClick={onMenu}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--rand)',
+            borderRadius: 6,
+            color: 'var(--inkt)',
+            cursor: 'pointer',
+            padding: '6px 10px',
+            fontSize: 16,
+            lineHeight: 1,
+          }}
+        >
+          ☰
+        </button>
+      )}
       <Zoekbalk navigeer={navigeer} />
 
       {/* Rechtsboven in een oogopslag wie er vandaag is (hoofdstuk 9). */}

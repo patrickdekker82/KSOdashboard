@@ -104,3 +104,69 @@ table.compact th {
   white-space: nowrap;
   border: 0;
 }
+
+/* ===========================================================================
+ * Mobiele weergave (hoofdstuk 12)
+ *
+ * Bereikbaar via de hostmodus: een collega opent het adres van de host op zijn
+ * telefoon. Dat is geen aparte applicatie maar hetzelfde scherm, en dus staan
+ * de aanpassingen hier en niet in een tweede codebase.
+ * ======================================================================== */
+
+@media (max-width: 720px) {
+  /* iOS zoomt in op een invoerveld met een lettergrootte onder 16px. Dat
+     springen is op een telefoon hinderlijker dan de iets grotere letter. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Een vinger is geen muisaanwijzer: 44 px is het minimum waar je nog
+     betrouwbaar op mikt. */
+  button,
+  select,
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-height: 32px;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 20px;
+    height: 20px;
+  }
+
+  main {
+    padding: 12px !important;
+  }
+
+  /* Kaartenrasters van twee of meer kolommen worden er één. */
+  .rooster-twee,
+  .rooster-drie {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Elke tabel mag zijwaarts scrollen in plaats van de pagina breed te maken. */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Het menu schuift op een telefoon over de inhoud heen in plaats van ernaast
+   te staan; anders blijft er van de inhoud niets over. */
+.zijbalk-lade {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  box-shadow: 0 0 0 100vw rgba(0, 0, 0, 0.35);
+}
+
+@media print {
+  nav[aria-label='Hoofdnavigatie'],
+  header button {
+    display: none !important;
+  }
+}

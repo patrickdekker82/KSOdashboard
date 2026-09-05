@@ -453,6 +453,24 @@ kan alleen wie hem gemaakt heeft, of een beheerder.
 Het tabblad **Trechter** is het vaste kansenrapport met de grafiek. Dat is geen
 bouwer maar een vast overzicht.
 
+## Op uw telefoon
+
+Staat de applicatie op de showroom-pc in de **hostmodus**, dan kunt u er met uw
+telefoon bij. Uw beheerder geeft u het adres, zoiets als
+`http://192.168.1.42:4317`. Typ dat in de browser en log in met uw eigen
+account.
+
+In het menu van de browser staat **Aan beginscherm toevoegen**. Doet u dat, dan
+krijgt u een pictogram zoals bij een gewone app en opent hij zonder adresbalk.
+
+Op een telefoon zit het menu achter de knop ☰ linksboven in plaats van in een
+balk aan de zijkant. Brede tabellen kunt u zijwaarts vegen.
+
+Dit werkt alleen op het bedrijfsnetwerk en alleen als de showroom-pc aan staat.
+Er wordt niets op uw telefoon bewaard: zonder verbinding werkt hij niet, en dat
+is met opzet — dan staan er ook geen klantgegevens op een toestel dat u kunt
+verliezen.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -463,17 +481,13 @@ bouwer maar een vast overzicht.
 | `Esc` | sluiten |
 | `Ctrl+Alt+S` | app naar voren, waar u ook bent |
 
-## Nog niet af
+## Wat de app bewust niet doet
 
-De netwerkmodus is nog niet gebouwd. Dat scherm zegt dat zelf, met de fase
-waarin het komt.
+Mailen gaat via een bestand dat u in Outlook opent. De app verstuurt niets uit
+zichzelf en haalt geen inkomende mail binnen; zie "Berichten versturen".
 
 De assistent houdt nog geen maandbudget bij. Wat het gekost heeft is wel per
 maand terug te zien bij Instellingen → AI → Logboek.
 
-Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
-back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook
-bij.
-
-De app haalt geen inkomende mail binnen en verstuurt niets automatisch. Mailen
-gaat via een bestand dat u in Outlook opent; zie "Berichten versturen".
+Verder gaat er niets naar buiten. De enige uitzondering is de assistent, en die
+staat uit tot een beheerder er een sleutel voor invult.

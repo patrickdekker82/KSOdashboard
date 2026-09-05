@@ -220,10 +220,12 @@ describe('meldingen aanmaken, bijwerken en sluiten', () => {
   });
 
   it('noemt regeltypes waarvoor nog geen code bestaat', () => {
-    regel('backup_failed');
+    // Een verzonnen type: elk type uit de seed heeft sinds fase 12 code, dus
+    // deze test heeft er zelf een nodig die niet bestaat.
+    regel('nog_niet_bedacht');
     const uitkomst = voerControleUit(handle, NU);
 
-    expect(uitkomst.onbekendeTypes).toEqual(['backup_failed']);
+    expect(uitkomst.onbekendeTypes).toEqual(['nog_niet_bedacht']);
     expect(uitkomst.gedraaid).toBe(0);
   });
 
@@ -314,9 +316,10 @@ describe('meldingen ophalen', () => {
 
 describe('de regellijst', () => {
   // De seed zet achttien regels klaar. Als er een type bij komt zonder code,
-  // hoort dat op te vallen — niet stilletjes nooit af te gaan.
-  it('kent elk regeltype uit de seed, behalve die van een latere fase', () => {
-    const uitTeStellen = new Set(['backup_failed']);
+  // hoort dat op te vallen — niet stilletjes nooit af te gaan. Sinds fase 12
+  // is `backup_failed` de laatste die erbij kwam, dus er hoort er geen meer
+  // over te zijn.
+  it('kent elk regeltype uit de seed', () => {
     const seedTypes = [
       'capacity_gap',
       'capacity_overload',
@@ -339,10 +342,6 @@ describe('de regellijst', () => {
     ];
 
     for (const type of seedTypes) {
-      if (uitTeStellen.has(type)) {
-        expect(REGELS.has(type)).toBe(false);
-        continue;
-      }
       expect(REGELS.has(type), `regeltype ${type} heeft geen code`).toBe(true);
     }
   });

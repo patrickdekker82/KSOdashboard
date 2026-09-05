@@ -8,6 +8,18 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
+    <!--
+      De mobiele weergave via de hostmodus (hoofdstuk 12). Met dit manifest kan
+      een collega het adres van de host op zijn telefoon "aan het beginscherm
+      toevoegen"; hij krijgt dan een eigen pictogram en een venster zonder
+      adresbalk. Er zit geen service worker bij: offline werken zou betekenen
+      dat er klantgegevens in de telefoon blijven staan, en dat is precies wat
+      deze applicatie niet doet.
+    -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <meta name="theme-color" content="#2563eb" />
     <title>Showroom Suite</title>
   </head>
   <body>

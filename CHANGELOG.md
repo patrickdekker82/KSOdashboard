@@ -303,7 +303,40 @@ telt is welke fase is opgeleverd.
   `fields/routes` → `registry`) viel om zodra iets anders dan de server als
   eerste geladen werd. `ApiError` staat nu in een eigen bestand.
 
+### Fase 12 — hostmodus, beheer, back-up en updates
+- **Back-up met `VACUUM INTO`** en niet met een bestandskopie: onder WAL staat
+  een verse wijziging nog niet in het hoofdbestand, en een platte kopie levert
+  dan een database op waar die rij niet in zit. Er staat een test op die dat
+  aantoont.
+- Elke loop komt in `backup_runs`, ook een mislukte, met soort, pad, grootte,
+  duur en wie het startte. Nachtelijke loop op een instelbaar tijdstip, met een
+  opruimbeleid en een optionele tweede doelmap op de netwerkschijf.
+- **Terugzetten** controleert eerst of de kopie heel is én van deze applicatie
+  is, maakt dan een veiligheidskopie van wat er stond, zet de nieuwe database
+  ernaast neer en wisselt pas dan om — er is geen moment zonder database. De
+  WAL-bestanden van de oude database gaan mee weg.
+- Herstellen loopt via de schil en niet via de API: alleen het hoofdproces kan
+  de kern stoppen, het bestand omwisselen en opnieuw starten.
+- **De achttiende signaleringsregel doet eindelijk iets.** `backup_failed`
+  meldt een mislukte loop, een loop die te lang geleden is, en het geval dat er
+  nog nooit een back-up gemaakt is. Sinds deze fase is `onbekendeTypes` leeg.
+- **Hostmodus**: de kern luistert ook op het LAN, en het netwerkscherm toont
+  de adressen die een collega in zijn browser moet typen. De database blijft op
+  de host staan — een database op een netwerkschijf raakt beschadigd.
+- **Mobiele weergave**: via de hostmodus, met een menulade in plaats van een
+  zijbalk, tabellen die zijwaarts scrollen en aanraakbare knoppen. Geen tweede
+  applicatie, hetzelfde scherm.
+- **Updatecontrole** tegen een door het bedrijf beheerde map (netwerkschijf),
+  standaard uit. Geen `electron-updater`, geen leveranciersserver, geen stille
+  zelfvervanging: de applicatie kijkt, meldt het en toont het installatiebestand.
+  Zie `docs/BESLISSINGEN.md`.
+- Versies worden per onderdeel vergeleken, niet als tekst: `0.10.0` is nieuwer
+  dan `0.9.0`. Daar staat een test op, want dit is precies de fout waarbij
+  iedereen maandenlang op een oude versie blijft zitten.
+- **De laatste vijf beheerschermen**: gebruikers en rollen, werkroosters,
+  keuzelijsten, capaciteitsinstellingen, back-up en netwerk. Alle tegels op het
+  instellingenscherm zijn nu ingevuld.
+
 ### Nog niet gebouwd
-De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail (zie
-de beslissing daarover), hostmodus en automatische updates (fase 12). De
-schermen daarvoor tonen in welke fase ze komen.
+De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail; zie
+de beslissing daarover in `docs/BESLISSINGEN.md`.

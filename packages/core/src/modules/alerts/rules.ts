@@ -590,6 +590,91 @@ const slapendContact: RegelHandler = (context) => {
  * ontbrekende woningaantallen leest niemand, één melding met het aantal erbij
  * wel.
  */
+/**
+ * Back-up mislukt of te lang geleden (hoofdstuk 8.2).
+ *
+ * Twee dingen kunnen misgaan, en ze voelen anders. Een mislukte loop is een
+ * fout die je meteen wil zien. Een loop die al dagen niet gedraaid heeft is
+ * stiller en gevaarlijker: er staat geen foutmelding, er staat gewoon niets.
+ *
+ * Sinds fase 12 legt `modules/backup` elke loop vast, dus deze regel kan
+ * eindelijk iets zeggen. Daarvoor stond hij bewust niet in de lijst.
+ */
+const backupMislukt: RegelHandler = (context) => {
+  const maxDagen = getal(context.params, 'maxDagenZonderBackup', 2);
+  const bevindingen: Bevinding[] = [];
+
+  const laatsteFout = context.handle.raw
+    .prepare(
+      `SELECT created_at, fout FROM backup_runs
+        WHERE status = 'fout'
+     ORDER BY created_at DESC, id DESC LIMIT 1`,
+    )
+    .get() as { created_at: string; fout: string | null } | undefined;
+
+  const laatsteGelukt = context.handle.raw
+    .prepare(
+      `SELECT created_at FROM backup_runs
+        WHERE status = 'ok'
+     ORDER BY created_at DESC, id DESC LIMIT 1`,
+    )
+    .get() as { created_at: string } | undefined;
+
+  // Een fout telt alleen als er daarna niets meer gelukt is; anders is hij al
+  // vanzelf opgelost en hoeft niemand er meer naar te kijken.
+  if (
+    laatsteFout !== undefined &&
+    (laatsteGelukt === undefined || laatsteGelukt.created_at < laatsteFout.created_at)
+  ) {
+    bevindingen.push({
+      dedupeKey: `backup:fout:${laatsteFout.created_at}`,
+      titel: 'De laatste back-up is mislukt',
+      tekst:
+        `${laatsteFout.fout ?? 'Onbekende fout'} — controleer bij Instellingen › Back-up & herstel ` +
+        'of de doelmap nog bestaat en of er ruimte is.',
+      entiteit: null,
+      recordId: null,
+      payload: { op: laatsteFout.created_at },
+    });
+
+    return bevindingen;
+  }
+
+  const grens = new Date(context.nu.getTime() - maxDagen * 86_400_000)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
+
+  if (laatsteGelukt === undefined) {
+    bevindingen.push({
+      dedupeKey: 'backup:nooit',
+      titel: 'Er is nog nooit een back-up gemaakt',
+      tekst:
+        'Zonder back-up is een kapotte database of een verkeerde invoer niet terug te draaien. ' +
+        'Maak er een bij Instellingen › Back-up & herstel.',
+      entiteit: null,
+      recordId: null,
+    });
+  } else if (laatsteGelukt.created_at < grens) {
+    const dagen = Math.floor(
+      (context.nu.getTime() - new Date(`${laatsteGelukt.created_at.replace(' ', 'T')}Z`).getTime()) /
+        86_400_000,
+    );
+    bevindingen.push({
+      // Op de dag en niet op het tijdstip, anders komt er elk uur een nieuwe
+      // melding bij zolang de loop stil ligt.
+      dedupeKey: `backup:oud:${laatsteGelukt.created_at.slice(0, 10)}`,
+      titel: `De laatste geslaagde back-up is ${dagen} dag${dagen === 1 ? '' : 'en'} oud`,
+      tekst: `De laatste back-up die lukte was op ${laatsteGelukt.created_at.slice(0, 10)}. Draait de nachtelijke loop nog?`,
+      entiteit: null,
+      recordId: null,
+      payload: { laatste: laatsteGelukt.created_at, dagen },
+    });
+  }
+
+  return bevindingen;
+};
+
 const datakwaliteit: RegelHandler = (context) => {
   const bevindingen: Bevinding[] = [];
 
@@ -693,6 +778,5 @@ export const REGELS = new Map<string, RegelHandler>([
   ['followup_overdue', opvolgingTeLaat],
   ['contact_dormant', slapendContact],
   ['data_quality', datakwaliteit],
-  // `backup_failed` staat bewust niet in deze lijst: er worden nog geen
-  // back-uploops vastgelegd. Die regel gaat pas iets doen in fase 12.
+  ['backup_failed', backupMislukt],
 ]);

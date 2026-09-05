@@ -917,7 +917,8 @@ describe('signaleringen', () => {
     expect(meldingen.every((melding) => melding.severity === 'urgent')).toBe(true);
   });
 
-  // Een regeltype zonder code hoort zichtbaar te zijn, niet stil nooit af te gaan.
+  // Een regeltype zonder code hoort zichtbaar te zijn, niet stil nooit af te
+  // gaan. Sinds fase 12 hebben alle achttien code, `backup_failed` als laatste.
   it('laat per regel zien of hij al gebouwd is', async () => {
     const cookie = await login();
     const response = await app.inject({
@@ -928,9 +929,8 @@ describe('signaleringen', () => {
 
     const regels = response.json().data as Array<Record<string, unknown>>;
     expect(regels).toHaveLength(18);
-    const backup = regels.find((regel) => regel.type === 'backup_failed');
-    expect(backup?.gebouwd).toBe(false);
-    expect(regels.filter((regel) => regel.gebouwd === true)).toHaveLength(17);
+    expect(regels.find((regel) => regel.type === 'backup_failed')?.gebouwd).toBe(true);
+    expect(regels.filter((regel) => regel.gebouwd === true)).toHaveLength(18);
   });
 });
 

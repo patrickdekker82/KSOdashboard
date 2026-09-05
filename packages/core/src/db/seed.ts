@@ -74,7 +74,19 @@ export async function seedBase(handle: DatabaseHandle, reference: IsoWeek): Prom
     ['min_bezetting_begeleiders', 1],
     ['netwerkstand', { mode: 'standalone', port: 4317 }],
     ['donkere_modus', 'systeem'],
-    ['backup', { tijd: '23:00', bewaar_dagelijks: 30, bewaar_maandelijks: 12 }],
+    [
+      'backup',
+      {
+        automatisch: true,
+        tijd: '23:00',
+        bewaar_dagelijks: 30,
+        bewaar_maandelijks: 12,
+        // Leeg = alleen naast de database. Een netwerkschijf mag hier wél
+        // staan: de blokkade van hoofdstuk 12 geldt de actieve database, niet
+        // de kopieën.
+        doelmap: '',
+      },
+    ],
     ['minimum_marge_bp', 1500],
     ['ai', { model: 'claude-opus-5', maandbudget_cents: 5000, anonimiseer_standaard: true }],
   ];
@@ -567,7 +579,7 @@ function seedAlertRules(handle: DatabaseHandle): void {
     ['Activiteit over datum', 'followup_overdue', {}, 'let_op'],
     ['Lang geen contact', 'contact_dormant', { days: 180 }, 'info'],
     ['Datakwaliteit', 'data_quality', {}, 'info'],
-    ['Back-up mislukt', 'backup_failed', {}, 'urgent'],
+    ['Back-up mislukt', 'backup_failed', { maxDagenZonderBackup: 2 }, 'urgent'],
   ];
 
   for (const [name, type, params, severity] of rules) {

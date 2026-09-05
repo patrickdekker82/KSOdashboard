@@ -19,12 +19,52 @@ const ONDERDELEN: Array<{ pad: string; titel: string; uitleg: string; klaar: boo
       'drempels. Inclusief wanneer ze voor het laatst gedraaid hebben.',
     klaar: true,
   },
-  { pad: '', titel: 'Gebruikers & rollen', uitleg: 'Komt in fase 12.', klaar: false },
-  { pad: '', titel: 'Werkroosters', uitleg: 'Komt in fase 12.', klaar: false },
-  { pad: '', titel: 'Keuzelijsten', uitleg: 'Komt in fase 12.', klaar: false },
-  { pad: '', titel: 'Capaciteitsinstellingen', uitleg: 'Komt in fase 12.', klaar: false },
-  { pad: '', titel: 'Back-up & herstel', uitleg: 'Komt in fase 12.', klaar: false },
-  { pad: '', titel: 'Microsoft 365-koppeling', uitleg: 'Komt in fase 9.', klaar: false },
+  {
+    pad: '/instellingen/gebruikers',
+    titel: 'Gebruikers & rollen',
+    uitleg:
+      'Wie er in mag, met welke rol, en wie meetelt als kopersbegeleider in de bezetting.',
+    klaar: true,
+  },
+  {
+    pad: '/instellingen/roosters',
+    titel: 'Werkroosters',
+    uitleg:
+      'Uren per dag en afspraken per week, met een ingangsdatum — zodat een roosterwijziging ' +
+      'de bezetting van vorig jaar niet met terugwerkende kracht verandert.',
+    klaar: true,
+  },
+  {
+    pad: '/instellingen/keuzelijsten',
+    titel: 'Keuzelijsten',
+    uitleg: 'De waarden achter de keuzevelden: statussen, bronnen, redenen, afwezigheidstypes.',
+    klaar: true,
+  },
+  {
+    pad: '/instellingen/capaciteit',
+    titel: 'Capaciteitsinstellingen',
+    uitleg:
+      'De getallen waar de bezettingsberekening op draait: afspraken per woning, doorlooptijd, ' +
+      'minimale bezetting en marge.',
+    klaar: true,
+  },
+  {
+    pad: '/instellingen/backup',
+    titel: 'Back-up & herstel',
+    uitleg:
+      'Nu een back-up maken, de nachtelijke loop instellen, een kopie controleren en er een ' +
+      'terugzetten. Met een logboek van elke poging.',
+    klaar: true,
+  },
+  {
+    pad: '/instellingen/netwerk',
+    titel: 'Netwerk & updates',
+    uitleg:
+      'Hostmodus aanzetten zodat collega\u2019s en telefoons meekijken, en aanwijzen waar de ' +
+      'installer van een nieuwe versie staat.',
+    klaar: true,
+  },
+  { pad: '', titel: 'Microsoft 365-koppeling', uitleg: 'Buiten scope; zie BESLISSINGEN.', klaar: false },
   {
     pad: '/instellingen/ai',
     titel: 'AI-assistent',

@@ -18,6 +18,7 @@ import { buildCore, type NetworkMode } from './server.ts';
 import { checkDatabasePath } from './db/path-guard.ts';
 import { voerControleUit } from './modules/alerts/engine.ts';
 import { vervalVerlopenOffertes } from './modules/packages/quotes.ts';
+import { maakBackup } from './modules/backup/backup.ts';
 
 export type BootstrapOptions = {
   /** Directory that holds the database, attachments, backups and logs. */
@@ -148,6 +149,7 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
   const port = typeof address === 'object' && address !== null ? address.port : requestedPort;
 
   const stopControle = startSignaleringen(handle, options.logger ?? false);
+  const stopBackup = startNachtelijkeBackup(handle, options.dataDirectory, options.logger ?? false);
 
   return {
     app,
@@ -158,10 +160,104 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
     address: `http://${mode === 'host' ? '0.0.0.0' : '127.0.0.1'}:${port}`,
     stop: async () => {
       stopControle();
+      stopBackup();
       await app.close();
       handle.close();
     },
   };
+}
+
+/**
+ * Hoe vaak er gekeken wordt of de nachtelijke back-up aan de beurt is.
+ *
+ * Elke tien minuten kijken en zelf bepalen of het tijd is, in plaats van één
+ * timer op het juiste moment zetten. Een laptop die 's nachts dicht staat
+ * slaapt door een `setTimeout` van acht uur heen; deze aanpak pakt de back-up
+ * alsnog op zodra de machine weer aan gaat.
+ */
+const BACKUP_TIK_MS = 10 * 60 * 1000;
+
+/**
+ * Draait de nachtelijke back-up.
+ *
+ * De tijd en het bewaarbeleid komen uit de instelling `backup`. Er wordt
+ * hooguit één automatische back-up per dag gemaakt: dat is te zien aan het
+ * logboek, niet aan een variabele in het geheugen, zodat een herstart van de
+ * applicatie er geen tweede oplevert.
+ */
+function startNachtelijkeBackup(
+  handle: DatabaseHandle,
+  dataDirectory: string,
+  logger: boolean,
+): () => void {
+  const paths = dataPaths(dataDirectory);
+
+  const draai = (): void => {
+    try {
+      const rij = handle.raw
+        .prepare("SELECT value FROM settings WHERE key = 'backup'")
+        .get() as { value: string } | undefined;
+
+      let opties: Record<string, unknown> = {};
+      try {
+        opties = JSON.parse(rij?.value ?? '{}') as Record<string, unknown>;
+      } catch {
+        opties = {};
+      }
+
+      if (opties.automatisch === false) return;
+
+      const tijd = typeof opties.tijd === 'string' ? opties.tijd : '23:00';
+      const nu = new Date();
+      const vandaag = nu.toISOString().slice(0, 10);
+      const [uur, minuut] = tijd.split(':').map(Number);
+      const gepland = new Date(nu);
+      gepland.setHours(uur ?? 23, minuut ?? 0, 0, 0);
+
+      if (nu < gepland) return;
+
+      const alGedraaid = handle.raw
+        .prepare(
+          `SELECT 1 AS er FROM backup_runs
+            WHERE soort = 'automatisch' AND date(created_at) = ? AND status = 'ok'
+            LIMIT 1`,
+        )
+        .get(vandaag);
+      if (alGedraaid !== undefined) return;
+
+      const doelmap = typeof opties.doelmap === 'string' && opties.doelmap !== '' ? opties.doelmap : undefined;
+      const bewaar = Number(opties.bewaar_dagelijks ?? 30);
+
+      const uitkomst = maakBackup(handle, paths.database, paths.backups, {
+        soort: 'automatisch',
+        doelmap,
+        bewaar: Number.isFinite(bewaar) ? bewaar : 30,
+        gebruikerId: null,
+        nu,
+      });
+
+      if (logger) {
+        process.stdout.write(
+          `Back-up: ${uitkomst.bestandsnaam} (${Math.round(uitkomst.bytes / 1024)} kB, ${uitkomst.opgeruimd} opgeruimd)\n`,
+        );
+      }
+    } catch (error) {
+      // De mislukking staat al in `backup_runs` en gaat vanzelf als
+      // signalering het dashboard op. Hier alleen niet omvallen.
+      if (logger) {
+        process.stderr.write(
+          `Back-up mislukt: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+      }
+    }
+  };
+
+  // Niet meteen bij het starten: dan krijgt iemand die de applicatie 's avonds
+  // even opnieuw opstart een tweede back-up over zich heen.
+  const herhaling = setInterval(draai, BACKUP_TIK_MS);
+  herhaling.unref?.();
+
+  return () => clearInterval(herhaling);
 }
 
 /** Hoe vaak de signaleringen worden doorgerekend. */

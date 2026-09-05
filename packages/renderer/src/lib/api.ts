@@ -22,6 +22,33 @@ export type HostStatus = {
   message?: string;
 };
 
+/** De instellingen van déze werkplek, uit config.json van de schil. */
+export type AppInstellingen = {
+  mode: 'standalone' | 'host' | 'client';
+  port: number;
+  hostAddress?: string;
+  dataDirectory?: string;
+  minimiseToTray: boolean;
+  globalShortcut: string;
+  autoStart: boolean;
+  updateLocatie: string;
+  gegevensmap: string;
+  versie: string;
+  adressen: string[];
+};
+
+export type Updateuitkomst = {
+  ingeschakeld: boolean;
+  huidigeVersie: string;
+  nieuwsteVersie: string | null;
+  nieuwerBeschikbaar: boolean;
+  installer: string | null;
+  uitgebracht: string | null;
+  opmerkingen: string | null;
+  fout: string | null;
+  gecontroleerdOp: string;
+};
+
 export type Gebruiker = {
   id: number;
   name: string;
@@ -44,6 +71,16 @@ declare global {
       externeLink: (url: string) => Promise<void>;
       onNavigatie: (handler: (route: string) => void) => () => void;
       onKernStatus: (handler: (status: HostStatus) => void) => () => void;
+      // fase 12
+      configLezen: () => Promise<AppInstellingen>;
+      configSchrijven: (
+        wijziging: Partial<AppInstellingen>,
+      ) => Promise<{ opgeslagen: boolean; herstartNodig: boolean }>;
+      backupHerstellen: (
+        bestandsnaam: string,
+      ) => Promise<{ hersteld: boolean; veiligheidskopie?: string }>;
+      updateControleren: () => Promise<Updateuitkomst>;
+      installerTonen: (pad: string) => Promise<void>;
     };
   }
 }
@@ -476,6 +513,24 @@ export const endpoints = {
       gedaan,
       notitie,
     }),
+
+  // --- instellingen (fase 12) ------------------------------------------------
+  instellingenLezen: () => api.get<{ data: Record<string, unknown> }>('/settings'),
+  instellingenOpslaan: (wijziging: Record<string, unknown>) =>
+    api.patch<{ opgeslagen: number }>('/settings', wijziging),
+
+  // --- back-up (fase 12) -----------------------------------------------------
+  backups: () => api.get<{ data: Backupoverzicht }>('/backups'),
+  backupMaken: (naarDoelmap = false) =>
+    api.post<{ data: { bestandsnaam: string; bytes: number; duurMs: number; opgeruimd: number } }>(
+      '/backups',
+      { naarDoelmap },
+    ),
+  backupControleren: (naam: string) =>
+    api.post<{ data: { bestandsnaam: string; bruikbaar: boolean; bytes: number } }>(
+      `/backups/${encodeURIComponent(naam)}/check`,
+    ),
+  backupLocatie: () => api.get<{ data: Databaselocatie }>('/backups/locatie'),
 
   // --- rapportages en export (fase 11) ---------------------------------------
   rapportEntiteiten: () => api.get<{ data: RapportEntiteit[] }>('/reports/entities'),
@@ -1240,4 +1295,55 @@ export type OpgeslagenRapport = {
   gedeeld: boolean;
   eigenaar: string | null;
   eigenaarId: number | null;
+};
+
+
+// --- back-up ----------------------------------------------------------------
+
+export type Backupbestand = {
+  bestandsnaam: string;
+  pad: string;
+  bytes: number;
+  gemaaktOp: string;
+  soort: string;
+};
+
+export type Backuploop = {
+  id: number;
+  soort: string;
+  bestandsnaam: string | null;
+  pad: string | null;
+  bytes: number;
+  duur_ms: number | null;
+  status: string;
+  fout: string | null;
+  opgeruimd: number;
+  gebruiker: string | null;
+  created_at: string;
+};
+
+export type Backupoverzicht = {
+  backups: Backupbestand[];
+  opDoelmap: Backupbestand[];
+  stand: {
+    laatsteGelukt: string | null;
+    laatstePoging: string | null;
+    laatsteMislukt: boolean;
+    fout: string | null;
+  };
+  instellingen: {
+    tijd: string;
+    bewaarDagelijks: number;
+    bewaarMaandelijks: number;
+    doelmap: string | null;
+  };
+  map: string;
+  logboek: Backuploop[];
+};
+
+export type Databaselocatie = {
+  database: string;
+  map: string;
+  /** Uit `checkDatabasePath`: `ok`, of de reden waarom deze plek niet deugt. */
+  oordeel: { ok: true } | { ok: false; reason: string; message: string };
 };

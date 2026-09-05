@@ -6,8 +6,9 @@
  * crashes, main restarts it and says so instead of taking the window down.
  */
 import { join, dirname, basename } from 'node:path';
+import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import {
   BrowserWindow,
@@ -25,6 +26,7 @@ import { buildMenu } from './menu.ts';
 import { createTray, type TrayHandle } from './tray.ts';
 import { loadWindowState, trackWindowState } from './window-state.ts';
 import { renderHtmlToPdf } from './pdf.ts';
+import { controleerUpdate } from './updates.ts';
 
 // De build levert ESM op, waar here niet bestaat; afleiden uit import.meta.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -50,6 +52,11 @@ type AppConfig = {
   minimiseToTray: boolean;
   globalShortcut: string;
   autoStart: boolean;
+  /**
+   * Map waar de systeembeheerder de installer neerzet, meestal op de
+   * netwerkschijf. Leeg = geen updatecontrole, en dat is de standaard.
+   */
+  updateLocatie: string;
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -58,6 +65,7 @@ const DEFAULT_CONFIG: AppConfig = {
   minimiseToTray: false,
   globalShortcut: 'CommandOrControl+Alt+S',
   autoStart: false,
+  updateLocatie: '',
 };
 
 let mainWindow: BrowserWindow | null = null;
@@ -256,6 +264,28 @@ function handleDeepLink(url: string): void {
   if (base) navigate(`${base}/${match[2]}`);
 }
 
+/**
+ * De IPv4-adressen waarop deze pc in de hostmodus te bereiken is.
+ *
+ * Nodig omdat "zet de hostmodus aan" een halve instructie is: de collega aan de
+ * andere kant van de gang moet weten wát hij in zijn browser moet typen. Dit
+ * levert de adressen op die het scherm kan tonen.
+ *
+ * Loopback en interne adressen vallen af; die helpen niemand.
+ */
+function lanAdressen(): string[] {
+  const gevonden: string[] = [];
+
+  for (const kaarten of Object.values(networkInterfaces())) {
+    for (const kaart of kaarten ?? []) {
+      if (kaart.family !== 'IPv4' || kaart.internal) continue;
+      gevonden.push(kaart.address);
+    }
+  }
+
+  return gevonden;
+}
+
 // ---------------------------------------------------------------------------
 // IPC — precies wat preload aanbiedt, niet meer
 // ---------------------------------------------------------------------------
@@ -263,6 +293,113 @@ function handleDeepLink(url: string): void {
 function registerIpc(): void {
   ipcMain.handle('app:versie', () => app.getVersion());
   ipcMain.handle('kern:status', () => coreStatus);
+
+  // --- appinstellingen: netwerkstand, systeemvak, autostart, updates -------
+  //
+  // Deze staan bewust in config.json van de schil en niet in de database. Ze
+  // gaan over déze werkplek: welke pc de host is, of hij naar het systeemvak
+  // minimaliseert, waar de installer staat. Een collega die de database deelt
+  // hoort daar niets van te merken.
+  ipcMain.handle('config:lezen', () => ({
+    ...readConfig(),
+    gegevensmap: readConfig().dataDirectory ?? app.getPath('userData'),
+    versie: app.getVersion(),
+    adressen: lanAdressen(),
+  }));
+
+  ipcMain.handle('config:schrijven', (_event, wijziging: Partial<AppConfig>) => {
+    const huidig = readConfig();
+    const nieuw: AppConfig = { ...huidig, ...wijziging };
+
+    if (nieuw.port < 1024 || nieuw.port > 65535) {
+      throw new Error('Kies een poort tussen 1024 en 65535.');
+    }
+
+    writeConfig(nieuw);
+
+    // De autostart zet Windows zelf; dat kan meteen.
+    if (nieuw.autoStart !== huidig.autoStart) {
+      app.setLoginItemSettings({ openAtLogin: nieuw.autoStart });
+    }
+
+    // De netwerkstand en de poort raken de kern, en die start alleen bij het
+    // opstarten. Dat eerlijk melden is beter dan de kern eronder vandaan
+    // herstarten terwijl iemand aan het typen is.
+    const herstartNodig = nieuw.mode !== huidig.mode || nieuw.port !== huidig.port;
+
+    return { opgeslagen: true, herstartNodig };
+  });
+
+  // --- back-up terugzetten -------------------------------------------------
+  //
+  // Dit kan niet via de API van de kern: die schrijft op precies de database
+  // die vervangen moet worden. Alleen de schil kan de kern stoppen, het bestand
+  // omwisselen en hem weer starten.
+  ipcMain.handle('backup:herstellen', async (_event, bestandsnaam: string) => {
+    const config = readConfig();
+    const gegevensmap = config.dataDirectory ?? app.getPath('userData');
+    const database = join(gegevensmap, 'showroom.db');
+    const backupmap = join(gegevensmap, 'backups');
+    const bron = join(backupmap, basename(bestandsnaam));
+
+    if (basename(bestandsnaam) !== bestandsnaam || !existsSync(bron)) {
+      throw new Error(`De back-up ${bestandsnaam} staat niet in de back-upmap.`);
+    }
+
+    const bevestiging = await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['Terugzetten', 'Annuleren'],
+      defaultId: 1,
+      cancelId: 1,
+      title: 'Back-up terugzetten',
+      message: `Weet u zeker dat u ${bestandsnaam} wilt terugzetten?`,
+      detail:
+        'Alles wat na die back-up is ingevoerd verdwijnt. Van de huidige database wordt ' +
+        'eerst een kopie gemaakt, zodat dit terug te draaien is. De applicatie start hierna opnieuw.',
+    });
+    if (bevestiging.response !== 0) return { hersteld: false };
+
+    // De kern stoppen en wachten tot hij de database echt heeft losgelaten.
+    quitting = true;
+    core?.kill();
+    await new Promise((klaar) => setTimeout(klaar, 1500));
+    quitting = false;
+
+    const stempel = new Date().toISOString().slice(0, 16).replace(/:/g, '-');
+    const veiligheidskopie = join(backupmap, `showroom-voor-herstel-${stempel}.db`);
+
+    try {
+      if (existsSync(database)) copyFileSync(database, veiligheidskopie);
+
+      const tijdelijk = `${database}.nieuw`;
+      copyFileSync(bron, tijdelijk);
+      for (const achtervoegsel of ['-wal', '-shm']) {
+        const zijbestand = `${database}${achtervoegsel}`;
+        if (existsSync(zijbestand)) unlinkSync(zijbestand);
+      }
+      renameSync(tijdelijk, database);
+    } catch (fout) {
+      startCoreProcess(readConfig());
+      throw new Error(
+        `Terugzetten is niet gelukt: ${fout instanceof Error ? fout.message : String(fout)}`,
+      );
+    }
+
+    notify('Back-up teruggezet', `${bestandsnaam} staat terug. De applicatie start opnieuw.`);
+    app.relaunch();
+    app.exit(0);
+
+    return { hersteld: true, veiligheidskopie: basename(veiligheidskopie) };
+  });
+
+  // --- updates -------------------------------------------------------------
+  ipcMain.handle('update:controleren', () =>
+    controleerUpdate(readConfig().updateLocatie, app.getVersion()),
+  );
+
+  ipcMain.handle('update:installer-tonen', (_event, pad: string) => {
+    if (existsSync(pad)) shell.showItemInFolder(pad);
+  });
 
   ipcMain.handle('bestand:opslaan-als', async (_event, voorstel: string, inhoud: string, codering: string) => {
     const result = await dialog.showSaveDialog({

@@ -647,6 +647,118 @@ op; zodra een test de query-bouwer als eerste laadde, was `ENTITIES` nog
 `undefined` en viel alles om. `ApiError` staat nu in een eigen bestand, zodat
 een guard een nette fout kan gooien zonder de hele server te importeren.
 
+## Fase 12 — hostmodus, beheer, back-up en updates
+
+### VACUUM INTO en niet copyFile
+
+Een SQLite-database kopiëren terwijl er iemand in werkt levert onder WAL een
+halve database op: een deel van de wijzigingen staat nog in het `-wal`-bestand.
+`VACUUM INTO` laat SQLite zelf een consistent, compact bestand wegschrijven, ook
+tijdens gebruik. Het resultaat staat bovendien op zichzelf — er hoort geen
+`-wal` naast — en is dus zonder nadenken naar een netwerkschijf te kopiëren.
+
+Er staat een test op die een rij toevoegt en meteen daarna een back-up maakt;
+die rij hoort erin te zitten. Met `copyFileSync` zou die test falen.
+
+### Herstellen loopt via de schil, niet via de API
+
+De kern schrijft op precies de database die vervangen moet worden. Hij kan dus
+niet zijn eigen bestand omwisselen. Alleen het hoofdproces van Electron kan de
+kern stoppen, wachten tot het bestand losgelaten is, omwisselen en opnieuw
+starten — en dat is waar `backup:herstellen` zit.
+
+De volgorde binnen het herstel is met opzet:
+
+1. controleren of de back-up heel is én van deze applicatie (een
+   integriteitscontrole plus de vraag of `schema_migrations` erin staat, want
+   anders kun je een willekeurige SQLite-database terugzetten en staat de
+   applicatie leeg te kijken)
+2. een veiligheidskopie maken van wat er nu staat
+3. de back-up ernaast neerzetten
+4. omwisselen
+
+Stap 1 vóór stap 2, want een veiligheidskopie van een database die daarna toch
+niet vervangen wordt is alleen maar verwarrend. Stap 3 en 4 apart, zodat er geen
+moment is waarop er helemaal geen database staat.
+
+De veiligheidskopie is hier wél een gewone `copyFile` en geen `VACUUM INTO`: de
+applicatie ligt op dat moment stil, en we willen een letterlijke kopie van het
+bestand zoals het is — inclusief eventuele schade, want dat is precies wat je
+wil kunnen terugdraaien.
+
+### De achttiende regel
+
+`backup_failed` stond vanaf hoofdstuk 8 in de seed maar had geen code, en dat
+stond er ook bij: in de code, in de API (`gebouwd: false`) en in het scherm.
+Sinds `modules/backup` elke loop vastlegt kan de regel iets zeggen, en sinds
+deze fase is `onbekendeTypes` bij een controle leeg.
+
+De regel kijkt naar drie dingen, en ze voelen verschillend. Een mislukte loop is
+een fout die je meteen wil zien — maar alleen als er daarná niets meer gelukt
+is, anders is hij al vanzelf opgelost. Een loop die dagen niet gedraaid heeft is
+stiller en gevaarlijker: er staat geen foutmelding, er staat gewoon niets. En
+"nog nooit een back-up gemaakt" is de stand op dag één.
+
+De dedupe-sleutel van het tweede geval staat op de dag en niet op het tijdstip.
+Anders komt er elk uur een nieuwe melding bij zolang de loop stilligt, en dan
+kijkt binnen twee dagen niemand meer naar het dashboard.
+
+### Geen electron-updater
+
+Twee redenen, en de tweede weegt zwaarder dan de eerste.
+
+De opdracht sluit externe clouddiensten en "phone home" uit. Een updater die uit
+zichzelf een leveranciersserver bevraagt is precies dat. Hier wijst de beheerder
+zelf een map aan — in de praktijk een map op de netwerkschijf waar de
+systeembeheerder de installer neerzet — en staat de controle standaard uit. Er
+gaat geen HTTP-verzoek de deur uit; Windows leest een map.
+
+Belangrijker: een applicatie die zichzelf 's ochtends vervangt terwijl iemand
+met een klant in de showroom staat is geen verbetering. Deze module kijkt of er
+iets nieuwers is, zegt dat, en toont het installatiebestand. Het dubbelklikken
+doet de gebruiker zelf, op een moment dat hem uitkomt; de NSIS-installatie is
+per gebruiker, dus daar is geen beheerder voor nodig.
+
+Dat is smaller dan "automatische updates" letterlijk genomen, en dat is een
+keuze en geen tekortkoming. Ze staat hier zodat wie hem anders wil, weet wat er
+verandert.
+
+Het manifest is een JSON-bestand naast de installer:
+
+```json
+{ "versie": "0.2.0", "bestand": "ShowroomSuite-Setup-0.2.0.exe",
+  "uitgebracht": "2026-09-07", "opmerkingen": "Wat er veranderd is" }
+```
+
+Versies worden per onderdeel vergeleken en niet als tekst, want `0.10.0` is
+nieuwer dan `0.9.0` en als tekst niet. Daar staat een test op: dit is precies de
+fout waarbij iedereen maandenlang op een oude versie blijft zitten zonder dat
+iemand het merkt.
+
+### De instellingen van de werkplek staan niet in de database
+
+Netwerkstand, poort, systeemvak, autostart en de updatelocatie staan in
+`config.json` van de schil. Ze gaan over déze pc: welke machine de host is, of
+hij naar het systeemvak minimaliseert. Een collega die dezelfde database
+gebruikt hoort daar niets van te merken — en in de hostmodus deelt hij die
+database wel degelijk.
+
+De capaciteitsinstellingen staan juist wél in de database: die gelden voor de
+hele afdeling.
+
+### Mobiel is hetzelfde scherm
+
+De mobiele weergave is geen tweede applicatie maar dezelfde renderer, benaderd
+via de hostmodus. Dat scheelt niet alleen werk: een tweede codebase loopt achter
+zodra iemand een veld toevoegt, en dan is de telefoon een leugen.
+
+Wat er anders is: het menu schuift als lade over de inhoud in plaats van ernaast
+te staan (op 360 pixels blijft er anders niets over), tabellen scrollen
+zijwaarts in plaats van de pagina breed te maken, invoervelden krijgen 16 px
+zodat iOS niet inzoomt bij het aantikken, en aanraakvlakken worden groter. Het
+onderscheid loopt via `matchMedia` en niet via een resize-luisteraar, zodat er
+niet bij elke pixel opnieuw gerenderd wordt.
+
 ## Vooruit
 
 - **PostgreSQL blijft mogelijk.** SQLite-specifieke SQL staat alleen in
