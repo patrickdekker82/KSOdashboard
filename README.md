@@ -21,6 +21,7 @@ webadres om te onthouden, werkt volledig offline.
 | Kansen: kanban, disciplineregels, winnen/verliezen, trechterrapport | **af** |
 | Verlof: aanvragen, goedkeuren, saldo in uren, inzet elders | **af** |
 | Projecten met fasering en de Excel-/CSV-planningimport | **af** |
+| Dashboard met KPI's en zeventien signaleringsregels | **af** |
 | Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
@@ -165,6 +166,30 @@ afgedwongen: een gewone gebruiker kan alleen zijn eigen registraties beheren en
 de status niet zelf zetten. Goedkeuren blijft aan de manager, en dat geldt ook
 voor een POST die de goedkeuringsstroom probeert over te slaan.
 
+## Signaleringen
+
+Elk uur rekent de kern zeventien regels door: capaciteitsgaten, overbezette
+weken, projecten zonder planning, kansen die stilstaan, offertes waar niets op
+terugkomt, en zo verder. Wat eruit komt zijn meldingen op het dashboard, op
+ernst gesorteerd — met het woord "urgent" of "let op" erbij, niet alleen een
+kleur.
+
+Het interessante deel zit niet in het aanmaken maar in het opruimen. Een
+melding die al openstaat wordt bijgewerkt in plaats van opnieuw aangemaakt, en
+een melding waarvan de situatie verdwenen is sluit zichzelf. Een systeem dat
+alleen meldingen aanmaakt en nooit sluit, wordt binnen een maand niet meer
+gelezen.
+
+Er zijn drie manieren om een melding weg te krijgen, en het verschil doet
+ertoe. **Gezien** laat hem staan maar op de achtergrond. **Later** haalt hem een
+week uit beeld; staat de situatie er dan nog, dan komt hij terug. **Afhandelen**
+sluit hem — en ook dan komt hij terug als de situatie bij de volgende controle
+nog bestaat, want wegklikken lost niets op.
+
+De achttiende regel, "back-up mislukt", heeft nog geen code omdat er nog geen
+back-uploops worden vastgelegd. Het regelbeheer zegt dat er ook bij: een regel
+die nooit afgaat hoort dat te melden in plaats van stil te blijven.
+
 ## De planningimport
 
 Een planning komt binnen als .xlsx of .csv en gaat in twee stappen naar binnen.
@@ -220,7 +245,7 @@ decimalen.
 npm test
 ```
 
-555 tests, waaronder de verplichte gevallen: de volledige tabel met
+611 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter

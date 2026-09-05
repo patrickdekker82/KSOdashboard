@@ -158,6 +158,36 @@ telt is welke fase is opgeleverd.
 - Projectdetailpagina met de fasering op een tijdbalk en een editor ervoor.
   Fasen die de planning niet belasten zijn gearceerd én benoemd.
 
+### Fase 7 — dashboard en signaleringen
+- Zeventien van de achttien signaleringsregels doorgerekend: capaciteitsgaten,
+  overbezetting, weken die krap worden door afwezigheid, te weinig begeleiders,
+  verlofaanvragen in drukke weken, aflopende inzet, open ziekmeldingen,
+  projecten zonder planning of begeleider, projecten die op één afwezige
+  begeleider draaien, stilstaande kansen, naderende sluitdatums, offertes zonder
+  reactie of met aflopende geldigheid, achterstallige opvolging, slapende
+  klanten en datakwaliteit.
+- `backup_failed` heeft bewust nog geen code; het regelbeheer laat per regel
+  zien of hij gebouwd is, in plaats van hem stilletjes nooit af te laten gaan.
+- De motor ontdubbelt op een sleutel per situatie, schuift "laatst gezien" op
+  bij een melding die blijft bestaan, en sluit meldingen zodra de situatie weg
+  is. Een terugkerend probleem heropent dezelfde melding met een nieuwe
+  begindatum; een bevestiging van de vorige keer vervalt daarbij.
+- Elke regel draait in zijn eigen transactie, dus één kapotte regel neemt de
+  andere zeventien niet mee.
+- Uurlijkse controle in de kern, die kort na het starten al een eerste ronde
+  draait.
+- Meldingen kunnen worden bevestigd, een week uitgesteld of afgehandeld.
+  Uitstellen haalt ze uit beeld maar niet uit de database; afhandelen sluit ze,
+  waarna ze terugkomen als de situatie er nog is.
+- Dashboard met een KPI-balk (bezetting deze week en de komende vier, open
+  kansen, gewogen pijplijn, gescoord dit jaar) en de signaleringen erboven, op
+  ernst gesorteerd met het woord erbij in plaats van kleur alleen.
+- Beheerscherm voor de regels: aan of uit, ernst, parameters en handmatig
+  draaien.
+- Foutafhandeling: een weigering van Fastify zelf — een leeg lichaam bij
+  content-type json bijvoorbeeld — werd als "er ging iets mis in de kern"
+  gemeld. Dat is een fout van de aanroeper en zegt dat nu ook.
+
 ### Nog niet gebouwd
 Duurzaamheidspakketten (fase 8), opvolging en Microsoft 365 (fase 9), de
 AI-assistent (fase 10), rapportages en export (fase 11), hostmodus en

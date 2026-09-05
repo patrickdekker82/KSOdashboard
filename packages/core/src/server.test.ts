@@ -745,6 +745,24 @@ describe('verlofsaldo', () => {
   });
 });
 
+describe('foutafhandeling', () => {
+  // Fastify weigert een leeg lichaam bij content-type json met een 400. Die als
+  // 500 "er ging iets mis in de kern" doorgeven is onwaar: het is een fout van
+  // de aanroeper, en de melding hoort dat te zeggen.
+  it('geeft een weigering van Fastify door als fout van de aanroeper', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/disciplines',
+      headers: { ...headers(cookie), 'content-type': 'application/json' },
+      payload: '',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.code).not.toBe('serverfout');
+  });
+});
+
 describe('signaleringen', () => {
   /** Draait de controle en geeft de meldingen terug. */
   async function controleer(cookie: string): Promise<Array<Record<string, unknown>>> {

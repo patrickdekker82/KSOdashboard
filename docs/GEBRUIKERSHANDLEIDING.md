@@ -12,7 +12,13 @@ wie er deze week beschikbaar is, bijvoorbeeld `DM ✓ · PD ✓ · RB afwezig`.
 
 Dit is wat u ziet als u de app opent.
 
-**Aandachtspunten** staat bovenaan. Hier komt te staan wanneer de showroom leeg
+Bovenaan staat een **balk met cijfers**: de bezetting van deze week, het
+gemiddelde over de komende vier weken, hoeveel kansen er open staan met welk
+bedrag, de gewogen pijplijn (bedrag maal kans) en wat er dit jaar is gescoord.
+
+Daaronder de **signaleringen** — zie hieronder — en daaronder de grafieken.
+
+**Aandachtspunten** gaat specifiek over leegte. Hier komt te staan wanneer de showroom leeg
 dreigt te lopen, en hoeveel woningen er dan nog nodig zijn. Bijvoorbeeld:
 
 > Let op — showroom loopt leeg vanaf week 45. Van week 45 t/m week 50 ligt de
@@ -31,6 +37,33 @@ Liever cijfers dan een plaatje? Klik op **Als tabel tonen**.
 
 **Wie is er de komende weken** en **Bezetting per begeleider** vertellen het
 verhaal per persoon.
+
+### Signaleringen
+
+Bovenaan het dashboard staat wat er aandacht vraagt, op ernst gesorteerd:
+**urgent**, **let op** of **ter info**. De ernst staat er als woord bij, niet
+alleen als kleur.
+
+De applicatie rekent dit elk uur zelf door. Met **Nu doorrekenen** gaat het
+meteen — handig nadat u een planning heeft geïmporteerd.
+
+Bij elke melding staat hoe lang hij al speelt. Een overbezette week die er
+vanochtend bij kwam is iets anders dan een die er al drie weken staat.
+
+Er zijn drie knoppen, en het verschil doet ertoe:
+
+| Knop | Wat het doet |
+|---|---|
+| **Gezien** | de melding blijft staan, maar valt op de achtergrond |
+| **Later** | een week uit beeld; komt terug als het dan nog speelt |
+| **Afhandelen** | sluiten — komt terug als de situatie er bij de volgende controle nog is |
+
+Die laatste is met opzet zo: wegklikken lost niets op, en de app doet niet
+alsof. Verdwijnt de situatie vanzelf — die drukke week is voorbij, dat project
+heeft een planning gekregen — dan sluit de melding zichzelf.
+
+Een beheerder stelt de regels in bij **Instellingen → Signaleringen**: aan of
+uit, hoe erg, en met welke drempels.
 
 ## Planning
 
@@ -241,6 +274,9 @@ uitkomst.
 
 ## Nog niet af
 
-De signaleringen op het dashboard, duurzaamheidspakketten, offertes, opvolging,
-e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
-zelf, met de fase waarin ze komen.
+Duurzaamheidspakketten, offertes, opvolging, e-mail en de export zijn nog niet
+gebouwd. Die schermen zeggen dat zelf, met de fase waarin ze komen.
+
+Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
+back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook
+bij.

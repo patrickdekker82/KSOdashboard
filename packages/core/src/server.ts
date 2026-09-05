@@ -101,6 +101,20 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
         },
       });
     }
+    // Fastify weigert zelf ook dingen — een lege body bij content-type json,
+    // een te groot verzoek — en dat zijn fouten van de aanroeper. Die als
+    // "er ging iets mis in de kern" tonen is onwaar en helpt niemand verder.
+    const geweigerd = error as { statusCode?: number; code?: string; message?: string };
+    const status = Number(geweigerd.statusCode ?? 500);
+    if (status >= 400 && status < 500) {
+      return reply.code(status).send({
+        error: {
+          code: String(geweigerd.code ?? 'ongeldig_verzoek').toLowerCase(),
+          message: String(geweigerd.message ?? 'Dit verzoek kon niet worden verwerkt.'),
+        },
+      });
+    }
+
     app.log.error(error);
     return reply.code(500).send({
       error: { code: 'serverfout', message: 'Er ging iets mis in de kern van de applicatie.' },

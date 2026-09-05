@@ -280,6 +280,61 @@ opdrachtgever levert geen nieuwe klant op (anders staan er na een paar imports
 vijf varianten van dezelfde aannemer in het systeem), en een tweede import maakt
 geen tweede showroomfase (dat zou de bezetting van dat project verdubbelen).
 
+### Meldingen sluiten zichzelf
+
+De verleiding bij signaleringen is om ze alleen aan te maken en het opruimen
+aan de gebruiker te laten. Dat werkt een week: daarna staan er tachtig
+meldingen, waarvan de helft over weken die allang weer rustig zijn, en leest
+niemand ze meer.
+
+Daarom levert een regel geen meldingen op maar *bevindingen*, en vergelijkt de
+motor die met wat er al staat. Een bevinding die er nog niet was wordt een
+melding; een die al openstaat schuift alleen "laatst gezien" op; en een open
+melding zonder bevinding wordt gesloten. Het opruimen is daarmee een gevolg van
+de berekening en niet van discipline.
+
+Drie manieren om een melding weg te krijgen, met opzet verschillend:
+
+- **Gezien** laat hem staan maar op de achtergrond — je weet ervan.
+- **Later** haalt hem tot een datum uit beeld. Speelt het dan nog, dan komt hij
+  terug.
+- **Afhandelen** sluit hem. Bestaat de situatie bij de volgende controle nog,
+  dan komt hij ook terug. Wegklikken lost niets op, en de applicatie doet niet
+  alsof.
+
+### Eén melding per situatie, die heropend wordt
+
+`alerts.dedupe_key` heeft een unieke index, dus er is per situatie hooguit één
+rij. Een terugkerend probleem heropent die rij in plaats van een tweede aan te
+maken, en "voor het eerst gezien" gaat mee naar dat moment: "speelt al sinds
+maart" zou onwaar zijn voor iets dat in april was opgelost. Een bevestiging van
+de vorige keer vervalt daarbij — die ging over het vorige voorval.
+
+De sleutel krijgt het regeltype als voorvoegsel. Zonder dat zouden twee regels
+die allebei "kwaliteit:klant" kiezen elkaars melding overschrijven, en de
+unieke index maakt daar een harde fout van in plaats van een subtiele.
+
+### Eén vast uur, geen cron-planner
+
+De regels hebben een `check_cron`-kolom uit hoofdstuk 4, maar er wordt niets
+uit gelezen: er draait één timer die elk uur alles doorrekent. Meldingen die
+over weken en dagen gaan, hebben geen planning per regel nodig, en een tweede
+planningsmechanisme naast de timer levert vooral de vraag op welke van de twee
+nu leidend is. De kolom blijft staan voor als dat ooit wél nodig is.
+
+Elke regel draait in zijn eigen transactie. Valt er één om — een fout in een
+query, een parameter die geen getal blijkt — dan werken de andere zeventien
+gewoon, en staat er in de uitkomst wat er misging. Een leeg dashboard omdat één
+regel struikelt is erger dan een dashboard met zeventien van de achttien.
+
+### Een regel zonder code zegt dat zelf
+
+`backup_failed` staat wel in de database maar heeft geen implementatie: er
+worden nog geen back-uploops vastgelegd. Die regel stilzwijgend overslaan zou
+betekenen dat iemand denkt dat hij bewaakt wordt terwijl dat niet zo is. De API
+geeft per regel terug of hij gebouwd is, en het beheerscherm zegt het met
+zoveel woorden.
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:

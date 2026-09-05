@@ -382,6 +382,22 @@ export const endpoints = {
   importDetail: (id: number) =>
     api.get<{ data: { batch: ImportBatch; rijen: ImportBatchRij[] } }>(`/imports/${id}`),
 
+  // --- signaleringen (fase 7) ----------------------------------------------
+  meldingen: (query = '') =>
+    api.get<{ data: Melding[]; meta: { telling: MeldingTelling } }>(`/alerts${query}`),
+  meldingTelling: () => api.get<{ data: MeldingTelling }>('/alerts/count'),
+  meldingRegels: () => api.get<{ data: Meldingregel[] }>('/alerts/rules'),
+  meldingenDoorrekenen: (regelId?: number) =>
+    api.post<{ data: ControleUitkomst }>('/alerts/run', regelId ? { regelId } : {}),
+  meldingBevestigen: (id: number) =>
+    api.post<{ data: { id: number; status: string } }>(`/alerts/${id}/acknowledge`),
+  meldingUitstellen: (id: number, dagen: number) =>
+    api.post<{ data: { id: number; status: string; tot: string } }>(`/alerts/${id}/snooze`, {
+      dagen,
+    }),
+  meldingSluiten: (id: number) =>
+    api.post<{ data: { id: number; status: string } }>(`/alerts/${id}/resolve`),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -730,4 +746,57 @@ export type Projectfase = {
   unit_count_override: number | null;
   note: string | null;
   is_capacity_load: number;
+};
+
+// --- signaleringen ----------------------------------------------------------
+
+export type Ernst = 'info' | 'let_op' | 'urgent';
+
+export type Melding = {
+  id: number;
+  rule_id: number | null;
+  title: string;
+  body: string | null;
+  severity: Ernst;
+  entity_key: string | null;
+  record_id: number | null;
+  status: 'open' | 'bevestigd' | 'uitgesteld' | 'opgelost';
+  first_seen_at: string;
+  last_seen_at: string;
+  snoozed_until: string | null;
+  regel: string | null;
+  regeltype: string | null;
+  bevestigd_door: string | null;
+  payload: string;
+};
+
+export type MeldingTelling = { urgent: number; let_op: number; info: number };
+
+export type Meldingregel = {
+  id: number;
+  name: string;
+  type: string;
+  params: string;
+  severity: Ernst;
+  active: number;
+  last_checked_at: string | null;
+  openstaand: number;
+  gebouwd: boolean;
+};
+
+export type ControleUitkomst = {
+  gedraaid: number;
+  nieuw: number;
+  bijgewerkt: number;
+  opgelost: number;
+  onbekendeTypes: string[];
+  regels: Array<{
+    regelId: number;
+    naam: string;
+    type: string;
+    nieuw: number;
+    bijgewerkt: number;
+    opgelost: number;
+    fout?: string;
+  }>;
 };

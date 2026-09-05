@@ -11,6 +11,14 @@ const ONDERDELEN: Array<{ pad: string; titel: string; uitleg: string; klaar: boo
       'voor elke entiteit.',
     klaar: true,
   },
+  {
+    pad: '/instellingen/signaleringen',
+    titel: 'Signaleringen',
+    uitleg:
+      'De achttien regels die het dashboard voeden: aan of uit, hoe erg, en met welke ' +
+      'drempels. Inclusief wanneer ze voor het laatst gedraaid hebben.',
+    klaar: true,
+  },
   { pad: '', titel: 'Gebruikers & rollen', uitleg: 'Komt in fase 12.', klaar: false },
   { pad: '', titel: 'Werkroosters', uitleg: 'Komt in fase 12.', klaar: false },
   { pad: '', titel: 'Keuzelijsten', uitleg: 'Komt in fase 12.', klaar: false },
