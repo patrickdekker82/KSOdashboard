@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { openDatabase, type DatabaseHandle } from './db/client.ts';
-import { applyViews, runMigrations } from './db/migrate.ts';
+import { applyViews, migrationFiles, runMigrations } from './db/migrate.ts';
 import { DEMO_PASSWORD, seed } from './db/seed.ts';
 import { buildCore } from './server.ts';
 
@@ -71,7 +71,9 @@ describe('toegang tot de kern', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/health', headers: headers() });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'ok', mode: 'standalone', ingelogd: false });
-    expect(response.json().schemaVersion).toBe('0001_initieel.sql');
+    // Niet tegen een vast migratienummer: dat valt om zodra er een migratie
+    // bij komt, zonder dat er iets stuk is.
+    expect(response.json().schemaVersion).toBe(migrationFiles().at(-1));
   });
 
   it('vraagt om inloggen bij elk ander adres', async () => {

@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { openDatabase, integrityCheck, transaction, type DatabaseHandle } from './client.ts';
-import { appliedMigrations, applyViews, runMigrations, schemaVersion } from './migrate.ts';
+import {
+  appliedMigrations,
+  applyViews,
+  migrationFiles,
+  runMigrations,
+  schemaVersion,
+} from './migrate.ts';
 
 let directory: string;
 let handle: DatabaseHandle;
@@ -26,11 +32,16 @@ const tableNames = (): string[] =>
   ).map((row) => row.name);
 
 describe('migraties', () => {
-  it('draait het initiele schema en registreert dat', () => {
+  // Bewust tegen de bestanden op schijf en niet tegen een vaste lijst: die
+  // lijst zou bij elke nieuwe migratie omvallen zonder dat er iets stuk is.
+  it('draait elke migratie op schijf, in bestandsvolgorde', () => {
+    const opSchijf = migrationFiles();
+    expect(opSchijf[0]).toBe('0001_initieel.sql');
+
     const result = runMigrations(handle);
-    expect(result.applied).toEqual(['0001_initieel.sql']);
-    expect(appliedMigrations(handle).map((m) => m.name)).toEqual(['0001_initieel.sql']);
-    expect(schemaVersion(handle)).toBe('0001_initieel.sql');
+    expect(result.applied).toEqual(opSchijf);
+    expect(appliedMigrations(handle).map((m) => m.name)).toEqual(opSchijf);
+    expect(schemaVersion(handle)).toBe(opSchijf.at(-1));
   });
 
   it('is idempotent: een tweede keer draaien doet niets', () => {

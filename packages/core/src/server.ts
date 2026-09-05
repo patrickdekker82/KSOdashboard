@@ -28,6 +28,7 @@ import { registerAvailabilityRoutes } from './modules/availability/routes.ts';
 import { registerCrudRoutes } from './modules/crud/routes.ts';
 import { registerFieldRoutes } from './modules/fields/routes.ts';
 import { registerCrmRoutes } from './modules/crm/routes.ts';
+import { registerImportRoutes } from './modules/import/routes.ts';
 import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
 
@@ -156,6 +157,8 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   // record-id op /:entity/:id worden gelezen.
   await registerOpportunityRoutes(app);
   await registerAttachmentRoutes(app);
+  // Na de bijlagen: die registreren de multipart-plugin die de import gebruikt.
+  await registerImportRoutes(app);
   await registerCrudRoutes(app);
 
   return app;
