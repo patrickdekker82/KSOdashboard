@@ -30,6 +30,7 @@ import { registerFieldRoutes } from './modules/fields/routes.ts';
 import { registerCrmRoutes } from './modules/crm/routes.ts';
 import { registerImportRoutes } from './modules/import/routes.ts';
 import { registerAlertRoutes } from './modules/alerts/routes.ts';
+import { registerPackageRoutes } from './modules/packages/routes.ts';
 import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
 
@@ -176,6 +177,8 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   await registerImportRoutes(app);
   // Vóór de generieke factory: /alerts/rules mag niet als record-id worden gelezen.
   await registerAlertRoutes(app);
+  // Ook vóór de factory: /packages/overview mag niet als record-id worden gelezen.
+  await registerPackageRoutes(app);
   await registerCrudRoutes(app);
 
   return app;

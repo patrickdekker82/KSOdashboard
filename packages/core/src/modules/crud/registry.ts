@@ -10,6 +10,7 @@ import type { UserRole } from '@showroom/shared';
 import type { DatabaseHandle } from '../../db/client.ts';
 import { herberekenKans, herberekenViaRegel } from '../opportunities/recalculate.ts';
 import { eigenRegistratie } from './guards.ts';
+import { herberekenViaRegel as herberekenOfferteRegel } from '../packages/quotes.ts';
 
 export type EntityDefinition = {
   /** URL segment, e.g. `capacity-allocations`. */
@@ -336,6 +337,45 @@ export const ENTITIES: EntityDefinition[] = [
     filterable: ['id', 'package_id', 'product_id', 'is_optional'],
     defaultSort: 'sort_order ASC',
     customFields: false,
+  }),
+  entity({
+    key: 'product-categories',
+    table: 'product_categories',
+    writable: ['name', 'sort_order', 'color', 'active'],
+    filterable: ['id', 'name', 'active'],
+    defaultSort: 'sort_order ASC',
+    customFields: false,
+  }),
+  entity({
+    key: 'package-quotes',
+    table: 'package_quotes',
+    writable: [
+      'number', 'organization_id', 'contact_id', 'project_id', 'opportunity_id', 'package_id',
+      'owner_user_id', 'status', 'valid_until', 'follow_up_at', 'follow_up_user_id',
+      'notes', 'internal_notes', 'decline_reason_id', 'custom_fields',
+    ],
+    filterable: [
+      'id', 'number', 'organization_id', 'project_id', 'opportunity_id', 'status',
+      'sent_at', 'valid_until', 'total_cents', ...AUDIT,
+    ],
+    searchable: ['number', 'notes'],
+    defaultSort: 'created_at DESC',
+  }),
+  entity({
+    // Bedrag en btw staan er niet bij: die komen uit de prijsmodule en worden
+    // na elke wijziging opnieuw uitgerekend.
+    key: 'package-quote-lines',
+    table: 'package_quote_lines',
+    writable: [
+      'quote_id', 'product_id', 'description', 'quantity', 'unit', 'unit_price_cents',
+      'discount_bp', 'vat_rate_bp', 'cost_price_cents', 'is_optional', 'is_selected',
+      'sort_order',
+    ],
+    filterable: ['id', 'quote_id', 'product_id', 'is_optional'],
+    defaultSort: 'sort_order ASC',
+    softDelete: false,
+    customFields: false,
+    afterWrite: ({ handle, rij }) => herberekenOfferteRegel(handle, rij),
   }),
   entity({
     key: 'activities',

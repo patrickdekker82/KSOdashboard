@@ -12,6 +12,7 @@ import { seed } from './db/seed.ts';
 import { buildCore, type NetworkMode } from './server.ts';
 import { checkDatabasePath } from './db/path-guard.ts';
 import { voerControleUit } from './modules/alerts/engine.ts';
+import { vervalVerlopenOffertes } from './modules/packages/quotes.ts';
 
 export type BootstrapOptions = {
   /** Directory that holds the database, attachments, backups and logs. */
@@ -177,6 +178,14 @@ const CONTROLE_INTERVAL_MS = 60 * 60 * 1000;
 function startSignaleringen(handle: DatabaseHandle, logger: boolean): () => void {
   const draai = (): void => {
     try {
+      // Eerst opruimen, dan signaleren: een offerte die vandaag verloopt hoort
+      // niet eerst als "wacht op antwoord" gemeld te worden en daarna pas te
+      // vervallen.
+      const vervallen = vervalVerlopenOffertes(handle);
+      if (logger && vervallen > 0) {
+        process.stdout.write(`Offertes vervallen: ${vervallen}\n`);
+      }
+
       const uitkomst = voerControleUit(handle);
       if (logger && (uitkomst.nieuw > 0 || uitkomst.opgelost > 0)) {
         process.stdout.write(

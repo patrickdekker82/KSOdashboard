@@ -23,6 +23,7 @@ import {
 import { generateHolidays } from '../modules/availability/holidays.ts';
 import { hashPassword } from '../modules/auth/password.ts';
 import type { DatabaseHandle } from './client.ts';
+import { maakOfferteVanPakket, verstuurOfferte } from '../modules/packages/quotes.ts';
 
 export const DEMO_PASSWORD = 'Showroom2026!';
 
@@ -859,6 +860,7 @@ export function seedDemo(handle: DatabaseHandle, reference: IsoWeek): void {
   );
 
   seedProductsAndPackages(handle, orgIds.get('SolarPartner Nederland') ?? null);
+  seedOffertes(handle, reference, orgIds.get('Bouwbedrijf Meesters B.V.') ?? null, pd);
 
   // --- kansen ---------------------------------------------------------------
   const stageId = (name: string): number =>
@@ -1119,6 +1121,38 @@ function seedProductsAndPackages(handle: DatabaseHandle, supplierId: number | nu
       );
     });
   });
+}
+
+/**
+ * Twee offertes, zodat de offerteschermen en de signaleringen iets te tonen
+ * hebben: een die tien dagen geleden is verstuurd en waar niets op terugkomt,
+ * en een die nog concept is.
+ */
+function seedOffertes(
+  handle: DatabaseHandle,
+  reference: IsoWeek,
+  organisatieId: number | null,
+  eigenaarId: number,
+): void {
+  const pakket = handle.raw
+    .prepare("SELECT id FROM packages WHERE code = 'PV10'")
+    .get() as { id: number } | undefined;
+  if (!pakket) return;
+
+  const verstuurdOp = weekDay(reference, -2, 2);
+  const verstuurd = maakOfferteVanPakket(
+    handle,
+    { packageId: pakket.id, organizationId: organisatieId, ownerUserId: eigenaarId, aantal: 1 },
+    eigenaarId,
+    new Date(`${verstuurdOp}T09:00:00Z`),
+  );
+  verstuurOfferte(handle, verstuurd, eigenaarId, null, new Date(`${verstuurdOp}T09:00:00Z`));
+
+  maakOfferteVanPakket(
+    handle,
+    { packageId: pakket.id, organizationId: organisatieId, ownerUserId: eigenaarId, aantal: 12 },
+    eigenaarId,
+  );
 }
 
 // ---------------------------------------------------------------------------
