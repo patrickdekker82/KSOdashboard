@@ -398,6 +398,36 @@ export const endpoints = {
   meldingSluiten: (id: number) =>
     api.post<{ data: { id: number; status: string } }>(`/alerts/${id}/resolve`),
 
+  // --- pakketten en offertes (fase 8) --------------------------------------
+  pakketten: () => api.get<{ data: PakketMetPrijs[] }>('/packages/overview'),
+  volgendOffertenummer: () => api.get<{ data: { nummer: string | null } }>('/quotes/next-number'),
+  offerteVanPakket: (body: {
+    packageId: number;
+    organizationId?: number | null;
+    contactId?: number | null;
+    projectId?: number | null;
+    opportunityId?: number | null;
+    aantal?: number;
+  }) => api.post<{ data: { quoteId: number } }>('/quotes/from-package', body),
+  offerte: (id: number) =>
+    api.get<{ data: { offerte: Offerte; regels: Offerteregel[] } }>(`/quotes/${id}`),
+  offerteOptie: (id: number, lineId: number, gekozen: boolean) =>
+    api.post<{ data: OfferteTotalen }>(`/quotes/${id}/lines/${lineId}/select`, { gekozen }),
+  offerteHerberekenen: (id: number) =>
+    api.post<{ data: OfferteTotalen }>(`/quotes/${id}/recalculate`),
+  offerteVersturen: (id: number, geldigTot?: string) =>
+    api.post<{ data: { quoteId: number; status: string; validUntil: string } }>(
+      `/quotes/${id}/send`,
+      geldigTot ? { geldigTot } : {},
+    ),
+  offerteAccepteren: (id: number) =>
+    api.post<{ data: { quoteId: number; status: string } }>(`/quotes/${id}/accept`),
+  offerteAfwijzen: (id: number, redenId: number | null, notitie: string | null) =>
+    api.post<{ data: { quoteId: number; status: string } }>(`/quotes/${id}/decline`, {
+      redenId,
+      notitie,
+    }),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -799,4 +829,101 @@ export type ControleUitkomst = {
     opgelost: number;
     fout?: string;
   }>;
+};
+
+// --- pakketten en offertes --------------------------------------------------
+
+export type Pakketregel = {
+  id: number;
+  package_id: number;
+  product_id: number | null;
+  naam: string;
+  description: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_price_cents: number;
+  sales_price_cents: number | null;
+  discount_bp: number;
+  is_optional: number;
+  category_label: string | null;
+};
+
+export type PakketMetPrijs = {
+  id: number;
+  code: string | null;
+  name: string;
+  description: string | null;
+  categorie: string | null;
+  pricing_mode: 'sum' | 'fixed' | 'sum_with_margin';
+  fixed_price_cents: number | null;
+  margin_bp: number;
+  vat_mode: 'incl' | 'excl';
+  active: number;
+  estimated_install_hours: number | null;
+  regels: Pakketregel[];
+  prijs: {
+    subtotaalCents: number;
+    btwCents: number;
+    totaalCents: number;
+    kostprijsCents: number;
+    margeCents: number;
+    margeBp: number;
+  };
+};
+
+export type Offerte = {
+  id: number;
+  number: string | null;
+  status: 'concept' | 'verstuurd' | 'geaccepteerd' | 'afgewezen' | 'vervallen';
+  organization_id: number | null;
+  contact_id: number | null;
+  project_id: number | null;
+  opportunity_id: number | null;
+  package_id: number | null;
+  sent_at: string | null;
+  valid_until: string | null;
+  decided_at: string | null;
+  subtotal_cents: number;
+  discount_cents: number;
+  vat_cents: number;
+  total_cents: number;
+  notes: string | null;
+  internal_notes: string | null;
+  klant: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  project: string | null;
+  pakket: string | null;
+  eigenaar: string | null;
+};
+
+export type Offerteregel = {
+  id: number;
+  quote_id: number;
+  product_id: number | null;
+  sku: string | null;
+  categorie: string | null;
+  description: string;
+  quantity: number;
+  unit: string | null;
+  unit_price_cents: number;
+  discount_bp: number;
+  vat_rate_bp: number;
+  amount_cents: number;
+  cost_price_cents: number;
+  is_optional: number;
+  is_selected: number;
+  sort_order: number;
+};
+
+export type OfferteTotalen = {
+  quoteId: number;
+  subtotalCents: number;
+  discountCents: number;
+  vatCents: number;
+  totalCents: number;
+  costCents: number;
+  marginCents: number;
+  marginBp: number;
+  regels: number;
 };

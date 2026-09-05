@@ -335,6 +335,45 @@ betekenen dat iemand denkt dat hij bewaakt wordt terwijl dat niet zo is. De API
 geeft per regel terug of hij gebouwd is, en het beheerscherm zegt het met
 zoveel woorden.
 
+### Een offerte is een kopie, geen verwijzing
+
+Het zou eleganter lijken om een offerte naar het pakket te laten wijzen en de
+prijs bij het tonen uit te rekenen. Dan hoeft er niets gekopieerd te worden en
+staat de prijs altijd "goed".
+
+Maar dat is precies het probleem: een offerte die de klant vorige week heeft
+ontvangen, mag niet stilletjes van bedrag veranderen omdat de inkoopprijs van
+een paneel is aangepast. Wat er op papier stond, blijft staan. De regels worden
+dus gekopieerd, met de prijs zoals die op dat moment gold, en er staat een test
+op die precies dat vastlegt.
+
+### Optionele regels staan uit tot de klant ze kiest
+
+Een optie die standaard aan staat, maakt de eerste prijs die de klant ziet hoger
+dan het pakket belooft. Dat is geen verkooptechniek maar een vertrouwenskwestie.
+De optie komt dus uitgevinkt binnen, telt voor nul euro, en verschijnt op de
+afgedrukte offerte onderaan als suggestie met haar prijs erbij — niet in de
+tabel met wat er geleverd wordt.
+
+### PDF via het hoofdproces, niet via een bibliotheek
+
+Electron heeft `printToPDF` ingebouwd. De offerte wordt als kale HTML opgebouwd
+en in een verborgen venster afgedrukt. Dat scheelt een PDF-bibliotheek, en het
+scheelt vooral de betaalde image-, html- en xlsx-modules van docxtemplater die
+de opdracht expliciet uitsluit.
+
+De HTML gebruikt geen enkele themavariabele. Een offerte die bij de een op wit
+papier en bij de ander op donkergrijs uitkomt omdat het scherm in donkere modus
+stond, is geen offerte. Daar staat een test op.
+
+### Het jaar hoort in het offertenummer
+
+Een teller die per jaar terugloopt geeft in januari opnieuw 0001 uit, en dat
+nummer bestaat dan al. Het jaar staat daarom in het nummer zelf:
+`OF-2026-0001`. Ophogen en uitlezen gebeuren in één transactie — in deze
+applicatie draait alles in één proces, maar in de hostmodus bedienen meerdere
+werkplekken dezelfde database, en dan telt dat echt.
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:

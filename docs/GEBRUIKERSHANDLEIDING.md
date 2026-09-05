@@ -262,6 +262,50 @@ Datums leest de app Nederlands: `03-02-2026` is 3 februari. Getallen ook:
 Onderaan het scherm staat wat er eerder is geïmporteerd, door wie en met welke
 uitkomst.
 
+## Duurzaamheid
+
+Onder **Duurzaamheid** staan twee tabbladen: de **pakketten** en de **offertes**
+die eruit voortkomen.
+
+### Pakketten
+
+Elk pakket toont zijn samenstelling en de prijs die daaruit volgt — excl. btw,
+btw, incl. btw, en de marge. Die prijs staat niet vast opgeslagen: wijzigt de
+inkoop- of verkoopprijs van een product, dan staat het hier meteen goed.
+
+De marge is een intern cijfer. Hij staat op het scherm en niet op de offerte.
+
+Onderdelen die als **optioneel** in het pakket staan, tellen niet mee in de
+pakketprijs. De klant kiest ze per offerte bij.
+
+### Een offerte maken
+
+Klik bij een pakket op **Offerte maken…**. Kies de klant, eventueel het project,
+en hoeveel keer het pakket geleverd wordt — kiest u een project, dan wordt het
+aantal woningen daarvan automatisch ingevuld. Alle aantallen in de regels worden
+daarmee vermenigvuldigd.
+
+De offerte krijgt een nummer (`OF-2026-0001`) en is dertig dagen geldig.
+
+**De offerte is een kopie van het pakket.** Wijzigt het pakket daarna, dan
+verandert deze offerte niet meer mee. Wat de klant heeft gezien, blijft staan.
+
+### De offerte afmaken
+
+Op de offertepagina vinkt u de optionele onderdelen aan die de klant erbij wil.
+De totalen lopen meteen mee. Bij een pakket met een vaste prijs verschuiven ook
+de andere regelbedragen — dat hoort zo, anders klopt de btw niet meer.
+
+| Knop | Wanneer |
+|---|---|
+| **Versturen** | zet de offerte op verstuurd en start de teller voor "wacht op antwoord" |
+| **Geaccepteerd** | de klant gaat akkoord |
+| **Afgewezen…** | met een reden of een toelichting — een van beide is verplicht |
+| **Afdrukken (PDF)** | maakt er een PDF van en vraagt waar die moet komen |
+
+Een offerte waarvan de geldigheid voorbij is, gaat vanzelf op **vervallen**. Dan
+staat hij niet langer in de trechter alsof er nog antwoord op kan komen.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -274,8 +318,8 @@ uitkomst.
 
 ## Nog niet af
 
-Duurzaamheidspakketten, offertes, opvolging, e-mail en de export zijn nog niet
-gebouwd. Die schermen zeggen dat zelf, met de fase waarin ze komen.
+Opvolging, e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
+zelf, met de fase waarin ze komen.
 
 Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
 back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook

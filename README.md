@@ -22,6 +22,7 @@ webadres om te onthouden, werkt volledig offline.
 | Verlof: aanvragen, goedkeuren, saldo in uren, inzet elders | **af** |
 | Projecten met fasering en de Excel-/CSV-planningimport | **af** |
 | Dashboard met KPI's en zeventien signaleringsregels | **af** |
+| Duurzaamheidspakketten, offertes en PDF | **af** |
 | Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
@@ -166,6 +167,26 @@ afgedwongen: een gewone gebruiker kan alleen zijn eigen registraties beheren en
 de status niet zelf zetten. Goedkeuren blijft aan de manager, en dat geldt ook
 voor een POST die de goedkeuringsstroom probeert over te slaan.
 
+## Pakketten en offertes
+
+Een offerte begint als kopie van een duurzaamheidspakket. Dat is met opzet een
+kopie en geen verwijzing: gaat de prijs van een zonnepaneel volgende maand
+omhoog, dan verandert een offerte die de klant al heeft gezien niet met
+terugwerkende kracht mee.
+
+Optionele onderdelen komen uitgevinkt binnen. Zouden ze aanstaan, dan is de
+eerste prijs die de klant ziet hoger dan het pakket belooft. Aanvinken telt ze
+mee en rekent alles opnieuw door — bij een pakket met een vaste prijs verschuift
+dan het hele regelbedrag mee, zodat de btw per tarief blijft kloppen.
+
+Offertenummers komen uit een teller in de database, niet uit `MAX(id)+1`. Het
+jaar staat in het nummer: zonder dat springt de teller in januari terug naar
+0001 en bestaat dat nummer al.
+
+Afdrukken gaat via het verborgen venster van het hoofdproces (`printToPDF`).
+Geen externe PDF-bibliotheek, geen browser die opengaat, en geen betaalde
+module.
+
 ## Signaleringen
 
 Elk uur rekent de kern zeventien regels door: capaciteitsgaten, overbezette
@@ -245,7 +266,7 @@ decimalen.
 npm test
 ```
 
-611 tests, waaronder de verplichte gevallen: de volledige tabel met
+657 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter

@@ -188,8 +188,27 @@ telt is welke fase is opgeleverd.
   content-type json bijvoorbeeld — werd als "er ging iets mis in de kern"
   gemeld. Dat is een fout van de aanroeper en zegt dat nu ook.
 
+### Fase 8 — duurzaamheidspakketten en offertes
+- Offertes uit een pakket: de regels worden gekopieerd, niet verwezen. Gaat de
+  prijs van een zonnepaneel volgende maand omhoog, dan verandert een offerte die
+  de klant al heeft gezien niet met terugwerkende kracht mee.
+- Optionele regels komen uitgevinkt binnen; de klant kiest ze er per offerte
+  bij. Bij een pakket met een vaste prijs wordt het verschil evenredig over de
+  regels verdeeld, zodat de btw per tarief blijft kloppen.
+- Nummerreeksen in gebruik genomen: de tabel stond er sinds fase 1 maar werd
+  door niets gebruikt. Ophogen en uitlezen in één transactie, met het jaar in
+  het nummer omdat de teller anders in januari terugspringt naar 0001.
+- Statusstroom concept → verstuurd → geaccepteerd of afgewezen, met een
+  verplichte reden bij afwijzen. Een offerte van nul euro versturen wordt
+  geweigerd; verlopen offertes vervallen bij de uurlijkse controle.
+- Pakketscherm met de samenstelling en de berekende prijs, inclusief de interne
+  marge — die hoort op het scherm en niet op de offerte.
+- Offertescherm met de opties aan- en uitvinken, de totalen en de statusknoppen.
+- Afdrukken naar PDF via het verborgen venster van het hoofdproces. Geen externe
+  PDF-bibliotheek, en dus ook geen betaalde docxtemplater-module.
+
 ### Nog niet gebouwd
-Duurzaamheidspakketten (fase 8), opvolging en Microsoft 365 (fase 9), de
+Opvolging en Microsoft 365 (fase 9), de
 AI-assistent (fase 10), rapportages en export (fase 11), hostmodus en
 automatische updates (fase 12). De schermen daarvoor tonen in welke fase ze
 komen.

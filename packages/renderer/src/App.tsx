@@ -11,6 +11,8 @@ import { GeneriekeLijst } from './features/generiek/GeneriekeLijst.tsx';
 import { GeneriekDetail } from './features/generiek/GeneriekDetail.tsx';
 import { Velden } from './features/instellingen/Velden.tsx';
 import { Regels } from './features/signaleringen/Regels.tsx';
+import { Duurzaamheid } from './features/duurzaamheid/Duurzaamheid.tsx';
+import { OfferteDetail } from './features/duurzaamheid/OfferteDetail.tsx';
 import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import { Zoekbalk } from './components/Zoekbalk.tsx';
@@ -97,6 +99,14 @@ function Inhoud({
     return <Regels onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;
+
+  if (pad.startsWith('/duurzaamheid/offerte')) {
+    const id = recordId(pad, '/duurzaamheid/offerte');
+    if (id !== null) {
+      return <OfferteDetail id={id} onTerug={() => navigeer('/duurzaamheid')} />;
+    }
+  }
+  if (pad.startsWith('/duurzaamheid')) return <Duurzaamheid navigeer={navigeer} />;
 
   // De planningimport hangt onder projecten: het is de snelste weg van een
   // Excel-planning naar de bezetting.
