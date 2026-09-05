@@ -5,7 +5,7 @@
  * dat een beheerder toevoegt verschijnt hier vanzelf — in de kolomkiezer, in
  * het filter en in de export.
  */
-import { useMemo, useState, type JSX } from 'react';
+import { useMemo, useState, type JSX, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { OPERATORS_BY_TYPE, type FieldDefinition } from '@showroom/shared';
 import { endpoints } from '../../lib/api.ts';
@@ -38,10 +38,13 @@ export function GeneriekeLijst({
   entiteit,
   titel,
   onOpen,
+  acties,
 }: {
   entiteit: string;
   titel: string;
   onOpen?: (id: number) => void;
+  /** Knoppen die bij deze entiteit horen, naast de kolomkiezer. */
+  acties?: ReactNode;
 }): JSX.Element {
   const schema = useEntiteitSchema(entiteit);
   const [zoek, setZoek] = useState('');
@@ -172,7 +175,8 @@ export function GeneriekeLijst({
             + Filter
           </button>
 
-          <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, position: 'relative' }}>
+            {acties}
             <button
               type="button"
               className="focus-ring"

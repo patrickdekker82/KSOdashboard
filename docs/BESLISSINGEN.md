@@ -221,6 +221,65 @@ verduidelijking: er wordt nergens mee gerekend, en het rooster van de
 medewerker blijft leidend. Anders zou "vijf dagen over" voor een parttimer een
 onwaarheid worden.
 
+### Een eigen xlsx-lezer in plaats van een bibliotheek
+
+De applicatie heeft nul runtime-afhankelijkheden, en dat is een van de redenen
+dat de installatie op elke werkplek hetzelfde doet: er is niets dat op de ene
+machine een andere versie kan hebben dan op de andere. Een xlsx-bibliotheek
+erbij halen zou dat opgeven voor iets wat, na een keer goed kijken, overzichtelijk
+werk is: een .xlsx is een zip met XML, en `zlib.inflateRawSync` — dat in Node
+zit — doet het enige echt ingewikkelde deel.
+
+De grens is expliciet getrokken. De lezer kan geen zip64, geen versleutelde
+archieven en geen andere compressie dan "opgeslagen" en "deflate". Een werkmap
+uit Excel of LibreOffice valt in geen van die gevallen; komt er toch zoiets
+binnen, dan zegt de foutmelding wát er niet kan.
+
+De testfixture is een écht xlsx-bestand, geschreven zoals Excel het opslaat:
+gedeelde teksten, een eigen datumopmaak, een formule met de uitkomst erbij, een
+ongecomprimeerd onderdeel en een tabblad dat niet `sheet1.xml` heet. Dat laatste
+is geen gezocht randgeval — Excel hernoemt werkbladbestanden zodra er een
+tabblad is verwijderd, en een lezer die de verwijzing niet volgt leest dan het
+verkeerde blad.
+
+### Dag-eerst bij het lezen van datums
+
+`03-02-2026` is in deze applicatie 3 februari en niet 2 maart. Aan de waarde is
+dat niet te zien zolang beide getallen onder de dertien blijven, dus er moet een
+keuze worden gemaakt, en die is hier: dit is een Nederlandse applicatie voor een
+Nederlands bedrijf.
+
+Een bestand uit een Amerikaanse bron wordt dus verkeerd gelezen. Dat is een
+bewuste afweging: die bestanden komen hier niet voor, en de omgekeerde keuze zou
+elke Nederlandse planning stilletjes verschuiven — het soort fout dat pas
+opvalt als de bezetting niet klopt.
+
+### De import beoordeelt twee keer in plaats van het voorbeeld weg te schrijven
+
+Het voor de hand liggende ontwerp is: het bestand lezen, de rijen in het
+geheugen houden, en bij "doorvoeren" precies die rijen wegschrijven. Dat is
+sneller en het levert gegarandeerd op wat de gebruiker zag.
+
+Maar dat laatste is juist het probleem. Tussen het bekijken en het doorvoeren
+kan een collega hetzelfde project hebben aangemaakt. Het voorbeeld zegt dan
+"nieuw" en het wegschrijven maakt een tweede project met dezelfde naam. Daarom
+wordt het bestand bij het doorvoeren opnieuw beoordeeld, tegen de database zoals
+hij op dat moment is. Wijkt de uitkomst af van het voorbeeld, dan is dat wat er
+werkelijk moest gebeuren.
+
+### Een foute rij stopt de import niet
+
+Een import van veertig regels afkeuren omdat er in regel zeventien een datum
+verkeerd staat, betekent dat iemand het bestand in Excel gaat repareren en het
+daarna helemaal opnieuw doet — en dat het bij de volgende fout weer gebeurt. De
+foute rij wordt overgeslagen, met de reden erbij en het regelnummer uit het
+bronbestand, zodat hij in Excel terug te vinden is. De rest gaat gewoon door.
+
+Twee dingen worden bewust níet stilzwijgend opgelost: een onbekende
+opdrachtgever levert geen nieuwe klant op (anders staan er na een paar imports
+vijf varianten van dezelfde aannemer in het systeem), en een tweede import maakt
+geen tweede showroomfase (dat zou de bezetting van dat project verdubbelen).
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:

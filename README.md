@@ -20,6 +20,7 @@ webadres om te onthouden, werkt volledig offline.
 | CRM: zoeken, tijdlijn, dubbelen samenvoegen, bijlagen, AVG | **af** |
 | Kansen: kanban, disciplineregels, winnen/verliezen, trechterrapport | **af** |
 | Verlof: aanvragen, goedkeuren, saldo in uren, inzet elders | **af** |
+| Projecten met fasering en de Excel-/CSV-planningimport | **af** |
 | Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
@@ -164,6 +165,33 @@ afgedwongen: een gewone gebruiker kan alleen zijn eigen registraties beheren en
 de status niet zelf zetten. Goedkeuren blijft aan de manager, en dat geldt ook
 voor een POST die de goedkeuringsstroom probeert over te slaan.
 
+## De planningimport
+
+Een planning komt binnen als .xlsx of .csv en gaat in twee stappen naar binnen.
+Eerst een droogloop: er wordt niets weggeschreven en per regel staat er wat er
+zou gebeuren — nieuw, bijwerken (met de kolommen die veranderen), ongewijzigd of
+fout. Pas als dat klopt, gaat dezelfde beoordeling nog een keer langs, nu binnen
+een transactie die ook schrijft. Dat is bewust geen "voorbeeld tonen en dan de
+rijen uit het geheugen wegschrijven": tussen kijken en doorvoeren kan een
+collega een project hebben aangemaakt, en de tweede ronde ziet dat.
+
+Een rij met een fout wordt overgeslagen en de rest gaat door. Een import van
+veertig regels afkeuren om één verkeerde datum betekent dat iemand het bestand
+in Excel repareert en alles opnieuw doet.
+
+Het lezen gebeurt zonder externe bibliotheek. Een .xlsx is een zip met XML, en
+`zlib.inflateRawSync` doet het zware deel; de rest is de centrale directory
+uitlezen en de juiste onderdelen ontleden. Wat de lezer niet kan — zip64,
+versleutelde archieven — zegt hij met zoveel woorden in plaats van halve
+gegevens terug te geven.
+
+De dingen die bij zo'n bestand stil misgaan, staan in de tests: 03-02-2026 is
+hier 3 februari en niet 2 maart; "1.250" zonder komma is duizend
+tweehonderdvijftig want 1,25 woning bestaat niet; een lege cel wordt in xlsx
+weggelaten, dus zonder de celverwijzing te volgen schuift de kopersbegeleider
+een kolom op; en Excel telt 29 februari 1900 mee, een dag die nooit heeft
+bestaan.
+
 ## De rekenkern
 
 Twee pure functiebibliotheken zonder databasetoegang, en dus volledig
@@ -192,7 +220,7 @@ decimalen.
 npm test
 ```
 
-480 tests, waaronder de verplichte gevallen: de volledige tabel met
+555 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter

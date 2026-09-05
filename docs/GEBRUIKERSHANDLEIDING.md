@@ -188,6 +188,47 @@ Onder **Rapportages** staat de trechter: wat er per fase open staat, wat u wint
 en waarop, hoe lang elke fase duurt en waarom kansen weglopen. Alles staat er
 ook als tabel, dus u hoeft geen staaflengte te schatten.
 
+## Projecten
+
+Op de detailpagina van een project staat onder de velden de **fasering**: per
+fase een balk met de periode, en eronder dezelfde gegevens als tabel.
+
+Alleen showroom en sluiting belasten de planning. Start bouw en oplevering staan
+er wel bij — ze horen bij het project — maar tellen niet mee in de bezetting.
+Dat is aan de balk te zien (gearceerd) én het staat er in woorden bij.
+
+Met "Afwijkend aantal woningen" laat u één fase over minder woningen gaan dan
+het hele project. Leeg laten betekent: het hele project.
+
+### Planning importeren
+
+Vanuit de projectenlijst gaat u met **Planning importeren…** naar de import. Die
+loopt in vier stappen.
+
+1. **Bestand kiezen.** Een Excel-bestand (.xlsx) of een CSV. Geef aan op welke
+   regel de kolomnamen staan — alles daarboven wordt genegeerd. Met "Bestaande
+   projecten bijwerken" uit worden alleen nieuwe projecten aangemaakt.
+2. **Kolommen koppelen.** De app doet een voorstel op basis van de kolomnamen en
+   herkent de gebruikelijke varianten ("Aantal won.", "Projectnr", "KB"). Klopt
+   er iets niet, dan kiest u zelf een andere kolom; het voorbeeld werkt meteen
+   bij.
+3. **Voorbeeld.** Per regel staat wat er zou gebeuren: nieuw, bijwerken,
+   ongewijzigd of fout. Bij bijwerken staat erbij wélke kolommen veranderen, met
+   de oude en de nieuwe waarde. Bij een fout staat de reden erbij en het
+   regelnummer uit uw bestand.
+4. **Doorvoeren.** Nu pas wordt er iets weggeschreven, in één keer. Regels met
+   een fout worden overgeslagen; de rest gaat gewoon door.
+
+Wat de import bewust *niet* doet: een onbekende opdrachtgever aanmaken als
+klant. U krijgt een melding en koppelt hem later zelf — anders staan er na een
+paar imports vijf varianten van dezelfde aannemer in het systeem.
+
+Datums leest de app Nederlands: `03-02-2026` is 3 februari. Getallen ook:
+`1.250` is duizend tweehonderdvijftig.
+
+Onderaan het scherm staat wat er eerder is geïmporteerd, door wie en met welke
+uitkomst.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -200,7 +241,6 @@ ook als tabel, dus u hoeft geen staaflengte te schatten.
 
 ## Nog niet af
 
-Projectbeheer met de Excel-planning-import, de signaleringen op het dashboard,
-duurzaamheidspakketten, offertes, opvolging, e-mail en de export zijn nog niet
-gebouwd. Die schermen zeggen dat
+De signaleringen op het dashboard, duurzaamheidspakketten, offertes, opvolging,
+e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
 zelf, met de fase waarin ze komen.

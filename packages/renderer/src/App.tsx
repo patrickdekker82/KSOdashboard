@@ -17,6 +17,8 @@ import { Dubbelen } from './features/crm/Dubbelen.tsx';
 import { Kansenbord } from './features/kansen/Kansenbord.tsx';
 import { KansDetail } from './features/kansen/KansDetail.tsx';
 import { Pijplijnrapport } from './features/kansen/Pijplijnrapport.tsx';
+import { Importwizard } from './features/projecten/Importwizard.tsx';
+import { Projectfasen } from './features/projecten/Projectfasen.tsx';
 import type { JSX } from 'react';
 
 export function App(): JSX.Element {
@@ -68,7 +70,6 @@ export function App(): JSX.Element {
 const GENERIEK: Record<string, { entiteit: string; titel: string }> = {
   '/klanten': { entiteit: 'organizations', titel: 'Klanten' },
   '/contactpersonen': { entiteit: 'contacts', titel: 'Contactpersonen' },
-  '/projecten': { entiteit: 'projects', titel: 'Projecten' },
 };
 
 /** Leest het record-id uit een pad als `/kansen/12`. Geeft `null` bij `/kansen`. */
@@ -93,6 +94,47 @@ function Inhoud({
   if (pad.startsWith('/instellingen/velden')) return <Velden />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;
+
+  // De planningimport hangt onder projecten: het is de snelste weg van een
+  // Excel-planning naar de bezetting.
+  if (pad.startsWith('/projecten/import')) return <Importwizard navigeer={navigeer} />;
+
+  if (pad.startsWith('/projecten')) {
+    const id = recordId(pad, '/projecten');
+    return id === null ? (
+      <GeneriekeLijst
+        entiteit="projects"
+        titel="Projecten"
+        onOpen={(projectId) => navigeer(`/projecten/${projectId}`)}
+        acties={
+          <button
+            type="button"
+            className="focus-ring"
+            onClick={() => navigeer('/projecten/import')}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--rand)',
+              borderRadius: 6,
+              padding: '5px 12px',
+              color: 'var(--inkt-zacht)',
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            Planning importeren…
+          </button>
+        }
+      />
+    ) : (
+      <GeneriekDetail
+        entiteit="projects"
+        id={id}
+        titel="Projecten"
+        onTerug={() => navigeer('/projecten')}
+        extra={<Projectfasen projectId={id} />}
+      />
+    );
+  }
 
   // Kansen hebben een eigen bord en een eigen detailpagina met disciplineregels.
   // De generieke lijst blijft bereikbaar, want daar zitten de filters en de

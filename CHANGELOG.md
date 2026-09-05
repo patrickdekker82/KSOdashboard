@@ -131,8 +131,35 @@ telt is welke fase is opgeleverd.
   voor een collega boeken en zijn eigen aanvraag meteen goedkeuren. Een
   `beforeWrite`-haak in de registry is nu de laatste horde voor de database.
 
+### Fase 6 — projecten en de planningimport
+- Excel-lezer zonder externe afhankelijkheid: een .xlsx is een zip met XML, en
+  `zlib.inflateRawSync` doet het zware deel. Leest gedeelde teksten, datums aan
+  de celopmaak, formules via hun opgeslagen uitkomst en werkbladen die niet
+  `sheet1.xml` heten. Wat de lezer niet kan (zip64, versleutelde archieven)
+  zegt hij met zoveel woorden.
+- CSV-lezer die de puntkomma van een Nederlandse export herkent, met velden
+  tussen aanhalingstekens, regeleindes daarbinnen en de byte order mark.
+- Kolomherkenning op Nederlandse koppen ("Aantal won.", "Projectnr"), met
+  Nederlandse datums en getallen. 03-02-2026 is hier 3 februari; een punt
+  zonder komma is een duizendteken.
+- Import in twee stappen: een droogloop die niets wegschrijft en per regel zegt
+  wat er zou gebeuren, en een doorvoering in één transactie. Het doorvoeren
+  beoordeelt het bestand opnieuw, want tussen kijken en doorvoeren kan er iets
+  veranderd zijn.
+- Een rij met een fout wordt overgeslagen en de rest gaat door. Bij het
+  bijwerken van een bestaand project staat erbij welke kolommen veranderen.
+- Een tweede import maakt geen tweede showroomfase aan; dat zou de bezetting
+  verdubbelen. Een onbekende opdrachtgever levert een melding op en geen nieuwe
+  klant.
+- Importspoor per batch en per rij in de database, inclusief de afgebroken
+  pogingen.
+- Importwizard met bestandskeuze, kolomkoppeling, voorbeeld en uitkomst, plus
+  de importgeschiedenis.
+- Projectdetailpagina met de fasering op een tijdbalk en een editor ervoor.
+  Fasen die de planning niet belasten zijn gearceerd én benoemd.
+
 ### Nog niet gebouwd
-De Excel-planning-import (fase 6), duurzaamheidspakketten (fase 8),
-opvolging en Microsoft 365 (fase 9), de AI-assistent (fase 10), rapportages en
-export (fase 11), hostmodus en automatische updates (fase 12). De schermen
-daarvoor tonen in welke fase ze komen.
+Duurzaamheidspakketten (fase 8), opvolging en Microsoft 365 (fase 9), de
+AI-assistent (fase 10), rapportages en export (fase 11), hostmodus en
+automatische updates (fase 12). De schermen daarvoor tonen in welke fase ze
+komen.

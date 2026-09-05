@@ -155,6 +155,47 @@ export async function uploadBijlage(
   return (await response.json()).data as { id: number; filename: string };
 }
 
+/**
+ * Stuurt een planningsbestand naar de kern voor een droogloop.
+ *
+ * Multipart, dus buiten de JSON-helper om. De koppeling gaat als tekstveld mee
+ * zodat de gebruiker hem kan aanpassen en het voorbeeld opnieuw kan opvragen
+ * zonder het bestand nog een keer te kiezen — al kost dat wel een nieuwe upload,
+ * en dat is de prijs voor niets op de server bewaren wat niet nodig is.
+ */
+export async function importVoorbeeld(
+  bestand: File,
+  opties: { kopregel?: number; koppeling?: Koppeling; bestaandeBijwerken?: boolean } = {},
+): Promise<ImportVoorbeeld> {
+  const status = await kernStatus();
+  const basis = window.showroom ? `http://127.0.0.1:${status.port}` : '';
+  const body = new FormData();
+  body.append('file', bestand);
+  body.append('kopregel', String(opties.kopregel ?? 1));
+  if (opties.koppeling) body.append('koppeling', JSON.stringify(opties.koppeling));
+  if (opties.bestaandeBijwerken === false) body.append('bestaandeBijwerken', 'false');
+
+  const response = await fetch(`${basis}/api/v1/imports/preview`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: status.appToken ? { 'x-showroom-token': status.appToken } : {},
+    body,
+  });
+
+  if (!response.ok) {
+    const fout = (await response.json().catch(() => null)) as
+      | { error?: { code?: string; message?: string } }
+      | null;
+    throw new ApiFout(
+      response.status,
+      fout?.error?.code ?? 'onbekend',
+      fout?.error?.message ?? 'Het bestand kon niet worden ingelezen.',
+    );
+  }
+
+  return (await response.json()).data as ImportVoorbeeld;
+}
+
 /** Bouwt de download-URL van een bijlage, inclusief het sessietoken. */
 export async function bijlageUrl(bijlageId: number): Promise<string> {
   const status = await kernStatus();
@@ -328,6 +369,18 @@ export const endpoints = {
     api.get<Lijst<{ id: number; name: string; code: string; color: string | null }>>(
       '/allocation-types?pageSize=100',
     ),
+
+  // --- planningimport (fase 6) ---------------------------------------------
+  importVelden: () => api.get<{ data: ImportVeld[] }>('/imports/fields'),
+  importDoorvoeren: (batchId: number, koppeling: Koppeling, bestaandeBijwerken: boolean, kopregel: number) =>
+    api.post<{ data: ImportUitkomst }>(`/imports/${batchId}/commit`, {
+      koppeling,
+      bestaandeBijwerken,
+      kopregel,
+    }),
+  imports: () => api.get<{ data: ImportBatch[] }>('/imports'),
+  importDetail: (id: number) =>
+    api.get<{ data: { batch: ImportBatch; rijen: ImportBatchRij[] } }>(`/imports/${id}`),
 
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
@@ -577,4 +630,104 @@ export type Inzet = {
   allocation_value: number;
   status: 'gepland' | 'actief' | 'afgerond' | 'geannuleerd';
   note: string | null;
+};
+
+// --- planningimport ---------------------------------------------------------
+
+export type ImportVeldSleutel =
+  | 'nummer'
+  | 'naam'
+  | 'plaats'
+  | 'plan'
+  | 'opdrachtgever'
+  | 'aantal'
+  | 'showroom_start'
+  | 'showroom_eind'
+  | 'begeleider'
+  | 'afspraken_per_woning'
+  | 'doorlooptijd_weken'
+  | 'opmerking';
+
+export type Koppeling = Partial<Record<ImportVeldSleutel, number>>;
+
+export type ImportVeld = {
+  veld: ImportVeldSleutel;
+  label: string;
+  soort: 'tekst' | 'getal' | 'datum';
+  verplicht: boolean;
+  aliassen: string[];
+  uitleg?: string;
+};
+
+export type ImportMelding = {
+  veld: ImportVeldSleutel | null;
+  tekst: string;
+  ernst: 'fout' | 'let_op';
+};
+
+export type ImportRij = {
+  bronregel: number;
+  oordeel: 'nieuw' | 'bijwerken' | 'ongewijzigd' | 'fout';
+  projectId: number | null;
+  waarden: Partial<Record<ImportVeldSleutel, string | number>>;
+  ruw: Record<string, string | number | boolean | null>;
+  meldingen: ImportMelding[];
+  wijzigingen: Array<{ kolom: string; van: unknown; naar: unknown }>;
+};
+
+export type ImportTelling = {
+  totaal: number;
+  nieuw: number;
+  bijwerken: number;
+  ongewijzigd: number;
+  fout: number;
+};
+
+export type ImportVoorbeeld = ImportTelling & {
+  batchId: number;
+  tabblad: string | null;
+  kopregel: number;
+  koppen: Array<string | number | boolean | null>;
+  koppeling: Koppeling;
+  bestaandeBijwerken: boolean;
+  rijen: ImportRij[];
+};
+
+export type ImportUitkomst = ImportTelling & { batchId: number; rijen: ImportRij[] };
+
+export type ImportBatch = {
+  id: number;
+  bestandsnaam: string;
+  bestandsgrootte: number;
+  tabblad: string | null;
+  status: 'voorbeeld' | 'doorgevoerd' | 'afgebroken';
+  rijen_totaal: number;
+  rijen_nieuw: number;
+  rijen_bijgewerkt: number;
+  rijen_overgeslagen: number;
+  rijen_fout: number;
+  created_at: string;
+  committed_at: string | null;
+  door: string | null;
+  koppeling: string;
+};
+
+export type ImportBatchRij = {
+  id: number;
+  bronregel: number;
+  oordeel: ImportRij['oordeel'];
+  project: string | null;
+  meldingen: string;
+  doorgevoerd: number;
+};
+
+export type Projectfase = {
+  id: number;
+  project_id: number;
+  phase_type_id: number;
+  start_date: string;
+  end_date: string;
+  unit_count_override: number | null;
+  note: string | null;
+  is_capacity_load: number;
 };
