@@ -443,6 +443,102 @@ in de API afgedwongen, niet in de UI verborgen, en er staan drie tests op.
 De aard van een ziekte wordt nergens vastgelegd. De seed laat het notitieveld
 bij een ziekmelding leeg en de handleiding zegt waarom.
 
+## Fase 10 — de AI-assistent
+
+### Eén uitgang, en die staat standaard dicht
+
+De opdracht zegt: geen externe clouddiensten, geen telemetrie, geen "phone
+home". Een AI-assistent is per definitie een externe dienst — tenzij hij lokaal
+draait, en dat vraagt hardware die op een showroomwerkplek niet staat.
+
+De keuze is daarom: de assistent bestaat, maar is de énige uitgang, hij staat
+standaard dicht, en wat er doorheen gaat is zichtbaar en beperkt.
+
+- Zonder API-sleutel gebeurt er niets. Zo wordt de applicatie geïnstalleerd.
+- Alleen `POST /api/v1/ai/run` gaat het netwerk op. Eén route, in één bestand.
+- Wat er meegaat is per preset in te stellen; wat niet meegaat kan niet lekken.
+- Er is een knop die laat zien wat er weggaat, vóórdat het weggaat.
+- Elke aanroep komt in het logboek, ook een mislukte.
+
+### Anonimiseren, en dan nóg een keer controleren
+
+Het schema schrijft `anonymise_personal_data` voor. De uitwerking:
+`anonimiseer.ts` is een zuivere module — geen database, geen netwerk, geen
+datum — die een woordenboek bouwt van wat vervangen moet worden en dat daarna
+toepast en terugdraait. Zuiver, omdat dit de code is die bepaalt wat er de deur
+uit gaat: die moet volledig testbaar zijn.
+
+Twee bronnen voeden het woordenboek. Ten eerste de database: namen, adressen,
+e-mailadressen en telefoonnummers die bij dít record horen. Wat we weten hoeven
+we niet te raden — een regex vindt een e-mailadres wel, maar niet dat "Kroon"
+hier een achternaam is en geen bouwdeel. Ten tweede een vangnet van patronen
+voor wat iemand in vrije tekst getypt heeft.
+
+Drie dingen die in de praktijk misgingen en waar nu tests op staan:
+
+1. **Deelwoorden.** "Jan" zit in "Janssen". De woordgrenscontrole gebruikt
+   Unicode-letterklassen, niet `\b` (dat is ASCII-only), en loopt álle
+   voorkomens na — stoppen bij de eerste liet de tweede lekken.
+2. **Langste eerst.** "Jan van der Berg" gaat vóór "Jan", anders blijft er
+   "«PERSOON_1» van der Berg" staan.
+3. **Losse kernwoorden van een bedrijfsnaam.** Live gevonden: in een activiteit
+   stond "Meesters nabellen over de offerte", terwijl het woordenboek alleen
+   "Bouwbedrijf Meesters B.V." kende. Rechtsvormen blijven staan — die zeggen
+   niets over wélk bedrijf het is.
+
+Daarna volgt de vangrail: de geanonimiseerde tekst wordt nógmaals gecontroleerd,
+en vindt die controle alsnog iets, dan gaat het verzoek niet weg. Dat is er
+uitdrukkelijk voor het geval het anonimiseren zélf een fout heeft. Liever een
+assistent die weigert dan een klantnaam die stilletjes verdwijnt.
+
+De plaatshouders staan tussen dubbele guillemets (`«PERSOON_1»`). Die komen in
+Nederlandse zakelijke tekst niet voor, dus het model kan ze niet per ongeluk
+zelf verzinnen. Doet het dat tóch, dan blijft de plaatshouder staan en meldt
+het scherm hem — beter dan er stilzwijgend de naam van iemand anders in
+schuiven.
+
+### De sleutel naast de database, niet erin
+
+`secrets` heeft de vorm `key, ciphertext, iv, tag`: AES-GCM. De vraag is waar
+de versleutelsleutel dan staat. In de database zou zinloos zijn.
+
+Hij staat in een apart bestand (`kluissleutel.bin`, rechten 0600) in de
+gegevensmap. De nachtelijke back-up neemt de database mee naar de netwerkschijf;
+het sleutelbestand blijft op de werkplek. Wie de back-up in handen krijgt, heeft
+de API-sleutel dus niet. Op Windows doet `chmod` weinig — daar is de
+bescherming dat de gegevensmap onder het gebruikersprofiel staat. GCM levert
+bovendien een authenticatietag, dus een gemanipuleerd veld valt door de mand in
+plaats van stil onzin op te leveren.
+
+### De officiële SDK, en dus de eerste runtime-afhankelijkheid
+
+Tot nu toe had `packages/core` alleen Fastify c.s. als afhankelijkheid en werd
+alles wat op een bibliotheek leek zelf geschreven — de zip-lezer, de xlsx-lezer,
+de .eml-opbouw. Hier gebeurt dat bewust niet: voor een API-koppeling is de
+officiële `@anthropic-ai/sdk` de juiste keuze. Zelf HTTP-verzoeken bouwen
+betekent zelf de foutafhandeling, de streaming en de versionering onderhouden,
+en juist bij de enige externe koppeling wil je die niet zelf beheren. De
+foutafhandeling loopt via de getypeerde foutklassen van de SDK en niet via het
+aflezen van foutteksten: die veranderen, de klassen niet.
+
+Er wordt gestreamd, ook al is de uitvoer meestal kort. Een niet-gestreamd
+verzoek met een royale `max_tokens` loopt tegen de aanvraagtimeout aan.
+
+### Kosten in dollar, geen verzonnen koers
+
+`cost_estimate_cents` wordt gevuld in dollarcent, want zo rekent de leverancier
+af. Een wisselkoers in de code is binnen een maand onjuist, en dan staat er een
+bedrag in euro's op het scherm dat niemand op de factuur terugvindt. Het scherm
+zet er "US$" bij. Modellen waarvan de prijs hier niet bekend is leveren
+"onbekend" op in plaats van een verzonnen bedrag.
+
+### Het logboek bewaart geen promptinhoud
+
+`prompt_summary` krijgt de naam van de preset en het record, meer niet. De
+prompt zelf bevat klantgegevens en het logboek is voor elke manager zichtbaar.
+Wat er gebeurd is, is af te leiden uit de preset en het record; wat er precies
+in stond hoeft daar niet voor bewaard te worden.
+
 ## Vooruit
 
 - **PostgreSQL blijft mogelijk.** SQLite-specifieke SQL staat alleen in

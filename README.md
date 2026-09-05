@@ -24,7 +24,8 @@ webadres om te onthouden, werkt volledig offline.
 | Dashboard met KPI's en zeventien signaleringsregels | **af** |
 | Duurzaamheidspakketten, offertes en PDF | **af** |
 | Opvolging, bellijsten en e-mail uit sjablonen | **af** |
-| Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
+| AI-assistent: standaard uit, anonimiseert, logt elke aanroep | **af** |
+| Rapportages en export (fase 11), hostmodus en updates (fase 12) | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
 fase ze komen. De gegevens erachter staan al wel in de database.

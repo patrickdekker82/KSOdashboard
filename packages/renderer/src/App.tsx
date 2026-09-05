@@ -15,6 +15,7 @@ import { Duurzaamheid } from './features/duurzaamheid/Duurzaamheid.tsx';
 import { Opvolging } from './features/opvolging/Opvolging.tsx';
 import { OfferteDetail } from './features/duurzaamheid/OfferteDetail.tsx';
 import { Instellingen } from './features/instellingen/Instellingen.tsx';
+import { AiInstellingen } from './features/ai/AiInstellingen.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import { Zoekbalk } from './components/Zoekbalk.tsx';
 import { Dubbelen } from './features/crm/Dubbelen.tsx';
@@ -98,6 +99,8 @@ function Inhoud({
   if (pad.startsWith('/instellingen/velden')) return <Velden />;
   if (pad.startsWith('/instellingen/signaleringen'))
     return <Regels onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/ai'))
+    return <AiInstellingen onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;
 

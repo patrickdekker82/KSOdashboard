@@ -368,6 +368,38 @@ dan als verstuurd in de tijdlijn.
 Staat bij een contactpersoon **niet mailen** aan, dan komt hij niet in de
 ontvangers en zegt de app dat ook.
 
+## De assistent
+
+Op de detailpagina van een klant, contactpersoon, project, kans of offerte staat
+rechtsboven de knop **Assistent…**. Die laat een taalmodel een concept voor u
+schrijven: een opvolgmail, een kennismakingsmail, een samenvatting van het
+dossier of een nette afwijzing.
+
+Dit is het enige onderdeel van de applicatie dat gegevens naar buiten stuurt.
+Verder werkt alles op deze computer. Daarom drie dingen om te weten.
+
+**Er gaan geen namen mee.** Bij vrijwel elke preset staat aan dat namen,
+adressen, e-mailadressen en telefoonnummers worden vervangen door plaatshouders
+als `«PERSOON_1»` voordat de vraag weggaat. Het antwoord dat terugkomt heeft die
+plaatshouders nog, en de applicatie vult er hier de echte gegevens weer in. U
+ziet dus een gewone tekst; de dienst zag alleen plaatshouders. Staat het
+vervangen bij een preset uit, dan zegt het scherm dat er duidelijk bij.
+
+**U kunt het zelf nakijken.** Klik op **Bekijk wat er weggaat** in plaats van op
+Uitvoeren. Dan ziet u letterlijk de tekst die verstuurd zou worden, en gaat er
+niets weg. Dat werkt ook als de assistent uitstaat.
+
+**Het is een voorstel, geen eindtekst.** Lees het na en pas het aan voordat het
+naar een klant gaat. U kunt de tekst in het venster bewerken en daarna
+kopiëren.
+
+Staat er in het voorstel nog een plaatshouder als `«PERSOON_9»`, dan heeft het
+model die zelf verzonnen. Het scherm waarschuwt daarvoor. Haal hem weg.
+
+Ziet u de knop maar staat er "de assistent staat uit"? Dan is er geen
+API-sleutel ingevuld. Een beheerder doet dat bij Instellingen → AI. Zonder
+sleutel verlaat er niets deze computer.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -383,13 +415,12 @@ ontvangers en zegt de app dat ook.
 De export en de netwerkmodus zijn nog niet gebouwd. Die schermen zeggen dat
 zelf, met de fase waarin ze komen.
 
+De assistent houdt nog geen maandbudget bij. Wat het gekost heeft is wel per
+maand terug te zien bij Instellingen → AI → Logboek.
+
 Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
 back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook
 bij.
 
 De app haalt geen inkomende mail binnen en verstuurt niets automatisch. Mailen
 gaat via een bestand dat u in Outlook opent; zie "Berichten versturen".
-
-Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
-back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook
-bij.

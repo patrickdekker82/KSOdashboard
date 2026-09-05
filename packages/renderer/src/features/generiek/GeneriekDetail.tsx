@@ -17,6 +17,7 @@ import { Kaart, Skelet } from '../Dashboard.tsx';
 import { Tijdlijn } from './Tijdlijn.tsx';
 import { AvgPaneel } from './AvgPaneel.tsx';
 import { MailDialoog } from '../email/MailDialoog.tsx';
+import { AI_ENTITEITEN, AiDialoog } from '../ai/AiDialoog.tsx';
 
 type Rij = Record<string, unknown>;
 type VeldFout = { veld: string; label: string; melding: string };
@@ -45,6 +46,7 @@ export function GeneriekDetail({
   const [fouten, setFouten] = useState<Record<string, string>>({});
   const [melding, setMelding] = useState<string | null>(null);
   const [mailen, setMailen] = useState(false);
+  const [assistent, setAssistent] = useState(false);
 
   const record = useQuery({
     queryKey: ['record', entiteit, id],
@@ -134,6 +136,16 @@ export function GeneriekDetail({
               style={knopStijl}
             >
               Bericht opstellen…
+            </button>
+          )}
+          {!bewerken && AI_ENTITEITEN.has(entiteit) && (
+            <button
+              type="button"
+              className="focus-ring"
+              onClick={() => setAssistent(true)}
+              style={knopStijl}
+            >
+              Assistent…
             </button>
           )}
           {!bewerken && acties}
@@ -237,6 +249,10 @@ export function GeneriekDetail({
 
       {mailen && (
         <MailDialoog entiteit={entiteit} recordId={id} onSluit={() => setMailen(false)} />
+      )}
+
+      {assistent && (
+        <AiDialoog entiteit={entiteit} recordId={id} onSluit={() => setAssistent(false)} />
       )}
     </div>
   );

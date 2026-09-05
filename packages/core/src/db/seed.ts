@@ -470,26 +470,44 @@ function seedEmailTemplates(handle: DatabaseHandle): void {
 }
 
 function seedAiPresets(handle: DatabaseHandle): void {
-  const presets: Array<[string, string, string, number]> = [
+  // Naam, categorie, systeemprompt, gebruikerssjabloon, contextblokken,
+  // anonimiseren, actief. Het sjabloon en de context bepalen samen wat er
+  // precies wordt meegestuurd — en dus ook wat er níet meegaat.
+  const presets: Array<
+    [string, string, string, string, string[], number, number]
+  > = [
     [
       'Opvolg-e-mail na offerte',
       'e-mail',
       'Schrijf een korte, vriendelijke Nederlandse opvolgmail bij een uitgebrachte offerte. ' +
-        'Houd het zakelijk maar warm, maximaal 150 woorden, en eindig met een concrete vraag.',
+        'Houd het zakelijk maar warm, maximaal 150 woorden, en eindig met een concrete vraag. ' +
+        'Gebruik de plaatshouders tussen guillemets ongewijzigd: dat zijn namen en adressen ' +
+        'die pas op de werkplek worden ingevuld.',
+      'Schrijf een opvolgmail namens {{gebruiker.naam}} van {{bedrijf.naam}}.',
+      ['record', 'offertes', 'activiteiten'],
+      1,
       1,
     ],
     [
       'Eerste kennismakingsmail',
       'e-mail',
       'Schrijf een Nederlandse kennismakingsmail namens de afdeling Showroom van een ' +
-        'woningbouworganisatie. Kort, concreet en zonder verkooppraat.',
+        'woningbouworganisatie. Kort, concreet en zonder verkooppraat. Laat plaatshouders ' +
+        'tussen guillemets ongewijzigd staan.',
+      'Schrijf een kennismakingsmail namens {{gebruiker.naam}} van {{bedrijf.naam}}.',
+      ['record', 'contactpersonen'],
+      1,
       1,
     ],
     [
       'Samenvatting klantdossier',
       'analyse',
       'Vat het klantdossier samen in maximaal tien bullets: wie het is, wat er speelt, ' +
-        'wat de laatste contactmomenten waren en wat de logische vervolgstap is.',
+        'wat de laatste contactmomenten waren en wat de logische vervolgstap is. ' +
+        'Laat plaatshouders tussen guillemets ongewijzigd staan.',
+      'Vat het onderstaande dossier samen.',
+      ['record', 'contactpersonen', 'activiteiten', 'offertes'],
+      1,
       1,
     ],
     [
@@ -497,23 +515,32 @@ function seedAiPresets(handle: DatabaseHandle): void {
       'acquisitie',
       'Schrijf een korte wervende Nederlandse tekst voor acquisitie, gericht op aannemers ' +
         'en ontwikkelaars, wanneer er showroomcapaciteit vrijkomt.',
+      'Schrijf een acquisitietekst namens {{bedrijf.naam}}.',
+      ['record'],
+      0,
       0,
     ],
     [
       'Nette afwijzing',
       'e-mail',
-      'Schrijf een nette, korte Nederlandse afwijzing die de deur open houdt voor later.',
+      'Schrijf een nette, korte Nederlandse afwijzing die de deur open houdt voor later. ' +
+        'Laat plaatshouders tussen guillemets ongewijzigd staan.',
+      'Schrijf een afwijzing namens {{gebruiker.naam}} van {{bedrijf.naam}}.',
+      ['record', 'activiteiten'],
+      1,
       1,
     ],
   ];
 
-  for (const [name, category, prompt, anonymise] of presets) {
+  for (const [name, category, systeem, sjabloon, context, anonymise, active] of presets) {
     handle.raw
       .prepare(
-        `INSERT INTO ai_presets (name, category, system_prompt, user_prompt_template, anonymise_personal_data)
-         VALUES (?, ?, ?, '', ?)`,
+        `INSERT INTO ai_presets (
+           name, category, system_prompt, user_prompt_template,
+           include_context, anonymise_personal_data, active
+         ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(name, category, prompt, anonymise);
+      .run(name, category, systeem, sjabloon, JSON.stringify(context), anonymise, active);
   }
 }
 

@@ -171,19 +171,75 @@ en zonder internet.
 
 ## AI-assistent
 
-Plak de Anthropic-API-sleutel bij Instellingen → AI. Hij wordt versleuteld
-opgeslagen met de Windows-sleutelopslag en nooit teruggetoond.
+Dit is de enige koppeling die deze applicatie naar buiten heeft. Alle andere
+functies werken volledig op deze computer. Lees deze paragraaf voordat u de
+assistent aanzet.
 
-Stel een maandbudget in; bij 80% krijgt u een waarschuwing.
+### Aanzetten
 
-**Wat er naar de API gaat.** De AI-assistent stuurt de context die u per preset
-aanzet: klantgegevens, offerte-inhoud, projectfase. Elke preset heeft een
-schakelaar **anonimiseer persoonsgegevens** die namen, adressen en
-e-mailadressen door plaatshouders vervangt vóór verzending, en in het antwoord
-weer terugzet. **Laat die aan** voor elke preset die persoonsgegevens raakt.
+De assistent staat uit zolang er geen API-sleutel is ingevuld, en zo wordt de
+applicatie geleverd. Plak de Anthropic-API-sleutel bij **Instellingen → AI →
+Koppeling**. Alleen een beheerder kan dat.
 
-Zonder API-sleutel blijven de knoppen zichtbaar maar uitgeschakeld. De rest van
-de app werkt volledig.
+De sleutel wordt versleuteld opgeslagen (AES-256-GCM) en nooit teruggetoond. De
+versleutelsleutel staat in `kluissleutel.bin` in de gegevensmap, náást de
+database — niet erin. Dat betekent twee dingen:
+
+- Een back-up van de database alléén levert de API-sleutel niet op. Dat is de
+  bedoeling: de back-up gaat naar de netwerkschijf, het sleutelbestand niet.
+- Zet u de database terug op een andere werkplek, dan is de API-sleutel daar
+  onleesbaar en moet u hem opnieuw invullen. De applicatie zegt dat ook.
+
+Uitzetten doet u met **Sleutel wissen**. Daarna gaat er weer niets naar buiten.
+
+### Wat er naar de API gaat
+
+Per preset stelt u in welke blokken uit het dossier meegaan: het record zelf,
+de contactpersonen, de laatste contactmomenten, de offertes. Wat u niet
+aanvinkt, gaat niet mee en kan dus ook niet lekken.
+
+Elke preset heeft daarnaast de schakelaar **persoonsgegevens vervangen door
+plaatshouders**. Staat die aan, dan worden namen, bedrijfsnamen, adressen,
+plaatsen, postcodes, e-mailadressen, telefoonnummers en rekeningnummers
+vervangen door `«PERSOON_1»`, `«ADRES_1»` enzovoort vóórdat het verzoek weggaat.
+Het antwoord van het model wordt hier op de werkplek weer ingevuld. **Laat die
+aan** voor elke preset die persoonsgegevens raakt.
+
+Na het vervangen controleert de applicatie de tekst nóg een keer. Vindt die
+controle alsnog een persoonsgegeven, dan gaat het verzoek niet weg en krijgt de
+gebruiker een melding. Dat is een vangrail voor het geval het vervangen zelf een
+fout maakt.
+
+Wilt u zelf zien wat er weggaat: elke gebruiker kan in de assistent op **Bekijk
+wat er weggaat** klikken. Dat toont letterlijk de tekst die verstuurd zou
+worden, zonder iets te versturen. Die knop werkt ook als de assistent uit staat.
+
+### Firewall
+
+De applicatie benadert `api.anthropic.com` over HTTPS. Laat de firewall dat
+adres door, anders krijgt de gebruiker de melding dat er geen verbinding is.
+
+### Logboek en kosten
+
+**Instellingen → AI → Logboek** toont elke aanroep: wanneer, door wie, met welke
+preset, over welk record, hoeveel tokens en wat het ongeveer gekost heeft. Ook
+mislukte aanroepen staan erin, met de reden. Managers en beheerders kunnen dit
+zien.
+
+De promptinhoud wordt bewust niet bewaard: die bevat klantgegevens, en het
+logboek is voor elke manager zichtbaar.
+
+De bedragen zijn een raming in **dollars**, berekend uit de tokenprijzen van het
+model. Er wordt geen wisselkoers verzonnen; de factuur van de leverancier is
+leidend.
+
+Een automatisch maandbudget met waarschuwing bij 80% is er nog niet. Houd het
+verbruik voorlopig in de gaten via het maandoverzicht in het logboek.
+
+### Antwoorden zijn voorstellen
+
+Wat de assistent oplevert is een concept, geen eindtekst. Het scherm zegt dat
+ook. Laat medewerkers elk antwoord nalezen voordat het naar een klant gaat.
 
 ## Logboeken en systeeminfo
 

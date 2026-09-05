@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/server.ts",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^10.1.1",
     "@fastify/rate-limit": "^10.2.2",

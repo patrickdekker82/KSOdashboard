@@ -116,6 +116,8 @@ export const api = {
     verzoek<T>(pad, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   patch: <T>(pad: string, body: unknown) =>
     verzoek<T>(pad, { method: 'PATCH', body: JSON.stringify(body) }),
+  put: <T>(pad: string, body: unknown) =>
+    verzoek<T>(pad, { method: 'PUT', body: JSON.stringify(body) }),
   del: <T>(pad: string) => verzoek<T>(pad, { method: 'DELETE' }),
 };
 
@@ -474,6 +476,19 @@ export const endpoints = {
       gedaan,
       notitie,
     }),
+
+  // --- AI-assistent (fase 10) -----------------------------------------------
+  aiStatus: () => api.get<{ data: AiStatus }>('/ai/status'),
+  aiSleutel: (sleutel: string) =>
+    api.put<{ data: { ingeschakeld: boolean } }>('/ai/key', { key: sleutel }),
+  aiPresets: (alleenActieve = false) =>
+    api.get<{ data: AiPreset[] }>(`/ai/presets${alleenActieve ? '?active=true' : ''}`),
+  aiPresetOpslaan: (id: number, body: Partial<AiPresetInvoer>) =>
+    api.patch<{ data: AiPreset }>(`/ai/presets/${id}`, body),
+  aiVoorbeeld: (body: AiOpdracht) => api.post<{ data: AiVoorbeeld }>('/ai/preview', body),
+  aiUitvoeren: (body: AiOpdracht) => api.post<{ data: AiUitvoering }>('/ai/run', body),
+  aiLogboek: (limiet = 100) =>
+    api.get<{ data: AiRun[]; meta: { perMaand: AiMaand[] } }>(`/ai/runs?limit=${limiet}`),
 
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
@@ -1045,4 +1060,97 @@ export type Bellijstregel = {
   note: string | null;
   titel: string;
   afgehandeld: boolean;
+};
+
+
+// --- AI-assistent -----------------------------------------------------------
+
+export type AiStatus = {
+  /** Zonder API-sleutel staat de hele assistent uit; dat is de standaard. */
+  ingeschakeld: boolean;
+  modellen: Array<{ id: string; prijsBekend: boolean }>;
+  onderwerpen: string[];
+  contextblokken: string[];
+};
+
+export type AiPreset = {
+  id: number;
+  naam: string;
+  omschrijving: string | null;
+  categorie: string | null;
+  systeemPrompt: string;
+  gebruikersSjabloon: string;
+  model: string;
+  maxTokens: number;
+  context: string[];
+  anonimiseren: boolean;
+  uitvoerdoel: string | null;
+  actief: boolean;
+};
+
+export type AiPresetInvoer = {
+  naam: string;
+  omschrijving: string;
+  systeemPrompt: string;
+  gebruikersSjabloon: string;
+  model: string;
+  maxTokens: number;
+  context: string[];
+  anonimiseren: boolean;
+  actief: boolean;
+};
+
+export type AiOpdracht = {
+  presetId: number;
+  entity: string;
+  recordId: number;
+  aanvulling?: string;
+};
+
+export type AiVoorbeeld = {
+  systeem: string;
+  gebruiker: string;
+  model: string;
+  anonimiseren: boolean;
+  vervangen: Array<{ soort: string; plaatshouder: string }>;
+  ontbrekend: string[];
+};
+
+export type AiUitvoering = {
+  runId: number;
+  tekst: string;
+  model: string;
+  invoertokens: number;
+  uitvoertokens: number;
+  kostenCenten: number | null;
+  duurMs: number;
+  vervangen: number;
+  onbekend: string[];
+  ontbrekend: string[];
+};
+
+export type AiRun = {
+  id: number;
+  preset_naam: string | null;
+  gebruiker_naam: string | null;
+  model: string;
+  prompt_summary: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost_estimate_cents: number;
+  duration_ms: number | null;
+  status: string;
+  error: string | null;
+  entity_key: string | null;
+  record_id: number | null;
+  created_at: string;
+};
+
+export type AiMaand = {
+  maand: string;
+  aanroepen: number;
+  invoer: number;
+  uitvoer: number;
+  centen: number;
+  fouten: number;
 };

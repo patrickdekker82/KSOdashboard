@@ -25,7 +25,14 @@ const ONDERDELEN: Array<{ pad: string; titel: string; uitleg: string; klaar: boo
   { pad: '', titel: 'Capaciteitsinstellingen', uitleg: 'Komt in fase 12.', klaar: false },
   { pad: '', titel: 'Back-up & herstel', uitleg: 'Komt in fase 12.', klaar: false },
   { pad: '', titel: 'Microsoft 365-koppeling', uitleg: 'Komt in fase 9.', klaar: false },
-  { pad: '', titel: 'AI-instellingen', uitleg: 'Komt in fase 10.', klaar: false },
+  {
+    pad: '/instellingen/ai',
+    titel: 'AI-assistent',
+    uitleg:
+      'De enige koppeling die deze applicatie naar buiten heeft. Sleutel, presets, wat er ' +
+      'wel en niet meegaat, en een logboek van elke aanroep met de kosten.',
+    klaar: true,
+  },
 ];
 
 export function Instellingen({ navigeer }: { navigeer: (pad: string) => void }): JSX.Element {

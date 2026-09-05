@@ -230,9 +230,45 @@ telt is welke fase is opgeleverd.
 - Demoseed krijgt taken en een bellijst, waarmee de regels "activiteit over
   datum" en "offerte zonder reactie" ook echt afgaan.
 
+### Fase 10 — AI-assistent
+- **Standaard uit.** Zonder API-sleutel gebeurt er niets: de assistent meldt
+  dat hij uit staat en de uitvoerroute weigert met `409 ai_uit`. Dit is de
+  enige koppeling van de applicatie naar buiten, en hij gaat pas aan als een
+  beheerder daar zelf voor kiest.
+- **Anonimiseren voordat er iets weggaat.** Namen, bedrijfsnamen (ook losse
+  kernwoorden — in een notitie staat "Meesters nabellen", niet de volledige
+  statutaire naam), adressen, plaatsen, postcodes, e-mailadressen,
+  telefoonnummers en IBAN's worden vervangen door plaatshouders als
+  `«PERSOON_1»`. Het antwoord wordt hier op de werkplek weer ingevuld. 21
+  tests op de pure module, waaronder deelwoorden ("Jan" in "Janssen"),
+  hoofdletters, tussenvoegsels en idempotentie.
+- **Vangrail.** Na het anonimiseren wordt de tekst nógmaals gecontroleerd.
+  Vindt die controle alsnog een persoonsgegeven, dan gaat het verzoek niet weg.
+  Dat is er voor het geval het anonimiseren zelf een fout heeft.
+- **Bekijk wat er weggaat.** Een knop die letterlijk de tekst toont die de deur
+  uit zou gaan, inclusief plaatshouders — zonder iets te versturen. Werkt ook
+  als de assistent uit staat.
+- **Sleutelkluis.** De API-sleutel staat AES-256-GCM-versleuteld in de
+  database, met de sleutel in een apart bestand (rechten 0600) náást de
+  database. Een back-up van de database alléén levert hem niet op. Er staan
+  twaalf tests op, waaronder een die het databasebestand doorzoekt op de
+  klaretekst.
+- **Presets.** Vijf Nederlandse presets in de seed, met per preset in te stellen
+  wat er meegaat uit het dossier (record, contactpersonen, activiteiten,
+  offertes) en of er geanonimiseerd wordt. Wat niet meegaat kan ook niet lekken.
+- **Logboek.** Elke aanroep komt in `ai_runs`, ook een mislukte: preset,
+  gebruiker, model, tokens, kostenraming, duur en het record waar het over
+  ging. Bewust géén promptinhoud — die bevat klantgegevens.
+- **Kostenraming** in dollarcent, op basis van de tokenprijzen van het model.
+  Er wordt geen wisselkoers verzonnen; het scherm zet er "US$" bij.
+- Foutmeldingen komen uit de getypeerde foutklassen van de SDK en zijn in het
+  Nederlands: een geweigerde sleutel, een firewall die `api.anthropic.com`
+  tegenhoudt en een dienst die vol zit geven elk hun eigen uitleg.
+- Eerste runtime-afhankelijkheid van het project: de officiële
+  `@anthropic-ai/sdk`. Zie `docs/BESLISSINGEN.md`.
+
 ### Nog niet gebouwd
 De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail (zie
-de beslissing daarover), de
-AI-assistent (fase 10), rapportages en export (fase 11), hostmodus en
+de beslissing daarover), rapportages en export (fase 11), hostmodus en
 automatische updates (fase 12). De schermen daarvoor tonen in welke fase ze
 komen.

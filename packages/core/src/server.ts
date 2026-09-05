@@ -34,6 +34,7 @@ import { registerPackageRoutes } from './modules/packages/routes.ts';
 import { registerEmailRoutes } from './modules/email/routes.ts';
 import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
+import { registerAiRoutes } from './modules/ai/routes.ts';
 
 export type NetworkMode = 'standalone' | 'host' | 'client';
 
@@ -181,6 +182,7 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   // Ook vóór de factory: /packages/overview mag niet als record-id worden gelezen.
   await registerPackageRoutes(app);
   await registerEmailRoutes(app);
+  await registerAiRoutes(app);
   await registerCrudRoutes(app);
 
   return app;
