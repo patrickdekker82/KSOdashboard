@@ -267,8 +267,43 @@ telt is welke fase is opgeleverd.
 - Eerste runtime-afhankelijkheid van het project: de officiële
   `@anthropic-ai/sdk`. Zie `docs/BESLISSINGEN.md`.
 
+### Fase 11 — rapportages en export
+- **Query-bouwer**: kies een gegevenssoort, vink kolommen aan, filter,
+  sorteer, groepeer met aantal/som/gemiddelde/laagste/hoogste. Kolomnamen
+  worden getoetst aan wat de tabel écht heeft (via `table_xinfo`, dus
+  maatwerkvelden doen meteen mee) en waarden gaan als gebonden parameter mee.
+- Een kolom die niet gegroepeerd is en geen functie heeft wordt geweigerd:
+  SQLite laat dat toe en geeft dan een willekeurige rij uit de groep terug —
+  een getal dat klopt maar niets betekent.
+- Gearchiveerde records blijven standaard buiten de rapportage, net als in de
+  lijstschermen.
+- **Beveiligde SQL-modus** voor beheerders, met vier lagen: een read-only
+  verbinding (de laag die telt), alleen SELECT of WITH, één instructie
+  tegelijk, en een lijst verboden woorden. Verboden woorden binnen een
+  tekstwaarde of in commentaar zijn juist wél toegestaan — anders wordt
+  `SELECT 'update de klant'` geweigerd en begrijpt niemand waarom.
+- Zowel de bouwer als de SQL-modus draaien op dezelfde read-only verbinding.
+  Geen enkele rapportage kan iets wijzigen, ook niet als er ooit een fout in
+  de bouwer sluipt. Er staat een test op die bewijst dat de database na een
+  geweigerde DELETE onveranderd is.
+- **Export naar Excel, Word, CSV en PDF.** De xlsx- en docx-schrijver zijn
+  zelf geschreven op een eigen zip-schrijver (`node:zlib`), net als de lezers
+  van fase 6 — betaalde pakketten zijn uitgesloten en een externe
+  afhankelijkheid was hier niet nodig.
+- De werkmap komt bruikbaar aan: bedragen als bedrag in euro's (niet in
+  centen), datums als datum, percentages als percentage, een vastgezette
+  kopregel, een automatisch filter en kolombreedtes naar de inhoud.
+- CSV met puntkomma's en een BOM, want een Nederlandse Excel opent een
+  komma-CSV als één kolom en maakt zonder BOM van "Ré" iets onleesbaars.
+- PDF loopt via de afdrukfunctie van de schil, net als de offerte-PDF: geen
+  PDF-bibliotheek in de applicatie.
+- **Opgeslagen rapportages**, met of zonder delen. Verwijderen mag alleen wie
+  hem gemaakt heeft, of een beheerder.
+- Een invoerkring die er al zat (`registry` → `guards` → `server` →
+  `fields/routes` → `registry`) viel om zodra iets anders dan de server als
+  eerste geladen werd. `ApiError` staat nu in een eigen bestand.
+
 ### Nog niet gebouwd
 De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail (zie
-de beslissing daarover), rapportages en export (fase 11), hostmodus en
-automatische updates (fase 12). De schermen daarvoor tonen in welke fase ze
-komen.
+de beslissing daarover), hostmodus en automatische updates (fase 12). De
+schermen daarvoor tonen in welke fase ze komen.

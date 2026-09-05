@@ -241,6 +241,34 @@ verbruik voorlopig in de gaten via het maandoverzicht in het logboek.
 Wat de assistent oplevert is een concept, geen eindtekst. Het scherm zegt dat
 ook. Laat medewerkers elk antwoord nalezen voordat het naar een klant gaat.
 
+## De SQL-modus
+
+Op het tabblad **SQL** bij Rapportages kunt u zelf een query op de database
+stellen. Dat tabblad ziet alleen een beheerder; een manager kan wel
+rapporteren, maar niet in tabellen kijken waar de schermen hem niet bij laten.
+
+**De verbinding kan alleen lezen.** Dat is niet alleen een controle op de tekst
+van uw query: de applicatie opent een tweede verbinding naar de database die
+door SQLite zelf op alleen-lezen wordt gezet. Een `DELETE` of `UPDATE` wordt
+daarom geweigerd, ook als er ooit een gat in de tekstcontrole zou zitten. Er
+staat een test in de code die dat bewijst.
+
+Wat er verder geldt:
+
+- Eén query tegelijk. Een tweede instructie achter een puntkomma wordt
+  geweigerd.
+- De query moet met `SELECT` of `WITH` beginnen.
+- `ATTACH`, `PRAGMA`, `load_extension` en de schrijfwoorden mogen niet
+  voorkomen. Staan ze binnen een tekstwaarde of in commentaar, dan is het geen
+  probleem: `SELECT 'update de klant'` mag gewoon.
+- Maximaal 5000 rijen; daarboven wordt afgekapt met een melding.
+
+Onder het invoerveld staat een lijstje met alle tabellen en hun kolommen. Klik
+op een tabelnaam om hem in de query te plakken.
+
+Een SQL-rapportage kan net als een gebouwde rapportage bewaard en gedeeld
+worden — maar alleen een beheerder kan er een bewaren.
+
 ## Logboeken en systeeminfo
 
 Instellingen → Systeeminfo toont versie, schemaversie, databasegrootte, laatste

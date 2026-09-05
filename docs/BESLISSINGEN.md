@@ -539,6 +539,114 @@ prompt zelf bevat klantgegevens en het logboek is voor elke manager zichtbaar.
 Wat er gebeurd is, is af te leiden uit de preset en het record; wat er precies
 in stond hoeft daar niet voor bewaard te worden.
 
+## Fase 11 — rapportages en export
+
+### Twee manieren om een vraag te stellen, één manier om hem uit te voeren
+
+De bouwer en de SQL-modus lijken twee losse dingen, maar ze komen op dezelfde
+plek uit: een read-only verbinding naar hetzelfde databasebestand. Dat is met
+opzet. Het betekent dat geen enkele rapportage ooit iets kan wijzigen, ook niet
+als er ooit een fout in de bouwer sluipt.
+
+De vier lagen van de SQL-modus, van belangrijk naar minst belangrijk:
+
+1. **De verbinding gaat read-only open.** SQLite weigert dan elke schrijfactie
+   op driverniveau, wat er ook doorheen komt. Dit is de laag die telt, en er
+   staat een test op die er bewust langs de tekstcontrole heen gaat om te
+   bewijzen dat hij er is.
+2. Eén enkele instructie, beginnend met SELECT of WITH.
+3. Een lijst met verboden woorden.
+4. Een rij- en tijdlimiet.
+
+Laag 2 en 3 zijn tekstcontroles, en tekstcontroles zijn te omzeilen. Ze staan
+er om een vergissing meteen en begrijpelijk af te vangen, niet als beveiliging.
+Dat onderscheid staat ook in de code, zodat niemand ze later voor beveiliging
+aanziet.
+
+Twee dingen die daarbij bleken te tellen. Verboden woorden moeten binnen een
+tekstwaarde en in commentaar juist wél mogen — anders wordt
+`SELECT 'update de klant'` geweigerd en begrijpt niemand waarom. En een test
+vond dat `\bpragma\b` de functie `pragma_table_info` niet vindt: een liggend
+streepje is voor een regex een gewoon woordteken, dus daar valt geen woordgrens.
+
+### Kolommen uit de tabel, niet uit een lijst
+
+De bouwer haalt de kolommen op met `PRAGMA table_xinfo` en niet uit een
+handmatig bijgehouden lijst. Dat scheelt onderhoud, maar de echte reden is
+hoofdstuk 3: maatwerkvelden zijn gegenereerde kolommen, en die verschijnen in
+`table_xinfo` zodra ze bestaan. Een rapportage kan er dus meteen op filteren
+zonder dat hier iets bijgewerkt hoeft te worden. (`table_info` laat gegenereerde
+kolommen weg; vandaar de `x`.)
+
+Het soort waarde wordt geraden aan de kolomnaam: `_cents` is een bedrag, `_bp`
+een percentage, `_at` en `_date` een datum. Een gok, maar het hele schema houdt
+zich aan die afspraken. Zit het ernaast, dan staat er een getal in plaats van
+een bedrag — hinderlijk en niet erg. Het alternatief is een handmatige lijst die
+achterloopt, en dat is erger.
+
+### Een kolom zonder functie bij een groepering wordt geweigerd
+
+SQLite laat `SELECT plaats, naam FROM klanten GROUP BY plaats` gewoon toe en
+levert dan een willekeurige naam uit elke groep op. Dat is een getal dat klopt
+en niets betekent, en precies het soort fout dat pas opvalt als er een besluit
+op genomen is. De bouwer weigert het en zegt wat de gebruiker in plaats daarvan
+kan kiezen.
+
+### Excel en Word zelf schrijven
+
+De opdracht sluit betaalde pakketten uit, en juist de image-, html- en
+xlsx-modules van docxtemplater zijn betaald. Maar dat is niet de hele reden: de
+lezers van fase 6 waren al zelfgeschreven, er lag dus al een zip-lezer, en een
+zip-schrijver ernaast is overzichtelijk werk zodra `deflateRawSync` het zware
+deel doet. Zowel .xlsx als .docx zijn een zip met XML erin, dus één schrijver
+draagt beide.
+
+Wat er wél in moest, omdat het het verschil maakt tussen een bestand dat je
+kunt gebruiken en een bestand dat je nog moet opmaken: bedragen als bedrag in
+euro's en niet in centen (anders klopt elke som die de gebruiker eronder zet
+niet), datums als datum, een vastgezette kopregel, een automatisch filter en
+kolombreedtes naar de inhoud.
+
+Wat er bewust niet in zit: formules, meerdere bladen, opmaakregels, grafieken,
+afbeeldingen, briefpapier. Wie dat wil, exporteert en werkt verder in Excel of
+Word.
+
+De zip-schrijver zet een vaste datum in de koppen in plaats van `new Date()`.
+Daardoor levert dezelfde rapportage tweemaal exact hetzelfde bestand op, en dat
+maakt de tests zinnig. De datum in het archief zegt toch niets; Windows toont
+die van het bestand zelf.
+
+### Verifiëren met andermans lezer
+
+De eigen tests lezen de export terug met de eigen lezer, en dat bewijst alleen
+dat de twee helften bij elkaar passen. Daarom is er tijdens het bouwen ook
+gecontroleerd met `openpyxl` en `python-docx`: die openen de bestanden, zien de
+bladnaam, het vastgezette venster, het automatische filter, de euro-opmaak en
+de datums als echte datums. Dat is het bewijs dat Excel en Word ze ook openen.
+
+### PDF via de schil
+
+Net als bij de offerte-PDF van fase 8: de renderer maakt HTML, het hoofdproces
+drukt die af naar PDF. Geen PDF-bibliotheek in de applicatie, en de opmaak is
+in HTML te lezen en aan te passen. In de afdruk-HTML staan geen themavariabelen,
+want afdrukken gebeurt buiten het venster om en dan is er niets om ze uit te
+lezen.
+
+### CSV met puntkomma's en een BOM
+
+Geen elegantie maar praktijk: een Nederlandse Excel opent een komma-CSV als één
+kolom, en zonder BOM maakt hij van "Ré" iets onleesbaars. De lezer van fase 6
+raadt het scheidingsteken nog; de schrijver zet het vast, want die schrijft voor
+Excel en niet voor een parser.
+
+### ApiError uit server.ts gehaald
+
+Er zat een invoerkring in de code: `registry` → `guards` → `server` →
+`fields/routes` → `registry`. Zolang de server het beginpunt was viel dat niet
+op; zodra een test de query-bouwer als eerste laadde, was `ENTITIES` nog
+`undefined` en viel alles om. `ApiError` staat nu in een eigen bestand, zodat
+een guard een nette fout kan gooien zonder de hele server te importeren.
+
 ## Vooruit
 
 - **PostgreSQL blijft mogelijk.** SQLite-specifieke SQL staat alleen in

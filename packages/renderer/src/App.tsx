@@ -21,7 +21,7 @@ import { Zoekbalk } from './components/Zoekbalk.tsx';
 import { Dubbelen } from './features/crm/Dubbelen.tsx';
 import { Kansenbord } from './features/kansen/Kansenbord.tsx';
 import { KansDetail } from './features/kansen/KansDetail.tsx';
-import { Pijplijnrapport } from './features/kansen/Pijplijnrapport.tsx';
+import { Rapportages } from './features/rapportages/Rapportages.tsx';
 import { Importwizard } from './features/projecten/Importwizard.tsx';
 import { Projectfasen } from './features/projecten/Projectfasen.tsx';
 import type { JSX } from 'react';
@@ -102,7 +102,7 @@ function Inhoud({
   if (pad.startsWith('/instellingen/ai'))
     return <AiInstellingen onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
-  if (pad.startsWith('/rapportages')) return <Pijplijnrapport />;
+  if (pad.startsWith('/rapportages')) return <Rapportages ik={gebruiker} />;
 
   if (pad.startsWith('/duurzaamheid/offerte')) {
     const id = recordId(pad, '/duurzaamheid/offerte');

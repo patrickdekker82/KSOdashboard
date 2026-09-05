@@ -7,6 +7,7 @@
  * view needs no second implementation.
  */
 import Fastify from 'fastify';
+import { ApiError } from './api-error.ts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
@@ -35,6 +36,9 @@ import { registerEmailRoutes } from './modules/email/routes.ts';
 import { registerAttachmentRoutes } from './modules/attachments/routes.ts';
 import { registerOpportunityRoutes } from './modules/opportunities/routes.ts';
 import { registerAiRoutes } from './modules/ai/routes.ts';
+import { registerQueryRoutes } from './modules/query/routes.ts';
+
+export { ApiError };
 
 export type NetworkMode = 'standalone' | 'host' | 'client';
 
@@ -58,21 +62,6 @@ declare module 'fastify' {
   }
 }
 
-export class ApiError extends Error {
-  // Geen parameter properties: Node kan TypeScript alleen strippen, niet
-  // omzetten, en struikelt daarover bij het draaien van de kern zonder build.
-  readonly statusCode: number;
-  readonly code: string;
-  readonly details?: unknown;
-
-  constructor(statusCode: number, code: string, message: string, details?: unknown) {
-    super(message);
-    this.name = 'ApiError';
-    this.statusCode = statusCode;
-    this.code = code;
-    this.details = details;
-  }
-}
 
 /** Endpoints reachable without a session. */
 const PUBLIC_PATHS = new Set(['/api/v1/health', '/api/v1/auth/login']);
@@ -183,6 +172,7 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   await registerPackageRoutes(app);
   await registerEmailRoutes(app);
   await registerAiRoutes(app);
+  await registerQueryRoutes(app);
   await registerCrudRoutes(app);
 
   return app;

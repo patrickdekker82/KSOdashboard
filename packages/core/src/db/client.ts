@@ -14,6 +14,15 @@ import { DatabaseSync } from 'node:sqlite';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 
+/**
+ * De naam van het databasebestand.
+ *
+ * Staat hier en niet in `bootstrap.ts`, want de read-only lezer van de
+ * rapportages heeft hem ook nodig en die mag de bootstrap niet importeren:
+ * dat zou een invoerkring via de server opleveren.
+ */
+export const DATABASE_BESTANDSNAAM = 'showroom.db';
+
 export type SqlValue = string | number | bigint | null | Uint8Array;
 
 export type DatabaseHandle = {

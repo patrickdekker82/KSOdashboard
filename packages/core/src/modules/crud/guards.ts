@@ -12,7 +12,7 @@
  * POST of PATCH liep daar zo omheen.
  */
 import type { UserRole } from '@showroom/shared';
-import { ApiError } from '../../server.ts';
+import { ApiError } from '../../api-error.ts';
 import type { EntityDefinition } from './registry.ts';
 
 type Rij = Record<string, unknown>;

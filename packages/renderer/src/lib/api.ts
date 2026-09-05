@@ -477,6 +477,24 @@ export const endpoints = {
       notitie,
     }),
 
+  // --- rapportages en export (fase 11) ---------------------------------------
+  rapportEntiteiten: () => api.get<{ data: RapportEntiteit[] }>('/reports/entities'),
+  rapportSchema: () => api.get<{ data: SchemaTabel[] }>('/reports/schema'),
+  rapportDraaien: (body: Rapportverzoek) =>
+    api.post<{ data: Rapportuitkomst; meta: Rapportmeta }>('/reports/run', body),
+  rapportExporteren: (body: Rapportverzoek & { formaat: string; titel: string }) =>
+    api.post<{ data: Exportbestand }>('/reports/export', body),
+  rapportenOpgeslagen: () => api.get<{ data: OpgeslagenRapport[] }>('/reports/saved'),
+  rapportBewaren: (body: {
+    naam: string;
+    omschrijving?: string;
+    definitie?: Bouwdefinitie;
+    sql?: string;
+    gedeeld: boolean;
+  }) => api.post<{ data: OpgeslagenRapport }>('/reports/saved', body),
+  rapportVerwijderen: (id: number) =>
+    api.del<{ data: { id: number } }>(`/reports/saved/${id}`),
+
   // --- AI-assistent (fase 10) -----------------------------------------------
   aiStatus: () => api.get<{ data: AiStatus }>('/ai/status'),
   aiSleutel: (sleutel: string) =>
@@ -1153,4 +1171,73 @@ export type AiMaand = {
   uitvoer: number;
   centen: number;
   fouten: number;
+};
+
+
+// --- rapportages ------------------------------------------------------------
+
+export type Rapportkolom = {
+  sleutel: string;
+  kop: string;
+  type?: 'tekst' | 'getal' | 'bedrag' | 'datum' | 'procent';
+};
+
+export type RapportEntiteit = {
+  sleutel: string;
+  tabel: string;
+  kolommen: Rapportkolom[];
+};
+
+export type SchemaTabel = {
+  tabel: string;
+  kolommen: Array<{ naam: string; type: string }>;
+};
+
+export type Bouwkolom = {
+  veld: string;
+  kop?: string;
+  aggregatie?: 'count' | 'sum' | 'avg' | 'min' | 'max';
+};
+
+export type Bouwdefinitie = {
+  entiteit: string;
+  kolommen: Bouwkolom[];
+  filter?: unknown;
+  sortering?: Array<{ veld: string; richting?: 'asc' | 'desc' }>;
+  groepering?: string[];
+  limiet?: number;
+  metGearchiveerde?: boolean;
+};
+
+/** Een verzoek is óf een bouwdefinitie, óf een stuk SQL. */
+export type Rapportverzoek = (Bouwdefinitie | { sql: string }) & { limiet?: number };
+
+export type Rapportuitkomst = {
+  kolommen: Rapportkolom[];
+  rijen: Array<Record<string, unknown>>;
+};
+
+export type Rapportmeta = {
+  aantal: number;
+  afgekapt: boolean;
+  duurMs: number;
+  maxRijen: number;
+};
+
+export type Exportbestand = {
+  bestandsnaam: string;
+  codering: 'base64' | 'tekst';
+  inhoud: string;
+};
+
+export type OpgeslagenRapport = {
+  id: number;
+  naam: string;
+  omschrijving: string | null;
+  modus: 'builder' | 'sql';
+  definitie: Bouwdefinitie | null;
+  sql: string | null;
+  gedeeld: boolean;
+  eigenaar: string | null;
+  eigenaarId: number | null;
 };

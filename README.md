@@ -25,7 +25,8 @@ webadres om te onthouden, werkt volledig offline.
 | Duurzaamheidspakketten, offertes en PDF | **af** |
 | Opvolging, bellijsten en e-mail uit sjablonen | **af** |
 | AI-assistent: standaard uit, anonimiseert, logt elke aanroep | **af** |
-| Rapportages en export (fase 11), hostmodus en updates (fase 12) | nog niet gebouwd |
+| Rapportages: query-bouwer, SQL-modus, export naar Excel, Word, CSV en PDF | **af** |
+| Hostmodus, mobiele weergave en automatische updates (fase 12) | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
 fase ze komen. De gegevens erachter staan al wel in de database.

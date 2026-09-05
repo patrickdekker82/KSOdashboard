@@ -14,7 +14,6 @@ const FASE_PER_PAD: Record<string, string> = {
     'van de Excel-planning erbij.',
   '/duurzaamheid': 'Fase 8 — Producten, pakketsamensteller en offertes met bevroren prijzen.',
   '/opvolging': 'Fase 9 — Vandaag-scherm, bellijsten en e-mail via Microsoft 365.',
-  '/rapportages': 'Fase 11 — Query-bouwer, beveiligde SQL-modus en export naar Excel, PDF en Word.',
   '/instellingen': 'Fase 12 — Beheerschermen voor velden, gebruikers, netwerkstand en back-up.',
 };
 

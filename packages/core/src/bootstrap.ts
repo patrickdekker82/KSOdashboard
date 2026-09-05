@@ -6,7 +6,12 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync 
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { openDatabase, integrityCheck, type DatabaseHandle } from './db/client.ts';
+import {
+  DATABASE_BESTANDSNAAM,
+  openDatabase,
+  integrityCheck,
+  type DatabaseHandle,
+} from './db/client.ts';
 import { applyViews, appliedMigrations, runMigrations, schemaVersion } from './db/migrate.ts';
 import { seed } from './db/seed.ts';
 import { buildCore, type NetworkMode } from './server.ts';
@@ -39,7 +44,7 @@ export type RunningCore = {
 
 export function dataPaths(dataDirectory: string) {
   return {
-    database: join(dataDirectory, 'showroom.db'),
+    database: join(dataDirectory, DATABASE_BESTANDSNAAM),
     attachments: join(dataDirectory, 'attachments'),
     backups: join(dataDirectory, 'backups'),
     templates: join(dataDirectory, 'templates'),

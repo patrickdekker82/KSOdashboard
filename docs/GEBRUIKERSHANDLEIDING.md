@@ -400,6 +400,59 @@ Ziet u de knop maar staat er "de assistent staat uit"? Dan is er geen
 API-sleutel ingevuld. Een beheerder doet dat bij Instellingen → AI. Zonder
 sleutel verlaat er niets deze computer.
 
+## Rapportages
+
+Bij **Rapportages** stelt u zelf een vraag aan de gegevens en haalt u het
+antwoord op als Excel, Word, CSV of PDF.
+
+### De bouwer
+
+1. Kies bovenaan waarover de rapportage gaat: klanten, kansen, projecten,
+   offertes, verlof — alles wat de applicatie bijhoudt.
+2. Vink de kolommen aan die u wilt zien.
+3. Kies eventueel waarop gesorteerd wordt.
+4. Klik op **Draaien**.
+
+Onder de gekozen kolommen staat per kolom een keuzelijstje en een vinkje
+**groeperen**. Daarmee maakt u een totaaloverzicht. Wilt u bijvoorbeeld weten
+hoeveel kansen er per status openstaan en voor welk bedrag: vink *status* aan
+en zet er **groeperen** bij, vink *id* aan met de functie **aantal**, en
+*bedrag* met de functie **som**.
+
+Elke kolom moet dan óf gegroepeerd zijn óf een functie hebben. Doet u dat niet,
+dan zegt het scherm dat, en dat is met opzet: een naam naast een totaal is
+altijd een willekeurige naam uit die groep, en daar kunt u niets mee.
+
+Gearchiveerde records blijven weg, tenzij u het vinkje daarvoor aanzet.
+
+### Exporteren
+
+Na **Draaien** verschijnen de knoppen **Naar Excel**, **Naar CSV**, **Naar
+Word** en **Naar PDF**. De titel die u invult komt boven de export en wordt de
+bestandsnaam.
+
+- **Excel** is de bruikbaarste: bedragen staan er als bedrag in, datums als
+  datum, de kopregel staat vast en er zit een filter op. U kunt er meteen mee
+  doorrekenen.
+- **CSV** is voor als iets anders het bestand moet inlezen.
+- **Word** is voor een rapportage die in een verslag of een vergaderstuk moet.
+- **PDF** is om te versturen of af te drukken.
+
+Bij meer dan 5000 regels wordt de lijst afgekapt, met een melding erbij. Voeg
+dan een filter toe of groepeer.
+
+### Bewaren en delen
+
+Onder het resultaat kunt u de rapportage een naam geven en bewaren. Met het
+vinkje **met collega's delen** kan iedereen hem draaien; zonder dat vinkje
+alleen u. Bewaarde rapportages staan op het tabblad **Opgeslagen**. Verwijderen
+kan alleen wie hem gemaakt heeft, of een beheerder.
+
+### De trechter
+
+Het tabblad **Trechter** is het vaste kansenrapport met de grafiek. Dat is geen
+bouwer maar een vast overzicht.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -412,8 +465,8 @@ sleutel verlaat er niets deze computer.
 
 ## Nog niet af
 
-De export en de netwerkmodus zijn nog niet gebouwd. Die schermen zeggen dat
-zelf, met de fase waarin ze komen.
+De netwerkmodus is nog niet gebouwd. Dat scherm zegt dat zelf, met de fase
+waarin het komt.
 
 De assistent houdt nog geen maandbudget bij. Wat het gekost heeft is wel per
 maand terug te zien bij Instellingen → AI → Logboek.
