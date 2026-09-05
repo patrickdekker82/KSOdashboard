@@ -861,6 +861,7 @@ export function seedDemo(handle: DatabaseHandle, reference: IsoWeek): void {
 
   seedProductsAndPackages(handle, orgIds.get('SolarPartner Nederland') ?? null);
   seedOffertes(handle, reference, orgIds.get('Bouwbedrijf Meesters B.V.') ?? null, pd);
+  seedOpvolging(handle, reference, orgIds, pd, dm);
 
   // --- kansen ---------------------------------------------------------------
   const stageId = (name: string): number =>
@@ -1124,6 +1125,69 @@ function seedProductsAndPackages(handle: DatabaseHandle, supplierId: number | nu
 }
 
 /**
+ * Taken en een bellijst, zodat het opvolgscherm niet leeg opent.
+ *
+ * Er zit met opzet iets bij dat over datum staat: dat is wat de signalering
+ * "activiteit over datum" oppikt, en dat moet in de demo zichtbaar zijn.
+ */
+function seedOpvolging(
+  handle: DatabaseHandle,
+  reference: IsoWeek,
+  orgIds: Map<string, number>,
+  pd: number,
+  dm: number,
+): void {
+  const { raw } = handle;
+
+  const taak = (
+    soort: string,
+    onderwerp: string,
+    dag: string | null,
+    gebruiker: number,
+    organisatie: string | null,
+  ): void => {
+    raw
+      .prepare(
+        `INSERT INTO activities (type, subject, status, due_at, assigned_user_id, created_by)
+         VALUES (?, ?, 'open', ?, ?, ?)`,
+      )
+      .run(soort, onderwerp, dag === null ? null : `${dag} 09:00:00`, gebruiker, gebruiker);
+    const id = Number((raw.prepare('SELECT last_insert_rowid() AS id').get() as { id: number }).id);
+
+    const organisatieId = organisatie === null ? null : (orgIds.get(organisatie) ?? null);
+    if (organisatieId !== null) {
+      raw
+        .prepare(
+          "INSERT INTO activity_links (activity_id, entity_key, record_id) VALUES (?, 'organizations', ?)",
+        )
+        .run(id, organisatieId);
+    }
+  };
+
+  taak('bellen', 'Meesters nabellen over de offerte', weekDay(reference, -1, 3), pd, 'Bouwbedrijf Meesters B.V.');
+  taak('e-mail', 'Hoventier: reactie op planning', weekDay(reference, 0, 1), pd, 'Woonstichting De Hoventier');
+  taak('afspraak', 'Showroomafspraak voorbereiden', weekDay(reference, 1, 2), pd, 'CECI Ontwikkeling');
+  taak('taak', 'Prijslijst zonnepanelen actualiseren', null, pd, null);
+  taak('bellen', 'CECI bellen over fase 2', weekDay(reference, 0, 4), dm, 'CECI Ontwikkeling');
+
+  // Een bellijst om doorheen te lopen.
+  raw
+    .prepare(
+      "INSERT INTO call_lists (name, description, owner_user_id, is_shared) VALUES ('Najaarsronde klanten', 'Even bijpraten voor de winterstop', ?, 1)",
+    )
+    .run(pd);
+  const lijstId = Number((raw.prepare('SELECT last_insert_rowid() AS id').get() as { id: number }).id);
+
+  [...orgIds.entries()].slice(0, 4).forEach(([, id], index) => {
+    raw
+      .prepare(
+        "INSERT INTO call_list_members (call_list_id, entity_key, record_id, sort_order) VALUES (?, 'organizations', ?, ?)",
+      )
+      .run(lijstId, id, index);
+  });
+}
+
+/**
  * Twee offertes, zodat de offerteschermen en de signaleringen iets te tonen
  * hebben: een die tien dagen geleden is verstuurd en waar niets op terugkomt,
  * en een die nog concept is.
@@ -1139,10 +1203,26 @@ function seedOffertes(
     .get() as { id: number } | undefined;
   if (!pakket) return;
 
+  // De primaire contactpersoon erbij: een offertemail noemt die met naam, en
+  // zonder koppeling wordt dat "Beste ,".
+  const contact = handle.raw
+    .prepare(
+      `SELECT id FROM contacts
+        WHERE organization_id = ? AND archived_at IS NULL
+        ORDER BY is_primary DESC, id LIMIT 1`,
+    )
+    .get(organisatieId) as { id: number } | undefined;
+
   const verstuurdOp = weekDay(reference, -2, 2);
   const verstuurd = maakOfferteVanPakket(
     handle,
-    { packageId: pakket.id, organizationId: organisatieId, ownerUserId: eigenaarId, aantal: 1 },
+    {
+      packageId: pakket.id,
+      organizationId: organisatieId,
+      contactId: contact?.id ?? null,
+      ownerUserId: eigenaarId,
+      aantal: 1,
+    },
     eigenaarId,
     new Date(`${verstuurdOp}T09:00:00Z`),
   );
@@ -1150,7 +1230,13 @@ function seedOffertes(
 
   maakOfferteVanPakket(
     handle,
-    { packageId: pakket.id, organizationId: organisatieId, ownerUserId: eigenaarId, aantal: 12 },
+    {
+      packageId: pakket.id,
+      organizationId: organisatieId,
+      contactId: contact?.id ?? null,
+      ownerUserId: eigenaarId,
+      aantal: 12,
+    },
     eigenaarId,
   );
 }

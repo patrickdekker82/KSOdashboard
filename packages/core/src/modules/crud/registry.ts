@@ -389,6 +389,15 @@ export const ENTITIES: EntityDefinition[] = [
     defaultSort: 'due_at ASC',
   }),
   entity({
+    key: 'call-lists',
+    table: 'call_lists',
+    writable: ['name', 'description', 'filter', 'owner_user_id', 'is_shared', 'active'],
+    filterable: ['id', 'name', 'owner_user_id', 'is_shared', 'active'],
+    searchable: ['name', 'description'],
+    defaultSort: 'name ASC',
+    customFields: false,
+  }),
+  entity({
     key: 'email-templates',
     table: 'email_templates',
     writable: [
