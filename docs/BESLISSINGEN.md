@@ -374,6 +374,57 @@ nummer bestaat dan al. Het jaar staat daarom in het nummer zelf:
 applicatie draait alles in één proces, maar in de hostmodus bedienen meerdere
 werkplekken dezelfde database, en dan telt dat echt.
 
+### Mailen via een .eml, niet via de Microsoft Graph API
+
+Hoofdstuk 9 vraagt om een Microsoft 365-koppeling. Hoofdstuk 0 verbiedt externe
+clouddiensten, telemetrie en "phone home". Die twee bijten elkaar niet zomaar —
+een koppeling met de eigen tenant van het bedrijf is geen vendor die meekijkt —
+maar er is een praktischer bezwaar dat de doorslag geeft.
+
+Een Graph-koppeling vraagt om OAuth: een client-id, een tenant-id, een
+toestemmingsscherm, en tokens die de applicatie moet bewaren en verversen. Dat
+is een hoop machinerie waar niets van te controleren valt zonder een echte
+tenant, en een integratie die niet te testen is, is een integratie waarvan
+niemand weet of hij werkt.
+
+De gekozen route doet hetzelfde werk zonder een van die bezwaren. De applicatie
+stelt het bericht op, vult de plaatshouders in, legt het vast bij het record en
+schrijft het weg als `.eml`. Dat bestand opent in Outlook als klaargezet
+concept — de kop `X-Unsent: 1` zorgt daarvoor — waarna de gebruiker het naleest
+en zelf verstuurt, vanuit zijn eigen mailbox met zijn eigen handtekening.
+
+Wat dat oplevert:
+
+- geen tokens, geen client-id, geen toestemmingsscherm, geen verversing
+- niets verlaat de machine buiten de mailclient die er al staat
+- het is volledig te testen: het `.eml` wordt in de tests weer uitgelezen en
+  gecontroleerd
+- de gebruiker ziet altijd wat er verstuurd wordt voordat het weggaat
+
+Wat het niet oplevert: automatisch verzenden zonder tussenkomst, en het binnen-
+halen van inkomende mail. Die twee zijn met deze route niet mogelijk. De tabel
+`email_accounts` met haar `graph_tenant_id` en `graph_token_ref` blijft staan
+voor wie dat later alsnog wil bouwen; de rest van de module hoeft er dan niet
+voor op de schop.
+
+### De sjabloonmotor kijkt niet in de prototypeketen
+
+Dezelfde les als bij de formule-evaluator, waar dat gat er in een eerdere
+versie wél in zat: `{{contact.constructor}}` mag geen functie opleveren en
+`{{contact.__proto__}}` geen prototype. De context is daarom een `Map` van
+`Map`s en geen object-literal, en er staat een test op die alle vijf de
+verdachte namen langsloopt.
+
+Een plaatshouder die niet ingevuld kan worden, wordt gemeld in plaats van stil
+weggelaten. "Beste ," is erger dan een waarschuwing vooraf, en het scherm zegt
+precies welke plaatshouders leeg bleven.
+
+### "Niet mailen" is een harde grens
+
+`contacts.do_not_email` staat er niet voor de sier. Een contactpersoon met dat
+vinkje komt niet in de ontvangers, en als daardoor niemand overblijft zegt de
+foutmelding waaróm — anders gaat iemand zoeken naar een adres dat er wel is.
+
 ### Verlof en inzet elders zijn twee tabellen
 
 Zoals de opdracht voorschrijft, en de reden blijkt in de praktijk te kloppen:

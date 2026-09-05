@@ -428,6 +428,53 @@ export const endpoints = {
       notitie,
     }),
 
+  // --- e-mail en opvolging (fase 9) ----------------------------------------
+  mailsjablonen: (entiteit?: string) =>
+    api.get<{ data: Mailsjabloon[] }>(
+      `/email/templates${entiteit ? `?entity=${encodeURIComponent(entiteit)}` : ''}`,
+    ),
+  mailContext: (entiteit: string, recordId: number) =>
+    api.get<{ data: { waarden: Record<string, string>; ontvangers: OntvangerUitkomst } }>(
+      `/email/context?entity=${encodeURIComponent(entiteit)}&recordId=${recordId}`,
+    ),
+  mailOpstellen: (body: {
+    entity: string;
+    recordId: number;
+    templateId?: number | null;
+    onderwerp?: string;
+    bodyHtml?: string;
+    aan?: Array<{ adres: string; naam?: string | null }>;
+  }) => api.post<{ data: OpgesteldBericht }>('/email/compose', body),
+  mailVerstuurd: (id: number) =>
+    api.post<{ data: { id: number; status: string } }>(`/email/${id}/sent`),
+  mailBerichten: (entiteit: string, recordId: number) =>
+    api.get<{ data: Mailbericht[] }>(
+      `/email/messages?entity=${encodeURIComponent(entiteit)}&recordId=${recordId}`,
+    ),
+
+  werklijst: (userId?: number) =>
+    api.get<{ data: Werklijst; meta: { userId: number } }>(
+      `/followup/mine${userId ? `?userId=${userId}` : ''}`,
+    ),
+  activiteitAfronden: (
+    id: number,
+    body: {
+      uitkomst?: string | null;
+      vervolg?: { type: string; subject: string; dueAt: string } | null;
+    },
+  ) => api.post<{ data: { activiteitId: number; vervolgId: number | null } }>(
+    `/activities/${id}/complete`,
+    body,
+  ),
+  bellijst: (id: number) => api.get<{ data: Bellijstregel[] }>(`/call-lists/${id}/members`),
+  belregelMarkeren: (id: number, entiteit: string, recordId: number, gedaan: boolean, notitie: string | null) =>
+    api.post<{ data: { lijstId: number; recordId: number } }>(`/call-lists/${id}/members/mark`, {
+      entity: entiteit,
+      recordId,
+      gedaan,
+      notitie,
+    }),
+
   keuzelijsten: () => api.get<Lijst<{ id: number; key: string; name: string }>>('/picklists'),
   keuzelijstItems: (picklistId: number) =>
     api.get<Lijst<{ id: number; value: string; label: string; color: string | null }>>(
@@ -926,4 +973,76 @@ export type OfferteTotalen = {
   marginCents: number;
   marginBp: number;
   regels: number;
+};
+
+// --- e-mail en opvolging ----------------------------------------------------
+
+export type Mailsjabloon = {
+  id: number;
+  name: string;
+  code: string | null;
+  subject: string;
+  body_html: string;
+  entity_scope: string | null;
+  plaatshouders: string[];
+};
+
+export type OntvangerUitkomst = {
+  ontvangers: Array<{ adres: string; naam?: string | null }>;
+  geweigerd: string[];
+};
+
+export type OpgesteldBericht = {
+  messageId: number;
+  onderwerp: string;
+  bodyHtml: string;
+  bodyText: string;
+  aan: Array<{ adres: string; naam?: string | null }>;
+  cc: Array<{ adres: string; naam?: string | null }>;
+  ontbrekend: string[];
+  eml: string;
+  bestandsnaam: string;
+};
+
+export type Mailbericht = {
+  id: number;
+  subject: string;
+  status: string;
+  direction: string;
+  sent_at: string | null;
+  created_at: string;
+  door: string | null;
+  to_json: string;
+};
+
+export type Activiteit = {
+  id: number;
+  type: string;
+  subject: string;
+  body: string | null;
+  status: string;
+  priority: string;
+  due_at: string | null;
+  assigned_user_id: number | null;
+  eigenaar: string | null;
+  entiteit: string | null;
+  record_id: number | null;
+};
+
+export type Werklijst = {
+  teLaat: Activiteit[];
+  vandaag: Activiteit[];
+  komend: Activiteit[];
+  zonderDatum: Activiteit[];
+};
+
+export type Bellijstregel = {
+  call_list_id: number;
+  entity_key: string;
+  record_id: number;
+  sort_order: number;
+  done_at: string | null;
+  note: string | null;
+  titel: string;
+  afgehandeld: boolean;
 };

@@ -16,6 +16,7 @@ import { VeldWaarde } from '../../components/velden/VeldWaarde.tsx';
 import { Kaart, Skelet } from '../Dashboard.tsx';
 import { Tijdlijn } from './Tijdlijn.tsx';
 import { AvgPaneel } from './AvgPaneel.tsx';
+import { MailDialoog } from '../email/MailDialoog.tsx';
 
 type Rij = Record<string, unknown>;
 type VeldFout = { veld: string; label: string; melding: string };
@@ -43,6 +44,7 @@ export function GeneriekDetail({
   const [concept, setConcept] = useState<Record<string, unknown>>({});
   const [fouten, setFouten] = useState<Record<string, string>>({});
   const [melding, setMelding] = useState<string | null>(null);
+  const [mailen, setMailen] = useState(false);
 
   const record = useQuery({
     queryKey: ['record', entiteit, id],
@@ -124,6 +126,16 @@ export function GeneriekDetail({
         <h1 style={{ fontSize: 18, margin: 0 }}>{kop}</h1>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {!bewerken && MAIL_ENTITEITEN.has(entiteit) && (
+            <button
+              type="button"
+              className="focus-ring"
+              onClick={() => setMailen(true)}
+              style={knopStijl}
+            >
+              Bericht opstellen…
+            </button>
+          )}
           {!bewerken && acties}
           {bewerken ? (
             <>
@@ -222,9 +234,22 @@ export function GeneriekDetail({
           {entiteit === 'contacts' && <AvgPaneel contactId={id} />}
         </div>
       </div>
+
+      {mailen && (
+        <MailDialoog entiteit={entiteit} recordId={id} onSluit={() => setMailen(false)} />
+      )}
     </div>
   );
 }
+
+/** Entiteiten waar de kern een bericht bij kan opstellen. */
+const MAIL_ENTITEITEN = new Set([
+  'organizations',
+  'contacts',
+  'projects',
+  'opportunities',
+  'package-quotes',
+]);
 
 function Velden({
   velden,

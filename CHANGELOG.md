@@ -207,8 +207,32 @@ telt is welke fase is opgeleverd.
 - Afdrukken naar PDF via het verborgen venster van het hoofdproces. Geen externe
   PDF-bibliotheek, en dus ook geen betaalde docxtemplater-module.
 
+### Fase 9 — opvolging en e-mail
+- Berichten opstellen uit een sjabloon, met plaatshouders die uit het record
+  worden gevuld: klant, contactpersoon, project, kans, offerte, afzender en de
+  bedrijfsgegevens.
+- De sjabloonmotor kijkt nooit in de prototypeketen, en meldt plaatshouders die
+  niet ingevuld konden worden in plaats van er stil niets van te maken.
+- Het bericht wordt vastgelegd bij het record — het staat dus in de tijdlijn —
+  en weggeschreven als .eml die in Outlook opent als klaargezet concept. Geen
+  OAuth, geen tokens, en niets dat de machine verlaat zonder dat de gebruiker
+  het zelf verstuurt. Zie `docs/BESLISSINGEN.md` voor de afweging.
+- Een contactpersoon met "niet mailen" komt niet in de ontvangers, en de
+  foutmelding zegt waarom er dan geen ontvanger is.
+- Opvolgscherm met vier bakjes: te laat, vandaag, komende twee weken en zonder
+  datum. Een taak van vandaag valt niet onder "te laat", ook al is het tijdstip
+  voorbij.
+- Afronden plant in dezelfde handeling de vervolgactie, gekoppeld aan dezelfde
+  records. Mislukt dat inplannen, dan blijft de taak open in plaats van half
+  afgerond.
+- Bellijsten om doorheen te lopen, met een notitie per gesprek. Afgevinkte
+  regels zakken naar beneden in plaats van te verdwijnen.
+- Demoseed krijgt taken en een bellijst, waarmee de regels "activiteit over
+  datum" en "offerte zonder reactie" ook echt afgaan.
+
 ### Nog niet gebouwd
-Opvolging en Microsoft 365 (fase 9), de
+De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail (zie
+de beslissing daarover), de
 AI-assistent (fase 10), rapportages en export (fase 11), hostmodus en
 automatische updates (fase 12). De schermen daarvoor tonen in welke fase ze
 komen.

@@ -306,6 +306,68 @@ de andere regelbedragen — dat hoort zo, anders klopt de btw niet meer.
 Een offerte waarvan de geldigheid voorbij is, gaat vanzelf op **vervallen**. Dan
 staat hij niet langer in de trechter alsof er nog antwoord op kan komen.
 
+## Opvolging
+
+Onder **Opvolging** staat wat er te doen is, in twee tabbladen.
+
+### Mijn werk
+
+Vier bakjes, en niet meer:
+
+| Bakje | Wat er in staat |
+|---|---|
+| **Te laat** | de datum is voorbij en het is nog niet afgerond |
+| **Vandaag** | wat vandaag staat gepland |
+| **Komende twee weken** | wat eraan komt |
+| **Zonder datum** | taken die nooit zijn ingepland |
+
+Een taak van vandaag valt niet onder "te laat", ook al is het tijdstip voorbij —
+de dag is nog niet om.
+
+Dat laatste bakje staat er met opzet: taken zonder datum verdwijnen anders uit
+beeld, en dan is de takenlijst een plek waar dingen heen gaan om te sterven.
+
+**Afronden** doet twee dingen tegelijk. U noteert wat eruit kwam — dat komt in
+de tijdlijn van de klant — en u kunt meteen de vervolgactie inplannen. Dat is
+het hele punt: een gesprek dat eindigt met "ik bel over twee weken terug" en
+waar niemand iets voor inplant, krijgt geen vervolg.
+
+Een manager kan met de keuzelijst rechtsboven de lijst van een collega bekijken.
+
+### Bellijsten
+
+Een lijst waar u doorheen loopt: afvinken en een notitie per gesprek.
+Afgevinkte regels verdwijnen niet maar zakken naar beneden, zodat u ziet hoever
+u bent en een vinkje terug kunt draaien.
+
+## Berichten versturen
+
+Op de pagina van een klant, contactpersoon, project, kans of offerte staat
+**Bericht opstellen…**.
+
+Kies een sjabloon of schrijf zelf. In een sjabloon staan plaatshouders als
+`{{contact.voornaam}}` en `{{offerte.totaal}}`; die worden gevuld met de
+gegevens van het record. Onder "Beschikbare plaatshouders" ziet u welke er zijn
+en wat er nu in staat — klik erop om hem in te voegen.
+
+Na **Opstellen** ziet u het bericht zoals het eruit komt te zien. Staat er
+onderaan een waarschuwing over plaatshouders, dan is er iets niet ingevuld:
+controleer dat voordat u verstuurt.
+
+**Openen in Outlook (.eml)** slaat het bericht op als bestand. Dubbelklik dat
+bestand: Outlook opent het als concept, u leest het na en verstuurt zelf, vanuit
+uw eigen mailbox met uw eigen handtekening.
+
+De app verstuurt dus niets zelf. Dat is een bewuste keuze — er hoeft geen
+wachtwoord of token van uw mailbox bewaard te worden, en er gaat nooit iets weg
+dat u niet zelf heeft gezien.
+
+Met **Ik heb hem verstuurd** noteert u dat het bericht de deur uit is. Het staat
+dan als verstuurd in de tijdlijn.
+
+Staat bij een contactpersoon **niet mailen** aan, dan komt hij niet in de
+ontvangers en zegt de app dat ook.
+
 ## Sneltoetsen
 
 | Toets | Wat het doet |
@@ -318,8 +380,15 @@ staat hij niet langer in de trechter alsof er nog antwoord op kan komen.
 
 ## Nog niet af
 
-Opvolging, e-mail en de export zijn nog niet gebouwd. Die schermen zeggen dat
+De export en de netwerkmodus zijn nog niet gebouwd. Die schermen zeggen dat
 zelf, met de fase waarin ze komen.
+
+Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
+back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook
+bij.
+
+De app haalt geen inkomende mail binnen en verstuurt niets automatisch. Mailen
+gaat via een bestand dat u in Outlook opent; zie "Berichten versturen".
 
 Eén signaleringsregel doet nog niets: "back-up mislukt". Er worden nog geen
 back-uploops vastgelegd, en bij Instellingen → Signaleringen staat dat er ook

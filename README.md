@@ -23,6 +23,7 @@ webadres om te onthouden, werkt volledig offline.
 | Projecten met fasering en de Excel-/CSV-planningimport | **af** |
 | Dashboard met KPI's en zeventien signaleringsregels | **af** |
 | Duurzaamheidspakketten, offertes en PDF | **af** |
+| Opvolging, bellijsten en e-mail uit sjablonen | **af** |
 | Pakketten, offertes, opvolging, e-mail, AI, export | nog niet gebouwd |
 
 De schermen die nog niet gebouwd zijn, tonen dat ook eerlijk: ze zeggen in welke
@@ -167,6 +168,26 @@ afgedwongen: een gewone gebruiker kan alleen zijn eigen registraties beheren en
 de status niet zelf zetten. Goedkeuren blijft aan de manager, en dat geldt ook
 voor een POST die de goedkeuringsstroom probeert over te slaan.
 
+## E-mail zonder cloudkoppeling
+
+De applicatie stelt een bericht op uit een sjabloon, vult de plaatshouders met
+de gegevens van het record, legt het vast in de tijdlijn en schrijft het weg als
+`.eml`. Dat bestand opent in Outlook als klaargezet concept; de gebruiker leest
+het na en verstuurt zelf, vanuit zijn eigen mailbox.
+
+Er is dus geen OAuth, geen client-id, geen token dat bewaard moet worden, en er
+verlaat niets de machine buiten de mailclient die er al staat. Het is bovendien
+volledig te testen: in de tests wordt het `.eml` weer uitgelezen en tot op de
+codering gecontroleerd — een onderwerp met een euroteken hoort als encoded-word
+volgens RFC 2047, en de regeleindes zijn CRLF.
+
+Wat deze route niet kan: automatisch verzenden zonder tussenkomst, en inkomende
+mail binnenhalen. De afweging staat in `docs/BESLISSINGEN.md`.
+
+De sjabloonmotor kijkt nooit in de prototypeketen — `{{contact.constructor}}`
+levert niets op — en meldt plaatshouders die leeg bleven. "Beste ," is erger dan
+een waarschuwing vooraf.
+
 ## Pakketten en offertes
 
 Een offerte begint als kopie van een duurzaamheidspakket. Dat is met opzet een
@@ -266,7 +287,7 @@ decimalen.
 npm test
 ```
 
-657 tests, waaronder de verplichte gevallen: de volledige tabel met
+730 tests, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter
