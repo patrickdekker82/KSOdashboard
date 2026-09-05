@@ -745,6 +745,177 @@ describe('verlofsaldo', () => {
   });
 });
 
+describe('signaleringen', () => {
+  /** Draait de controle en geeft de meldingen terug. */
+  async function controleer(cookie: string): Promise<Array<Record<string, unknown>>> {
+    const run = await app.inject({
+      method: 'POST',
+      url: '/api/v1/alerts/run',
+      headers: headers(cookie),
+      payload: {},
+    });
+    expect(run.statusCode).toBe(200);
+
+    const lijst = await app.inject({ method: 'GET', url: '/api/v1/alerts', headers: headers(cookie) });
+    return lijst.json().data as Array<Record<string, unknown>>;
+  }
+
+  it('rekent de regels door en levert meldingen op', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+
+    expect(meldingen.length).toBeGreaterThan(0);
+    // De ernstigste bovenaan: daar begint iemand met lezen.
+    expect(meldingen[0]?.severity).toBe('urgent');
+  });
+
+  it('laat een gewone gebruiker de controle niet starten', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/alerts/run',
+      headers: headers(cookie),
+      payload: {},
+    });
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('telt de meldingen per ernst voor de kopbalk', async () => {
+    const cookie = await login();
+    await controleer(cookie);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/alerts/count',
+      headers: headers(cookie),
+    });
+    const telling = response.json().data as { urgent: number; let_op: number; info: number };
+    expect(telling.urgent + telling.let_op + telling.info).toBeGreaterThan(0);
+  });
+
+  it('bevestigt een melding', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+    const id = Number(meldingen[0]?.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${id}/acknowledge`,
+      headers: headers(cookie),
+    });
+
+    expect(response.statusCode).toBe(200);
+    const rij = handle.raw.prepare('SELECT status, acknowledged_by FROM alerts WHERE id = ?').get(id) as {
+      status: string;
+      acknowledged_by: number | null;
+    };
+    expect(rij).toMatchObject({ status: 'bevestigd' });
+    expect(rij.acknowledged_by).not.toBeNull();
+  });
+
+  // Uitstellen haalt de melding uit beeld maar niet uit de database: staat de
+  // situatie er dan nog, dan komt hij vanzelf terug.
+  it('stelt een melding uit en verbergt hem tot die datum', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+    const id = Number(meldingen[0]?.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${id}/snooze`,
+      headers: headers(cookie),
+      payload: { dagen: 14 },
+    });
+    expect(response.statusCode).toBe(200);
+
+    const daarna = await app.inject({ method: 'GET', url: '/api/v1/alerts', headers: headers(cookie) });
+    const zichtbaar = daarna.json().data as Array<Record<string, unknown>>;
+    expect(zichtbaar.some((melding) => Number(melding.id) === id)).toBe(false);
+
+    const meeUitgesteld = await app.inject({
+      method: 'GET',
+      url: '/api/v1/alerts?includeSnoozed=true',
+      headers: headers(cookie),
+    });
+    const alles = meeUitgesteld.json().data as Array<Record<string, unknown>>;
+    expect(alles.some((melding) => Number(melding.id) === id)).toBe(true);
+  });
+
+  it('weigert een onzinnige uitsteltermijn', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${Number(meldingen[0]?.id)}/snooze`,
+      headers: headers(cookie),
+      payload: { dagen: 5000 },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('sluit een melding handmatig', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+    const id = Number(meldingen[0]?.id);
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${id}/resolve`,
+      headers: headers(cookie),
+    });
+
+    const rij = handle.raw.prepare('SELECT status FROM alerts WHERE id = ?').get(id) as {
+      status: string;
+    };
+    expect(rij.status).toBe('opgelost');
+  });
+
+  it('meldt dat een melding al is afgehandeld', async () => {
+    const cookie = await login();
+    const meldingen = await controleer(cookie);
+    const id = Number(meldingen[0]?.id);
+
+    await app.inject({ method: 'POST', url: `/api/v1/alerts/${id}/resolve`, headers: headers(cookie) });
+    const nogmaals = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${id}/resolve`,
+      headers: headers(cookie),
+    });
+
+    expect(nogmaals.statusCode).toBe(404);
+  });
+
+  it('filtert op ernst', async () => {
+    const cookie = await login();
+    await controleer(cookie);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/alerts?severity=urgent',
+      headers: headers(cookie),
+    });
+    const meldingen = response.json().data as Array<Record<string, unknown>>;
+    expect(meldingen.every((melding) => melding.severity === 'urgent')).toBe(true);
+  });
+
+  // Een regeltype zonder code hoort zichtbaar te zijn, niet stil nooit af te gaan.
+  it('laat per regel zien of hij al gebouwd is', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/alerts/rules',
+      headers: headers(cookie),
+    });
+
+    const regels = response.json().data as Array<Record<string, unknown>>;
+    expect(regels).toHaveLength(18);
+    const backup = regels.find((regel) => regel.type === 'backup_failed');
+    expect(backup?.gebouwd).toBe(false);
+    expect(regels.filter((regel) => regel.gebouwd === true)).toHaveLength(17);
+  });
+});
+
 describe('privacy rond ziekteverzuim', () => {
   it('toont collega’s alleen "Afwezig" bij een ziekmelding', async () => {
     const cookie = await login('dennis@showroom.local'); // DM, gewone gebruiker

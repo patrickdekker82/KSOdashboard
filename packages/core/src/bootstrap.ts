@@ -11,6 +11,7 @@ import { applyViews, appliedMigrations, runMigrations, schemaVersion } from './d
 import { seed } from './db/seed.ts';
 import { buildCore, type NetworkMode } from './server.ts';
 import { checkDatabasePath } from './db/path-guard.ts';
+import { voerControleUit } from './modules/alerts/engine.ts';
 
 export type BootstrapOptions = {
   /** Directory that holds the database, attachments, backups and logs. */
@@ -140,6 +141,8 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
   const address = app.server.address();
   const port = typeof address === 'object' && address !== null ? address.port : requestedPort;
 
+  const stopControle = startSignaleringen(handle, options.logger ?? false);
+
   return {
     app,
     handle,
@@ -148,8 +151,56 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
     schemaVersion: schemaVersion(handle),
     address: `http://${mode === 'host' ? '0.0.0.0' : '127.0.0.1'}:${port}`,
     stop: async () => {
+      stopControle();
       await app.close();
       handle.close();
     },
+  };
+}
+
+/** Hoe vaak de signaleringen worden doorgerekend. */
+const CONTROLE_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Zet de uurlijkse controle op de signaleringen aan.
+ *
+ * Er draait bewust geen cron-bibliotheek en er wordt niets van `check_cron`
+ * gelezen: één vast uur is genoeg voor meldingen die over weken en dagen gaan,
+ * en een tweede planningsmechanisme naast de timer levert alleen maar vragen op
+ * over welk van de twee nu leidend is.
+ *
+ * De eerste ronde draait kort na het starten en niet meteen: dan is het venster
+ * er al en wacht de gebruiker niet op een berekening over zesentwintig weken.
+ * De timer krijgt `unref()`, zodat een afsluitend proces er niet op blijft
+ * wachten.
+ */
+function startSignaleringen(handle: DatabaseHandle, logger: boolean): () => void {
+  const draai = (): void => {
+    try {
+      const uitkomst = voerControleUit(handle);
+      if (logger && (uitkomst.nieuw > 0 || uitkomst.opgelost > 0)) {
+        process.stdout.write(
+          `Signaleringen: ${uitkomst.nieuw} nieuw, ${uitkomst.opgelost} opgelost\n`,
+        );
+      }
+    } catch (error) {
+      // Een mislukte controle mag de kern nooit onderuit halen: de volgende
+      // ronde is over een uur, en de rest van de applicatie werkt gewoon door.
+      if (logger) {
+        process.stderr.write(
+          `Signaleringen mislukt: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+      }
+    }
+  };
+
+  const eerste = setTimeout(draai, 5_000);
+  const herhaling = setInterval(draai, CONTROLE_INTERVAL_MS);
+  eerste.unref?.();
+  herhaling.unref?.();
+
+  return () => {
+    clearTimeout(eerste);
+    clearInterval(herhaling);
   };
 }
