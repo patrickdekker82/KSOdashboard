@@ -21,6 +21,23 @@ export default defineConfig({
           // De kern draait in een eigen utility process en wordt apart gebouwd.
           'core/host': resolve(__dirname, 'packages/core/src/host.ts'),
         },
+        /*
+         * CommonJS, met de extensie .cjs.
+         *
+         * De root-package.json staat op `type: module`, dus een .js-bestand is
+         * daar ESM. Dat gaat mis zodra de bundel een pakket van buiten laadt:
+         * ajv is CommonJS zonder exports-map, en `import 'ajv/dist/jtd'` lost
+         * onder ESM niet op omdat er geen extensie bij staat. Fastify laadt
+         * bovendien delen van ajv met `require()` op naam.
+         *
+         * Dit is geen smaakkwestie: met ESM start de ingepakte applicatie niet.
+         * De .cjs-extensie houdt de rest van het project wel ESM.
+         */
+        output: {
+          format: 'cjs',
+          entryFileNames: '[name].cjs',
+          chunkFileNames: 'chunks/[name].cjs',
+        },
       },
     },
   },

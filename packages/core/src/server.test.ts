@@ -153,7 +153,59 @@ describe('inloggen', () => {
   it('vertelt via /auth/me wie er is ingelogd', async () => {
     const cookie = await login('robert@showroom.local');
     const response = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: headers(cookie) });
-    expect(response.json().gebruiker).toMatchObject({ initials: 'RB', mustChangePassword: true });
+    expect(response.json().gebruiker).toMatchObject({ initials: 'RB', mustChangePassword: false });
+  });
+
+  it('laat een account met het beginwachtwoord nergens bij', async () => {
+    // De demoseed zet de vlag uit; hier zetten we hem terug om de situatie na
+    // een echte installatie na te bootsen. Zonder deze grendel blijft het
+    // wachtwoord uit de handleiding werken, en in de hostmodus staat de
+    // applicatie dan open voor het hele kantoornetwerk.
+    const cookie = await login();
+    handle.raw.prepare("UPDATE users SET must_change_password = 1 WHERE email = ?").run(
+      'patrick@showroom.local',
+    );
+
+    const geweigerd = await app.inject({
+      method: 'GET',
+      url: '/api/v1/organizations',
+      headers: headers(cookie),
+    });
+    expect(geweigerd.statusCode).toBe(403);
+    expect(geweigerd.json().error.code).toBe('wachtwoord_wijzigen');
+
+    // Maar het scherm om het te wijzigen moet wel bereikbaar blijven.
+    for (const url of ['/api/v1/auth/me']) {
+      expect((await app.inject({ method: 'GET', url, headers: headers(cookie) })).statusCode).toBe(
+        200,
+      );
+    }
+
+    const gewijzigd = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/change-password',
+      headers: headers(cookie),
+      payload: { huidig: DEMO_PASSWORD, nieuw: 'EenNieuwWachtwoord9' },
+    });
+    expect(gewijzigd.statusCode).toBe(200);
+
+    // Het wijzigen maakt alle sessies ongeldig, dus opnieuw inloggen — met het
+    // nieuwe wachtwoord, en daarna mag alles weer.
+    const opnieuw = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: headers(),
+      payload: { email: 'patrick@showroom.local', password: 'EenNieuwWachtwoord9' },
+    });
+    expect(opnieuw.statusCode).toBe(200);
+    const verse = String(opnieuw.headers['set-cookie']).split(';')[0]!;
+
+    const daarna = await app.inject({
+      method: 'GET',
+      url: '/api/v1/organizations',
+      headers: headers(verse),
+    });
+    expect(daarna.statusCode).toBe(200);
   });
 
   it('logt uit en maakt de sessie ongeldig', async () => {

@@ -4,6 +4,7 @@ import { ApiFout, endpoints, type Gebruiker } from './lib/api.ts';
 import { ROUTES, useRoute } from './lib/routes.ts';
 import { useSmalScherm } from './lib/schermformaat.ts';
 import { Inloggen } from './features/Inloggen.tsx';
+import { Wachtwoord } from './features/Wachtwoord.tsx';
 import { Dashboard } from './features/Dashboard.tsx';
 import { Planning } from './features/Planning.tsx';
 import { Verlof } from './features/verlof/Verlof.tsx';
@@ -72,6 +73,12 @@ export function App(): JSX.Element {
   }
 
   const gebruiker = ik.data!.gebruiker;
+
+  // De kern laat een account met het beginwachtwoord nergens bij; dan hoort de
+  // schil ook niets anders te tonen dan het scherm om het te wijzigen.
+  if (gebruiker.mustChangePassword) {
+    return <Wachtwoord gebruiker={gebruiker} onGewijzigd={() => void ik.refetch()} />;
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>

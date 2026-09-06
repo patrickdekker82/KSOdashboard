@@ -2,6 +2,25 @@
 
 Voor wie de app beheert: gebruikers, instellingen, back-ups en koppelingen.
 
+## Eerste keer: wachtwoorden
+
+De installatie zet vijf accounts klaar met hetzelfde beginwachtwoord, en dat
+wachtwoord staat in deze handleiding. **Iedereen moet er bij de eerste keer
+inloggen vanaf.** De applicatie dwingt dat af: zolang een account nog het
+beginwachtwoord heeft, komt het nergens — er verschijnt alleen het scherm om
+een eigen wachtwoord te kiezen.
+
+Dat is geen formaliteit. In de hostmodus is de applicatie op het hele
+kantoornetwerk bereikbaar, en een wachtwoord dat in een handleiding staat is
+geen wachtwoord.
+
+De eis: minimaal twaalf tekens, met hoofdletters, kleine letters en een cijfer.
+Bij het wijzigen worden alle openstaande sessies ongeldig, ook op andere
+apparaten.
+
+In de demo-installatie (`--demo`) staat dit uit: die gegevens zijn verzonnen en
+je moet er juist meteen in kunnen kijken.
+
 ## Gebruikers en rollen
 
 | Rol | Mag |

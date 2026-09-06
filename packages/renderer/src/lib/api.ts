@@ -247,6 +247,8 @@ export const endpoints = {
   inloggen: (email: string, password: string) =>
     api.post<{ gebruiker: Gebruiker }>('/auth/login', { email, password }),
   uitloggen: () => api.post<{ afgemeld: boolean }>('/auth/logout'),
+  wachtwoordWijzigen: (huidig: string, nieuw: string) =>
+    api.post<{ gewijzigd: boolean }>('/auth/change-password', { huidig, nieuw }),
   gezondheid: () => api.get<{ status: string; schemaVersion: string; mode: string }>('/health'),
 
   weekbezetting: (from?: string, to?: string) =>

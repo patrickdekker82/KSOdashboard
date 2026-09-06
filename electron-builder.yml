@@ -9,13 +9,20 @@ directories:
 asar: true
 asarUnpack:
   # Een .node-binary moet als bestand op schijf staan om geladen te kunnen worden.
+  - '**/*.node'
   - '**/node_modules/@node-rs/**'
 
 files:
   - out/**/*
   - package.json
-  - node_modules/@node-rs/**
+  # De runtime-afhankelijkheden uit `dependencies` van de root-package.json
+  # worden hierdoor meegenomen met hun eigen afhankelijkheden. Zonder deze
+  # regel pakte de installer geen enkele module in en startte de applicatie
+  # niet: @node-rs/argon2 was dan onvindbaar.
+  - node_modules/**/*
   - '!**/*.map'
+  - '!**/node_modules/**/{test,tests,__tests__,example,examples,docs,doc}/**'
+  - '!**/node_modules/**/*.{md,markdown,ts,map,flow}'
 
 extraResources:
   # De migraties en views worden als bestand ingelezen, niet gebundeld, zodat

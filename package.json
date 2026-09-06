@@ -6,6 +6,7 @@
   "author": "Afdeling Showroom",
   "license": "UNLICENSED",
   "type": "module",
+  "main": "out/main/index.cjs",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -31,6 +32,11 @@
     "db:generate": "drizzle-kit generate --config packages/core/drizzle.config.ts",
     "seed": "node packages/core/dist/db/seed.js",
     "serve:core": "node packages/core/dist/standalone.js"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

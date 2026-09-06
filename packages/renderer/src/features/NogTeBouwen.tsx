@@ -5,17 +5,14 @@
  * scherm dat de indruk wekt dat het klaar is.
  */
 import type { JSX } from 'react';
-const FASE_PER_PAD: Record<string, string> = {
-  '/kansen':
-    'De lijst en de detailpagina werken al. In fase 4 komen de disciplineregels, de kanban ' +
-    'en win/verlies per discipline erbij.',
-  '/projecten':
-    'De lijst en de detailpagina werken al. In fase 6 komen de fasen-editor en de import ' +
-    'van de Excel-planning erbij.',
-  '/duurzaamheid': 'Fase 8 — Producten, pakketsamensteller en offertes met bevroren prijzen.',
-  '/opvolging': 'Fase 9 — Vandaag-scherm, bellijsten en e-mail via Microsoft 365.',
-  '/instellingen': 'Fase 12 — Beheerschermen voor velden, gebruikers, netwerkstand en back-up.',
-};
+/*
+ * Alle schermen uit de opdracht zijn gebouwd, dus deze lijst is leeg.
+ *
+ * De component blijft staan: hij vangt een route op die wel in het menu staat
+ * maar (nog) geen scherm heeft, en dat is beter dan een wit vlak. Komt er ooit
+ * een route bij, dan hoort hier de uitleg te staan.
+ */
+const FASE_PER_PAD: Record<string, string> = {};
 
 export function NogTeBouwen({ titel, pad }: { titel: string; pad: string }): JSX.Element {
   return (
@@ -29,11 +26,12 @@ export function NogTeBouwen({ titel, pad }: { titel: string; pad: string }): JSX
     >
       <h1 style={{ fontSize: 17, margin: '0 0 8px' }}>{titel}</h1>
       <p style={{ color: 'var(--inkt-zacht)', margin: 0, lineHeight: 1.6 }}>
-        Dit scherm is nog niet gebouwd. De gegevens erachter staan al wel in de database en
-        zijn via de API te bevragen.
+        Voor dit adres is geen scherm gevonden. De gegevens erachter staan wel in de database
+        en zijn via de API te bevragen.
       </p>
       <p style={{ color: 'var(--inkt-zacht)', marginTop: 12, lineHeight: 1.6 }}>
-        {FASE_PER_PAD[pad] ?? 'Dit scherm komt in een latere fase.'}
+        {FASE_PER_PAD[pad] ??
+          'Controleer het adres in de balk, of kies links een onderdeel uit het menu.'}
       </p>
     </section>
   );

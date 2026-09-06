@@ -67,6 +67,18 @@ declare module 'fastify' {
 /** Endpoints reachable without a session. */
 const PUBLIC_PATHS = new Set(['/api/v1/health', '/api/v1/auth/login']);
 
+/**
+ * Wat een ingelogde gebruiker met een verlopen beginwachtwoord nog wél mag.
+ *
+ * Precies genoeg om het scherm te bereiken waar hij zijn wachtwoord wijzigt,
+ * en om weer weg te kunnen.
+ */
+const TOEGESTAAN_BIJ_WACHTWOORDWISSEL = new Set([
+  '/api/v1/auth/me',
+  '/api/v1/auth/logout',
+  '/api/v1/auth/change-password',
+]);
+
 export async function buildCore(options: CoreOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false });
 
@@ -136,12 +148,36 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
     const token = request.cookies[SESSION_COOKIE];
     request.user = token ? resolveSession(options.handle, token) : null;
 
-    if (PUBLIC_PATHS.has(new URL(request.url, 'http://localhost').pathname)) return;
+    const pad = new URL(request.url, 'http://localhost').pathname;
+    if (PUBLIC_PATHS.has(pad)) return;
 
     if (!request.user) {
       return reply
         .code(401)
         .send({ error: { code: 'niet_ingelogd', message: 'Log eerst in om verder te gaan.' } });
+    }
+
+    /*
+     * Wie zijn beginwachtwoord nog niet gewijzigd heeft, komt nergens.
+     *
+     * De installatie zet vijf accounts klaar met hetzelfde wachtwoord, en dat
+     * wachtwoord staat in de handleiding. Zonder deze regel blijft dat
+     * wachtwoord werken zolang niemand het wijzigt — en in de hostmodus is de
+     * applicatie dan voor het hele kantoornetwerk open met een wachtwoord dat
+     * iedereen kan opzoeken.
+     *
+     * Alleen uitloggen, jezelf opvragen en het wachtwoord wijzigen mogen wel;
+     * anders kan de gebruiker niet eens het scherm bereiken waar hij het moet
+     * veranderen.
+     */
+    if (request.user.mustChangePassword && !TOEGESTAAN_BIJ_WACHTWOORDWISSEL.has(pad)) {
+      return reply.code(403).send({
+        error: {
+          code: 'wachtwoord_wijzigen',
+          message:
+            'Wijzig eerst uw wachtwoord. Dit account gebruikt nog het wachtwoord van de installatie.',
+        },
+      });
     }
 
     // Autorisatie wordt server-side afgedwongen, niet alleen in de UI verborgen.

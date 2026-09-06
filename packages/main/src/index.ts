@@ -107,7 +107,7 @@ function writeConfig(config: AppConfig): void {
 // ---------------------------------------------------------------------------
 
 function startCoreProcess(config: AppConfig): void {
-  const entry = join(here, '../core/host.js');
+  const entry = join(here, '../core/host.cjs');
   core = utilityProcess.fork(entry, [], { serviceName: 'Showroom Suite kern', stdio: 'pipe' });
 
   core.postMessage({

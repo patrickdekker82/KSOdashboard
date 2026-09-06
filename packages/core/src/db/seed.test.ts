@@ -50,10 +50,32 @@ describe('basisseed', () => {
   it('zet de vijf gebruikers uit bijlage A neer met een werkend wachtwoord', async () => {
     expect(count('users')).toBe(5);
     const rb = handle.raw
-      .prepare('SELECT password_hash, must_change_password FROM users WHERE initials = ?')
-      .get('RB') as { password_hash: string; must_change_password: number };
+      .prepare('SELECT password_hash FROM users WHERE initials = ?')
+      .get('RB') as { password_hash: string };
     expect(await verifyPassword(rb.password_hash, DEMO_PASSWORD)).toBe(true);
-    expect(rb.must_change_password).toBe(1);
+  });
+
+  it('dwingt bij een echte installatie af dat het beginwachtwoord wordt gewijzigd', async () => {
+    // Het beginwachtwoord staat in de handleiding. Bij een gewone installatie
+    // moet iedereen er dus vanaf voordat hij ergens bij kan; in de demo niet,
+    // want daar is niets te beschermen en moet je juist kunnen rondkijken.
+    const echt = openDatabase(join(directory, 'echt.db'));
+    try {
+      runMigrations(echt);
+      await seed(echt, { referenceDate: REFERENCE });
+
+      const teWijzigen = echt.raw
+        .prepare('SELECT COUNT(*) AS n FROM users WHERE must_change_password = 1')
+        .get() as { n: number };
+      expect(teWijzigen.n).toBe(5);
+    } finally {
+      echt.close();
+    }
+
+    const inDemo = handle.raw
+      .prepare('SELECT COUNT(*) AS n FROM users WHERE must_change_password = 1')
+      .get() as { n: number };
+    expect(inDemo.n).toBe(0);
   });
 
   it('geeft DM en PD een 5x8-rooster en RB een 4x8-rooster', () => {

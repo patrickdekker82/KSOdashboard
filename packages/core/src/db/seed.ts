@@ -51,7 +51,22 @@ function weekDay(reference: IsoWeek, offset: number, weekday: number): string {
 export async function seed(handle: DatabaseHandle, options: SeedOptions = {}): Promise<void> {
   const reference = getIsoWeek(options.referenceDate ?? new Date());
   await seedBase(handle, reference);
-  if (options.demo) seedDemo(handle, reference);
+
+  if (options.demo) {
+    seedDemo(handle, reference);
+
+    /*
+     * In de demo hoeft niemand eerst een wachtwoord te kiezen.
+     *
+     * Bij een echte installatie staat `must_change_password` op 1 en laat de
+     * kern een account met het beginwachtwoord nergens bij — dat wachtwoord
+     * staat in de handleiding, en in de hostmodus zou de applicatie anders open
+     * staan voor het hele kantoornetwerk. In de demo beschermt dat niets: de
+     * gegevens zijn verzonnen en het wachtwoord staat er juist bij zodat je de
+     * applicatie kunt proberen.
+     */
+    handle.raw.prepare('UPDATE users SET must_change_password = 0').run();
+  }
 }
 
 // ---------------------------------------------------------------------------

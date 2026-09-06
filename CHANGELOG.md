@@ -337,6 +337,39 @@ telt is welke fase is opgeleverd.
   keuzelijsten, capaciteitsinstellingen, back-up en netwerk. Alle tegels op het
   instellingenscherm zijn nu ingevuld.
 
+### Na fase 12 — doorlichting vóór ingebruikname
+Vier dingen die pas boven kwamen door de installer echt te bouwen en te draaien
+in plaats van alleen `npm run build`:
+
+- **De applicatie was niet in te pakken.** `package.json` had geen `main`, dus
+  electron-builder zocht `index.js` in de asar en vond niets. Nu
+  `out/main/index.cjs`.
+- **De ingepakte applicatie startte niet.** Zowel `externalizeDepsPlugin` als
+  electron-builder kijken naar de root-`package.json`, en die had geen
+  `dependencies`. Er werd dus geen enkele module meegeleverd en
+  `@node-rs/argon2` — de wachtwoordhasher — was onvindbaar. De
+  runtime-afhankelijkheden staan nu in de root en worden meegepakt.
+- **De hoofdbundel is CommonJS geworden.** Met `type: module` was een
+  `.js`-bestand ESM, en dan lost `import 'ajv/dist/jtd'` niet op: ajv is
+  CommonJS zonder exports-map, en Fastify laadt er delen van met `require()`.
+  Geen smaakkwestie — met ESM startte de ingepakte applicatie niet.
+- **`build/icon.ico` ontbrak** terwijl `electron-builder.yml` ernaar verwees.
+  Nu aanwezig, met zes resoluties.
+
+Daarna is de gebouwde applicatie uit de asar gestart en bevraagd: inloggen
+(argon2 uit `asar.unpacked`), een rapportage en een Excel-export.
+
+- **Het beginwachtwoord wordt nu echt afgedwongen.** `mustChangePassword` werd
+  wel berekend en teruggegeven, maar nergens gebruikt — niet in de kern en niet
+  in de schil. Alle vijf de installatie-accounts deelden dus een wachtwoord dat
+  in de handleiding staat, en in de hostmodus stond de applicatie daarmee open
+  voor het hele kantoornetwerk. De kern laat zo'n account nu alleen nog bij
+  `/auth/me`, `/auth/logout` en `/auth/change-password`, en de schil toont een
+  scherm om het te wijzigen. In de demo blijft het uit: daar is niets te
+  beschermen.
+- De schermen die "nog niet gebouwd" meldden voor fasen die inmiddels af zijn,
+  zeggen dat niet meer.
+
 ### Nog niet gebouwd
 De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail; zie
 de beslissing daarover in `docs/BESLISSINGEN.md`.
