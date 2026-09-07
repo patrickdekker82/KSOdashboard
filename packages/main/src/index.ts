@@ -8,7 +8,16 @@
 import { join, dirname, basename } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { copyFileSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import {
   BrowserWindow,
@@ -106,8 +115,58 @@ function writeConfig(config: AppConfig): void {
 // De kern in een utility process
 // ---------------------------------------------------------------------------
 
+/**
+ * Waar de kern staat.
+ *
+ * `here` is de map van deze bundel — `out/main` — en de kern wordt door
+ * electron-vite naast ons neergezet als `out/main/core/host.cjs`. Hier stond
+ * `../core/host.cjs`, één maplaag te hoog, en dat wees naar een bestand dat
+ * nergens bestaat. De fork mislukte dan meteen, de herstartlus hieronder ving
+ * dat op, en de applicatie bleef eindeloos opnieuw starten zonder ooit te
+ * zeggen wát er ontbrak.
+ */
+function kernBestand(): string {
+  return join(here, 'core', 'host.cjs');
+}
+
+/** Hoe vaak achter elkaar herstarten voordat we het opgeven. */
+const MAX_HERSTARTS = 5;
+let herstarts = 0;
+let herstartTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Schrijft naar `logs/schil.log` in de gegevensmap.
+ *
+ * Zonder dit is er bij een kern die niet opkomt letterlijk niets om naar te
+ * kijken: de kern logt pas als hij draait, en juist dán is er geen probleem.
+ */
+function logSchil(regel: string): void {
+  try {
+    const map = join(app.getPath('userData'), 'logs');
+    mkdirSync(map, { recursive: true });
+    appendFileSync(join(map, 'schil.log'), `${new Date().toISOString()} ${regel}\n`, 'utf8');
+  } catch {
+    // Loggen mag het opstarten nooit tegenhouden.
+  }
+}
+
 function startCoreProcess(config: AppConfig): void {
-  const entry = join(here, '../core/host.cjs');
+  const entry = kernBestand();
+
+  // Ontbreekt het bestand, dan is herstarten zinloos: dat lost zichzelf niet
+  // op. Eén duidelijke melding is dan meer waard dan honderd pogingen.
+  if (!existsSync(entry)) {
+    const melding =
+      `Het achtergrondproces is niet gevonden op ${entry}. ` +
+      'De installatie lijkt onvolledig; installeer de applicatie opnieuw.';
+    logSchil(`FATAAL ${melding}`);
+    coreStatus = { ...coreStatus, status: 'fout', message: melding };
+    mainWindow?.webContents.send('kern:status-gewijzigd', coreStatus);
+    dialog.showErrorBox('De kern kon niet starten', melding);
+    return;
+  }
+
+  logSchil(`kern starten vanaf ${entry} (poging ${herstarts + 1})`);
   core = utilityProcess.fork(entry, [], { serviceName: 'Showroom Suite kern', stdio: 'pipe' });
 
   core.postMessage({
@@ -119,6 +178,9 @@ function startCoreProcess(config: AppConfig): void {
 
   core.on('message', (message: Record<string, unknown>) => {
     if (message.type === 'gestart') {
+      // Een kern die daadwerkelijk luistert maakt het herstartbudget weer vol.
+      herstarts = 0;
+      logSchil(`kern gestart op poort ${String(message.port)} (${String(message.address)})`);
       coreStatus = {
         port: Number(message.port),
         appToken: String(message.appToken),
@@ -131,6 +193,10 @@ function startCoreProcess(config: AppConfig): void {
       return;
     }
     if (message.type === 'fout') {
+      // De kern meldt zelf een startfout (bijvoorbeeld een databaselocatie op
+      // een netwerkschijf). Herstarten helpt daar niet tegen, dus dat gebeurt
+      // hier ook niet — de kern blijft in de lucht met deze melding.
+      logSchil(`kern meldt een fout: ${String(message.message)}`);
       coreStatus = { ...coreStatus, status: 'fout', message: String(message.message) };
       mainWindow?.webContents.send('kern:status-gewijzigd', coreStatus);
       dialog.showErrorBox('De kern kon niet starten', String(message.message));
@@ -139,15 +205,39 @@ function startCoreProcess(config: AppConfig): void {
 
   core.on('exit', (code) => {
     if (quitting) return;
+
     // Een crash in de bedrijfslogica mag het venster niet meenemen: herstarten
     // en het melden (hoofdstuk 2.2).
-    coreStatus = { ...coreStatus, status: 'starten' };
+    //
+    // Wel met een bovengrens. Hier stond een lus die elke seconde opnieuw
+    // probeerde, eindeloos. Bij een fout die zichzelf niet oplost — een
+    // ontbrekend bestand, een kapotte installatie — betekende dat een
+    // applicatie die eeuwig "opnieuw gestart" meldde en nooit vertelde waarom.
+    herstarts += 1;
+    logSchil(
+      `kern stopte onverwacht (code ${String(code)}), herstart ${herstarts}/${MAX_HERSTARTS}`,
+    );
+    coreStatus = { ...coreStatus, status: herstarts > MAX_HERSTARTS ? 'fout' : 'starten' };
+
+    if (herstarts > MAX_HERSTARTS) {
+      const melding =
+        `Het achtergrondproces stopte ${MAX_HERSTARTS} keer achter elkaar (laatste code ${String(code)}). ` +
+        `Verdere pogingen zijn gestaakt. Het logboek staat in ${join(app.getPath('userData'), 'logs', 'schil.log')}.`;
+      coreStatus = { ...coreStatus, message: melding };
+      mainWindow?.webContents.send('kern:status-gewijzigd', coreStatus);
+      dialog.showErrorBox('De kern kon niet starten', melding);
+      return;
+    }
+
     mainWindow?.webContents.send('kern:status-gewijzigd', coreStatus);
     notify(
       'De kern is opnieuw gestart',
       `Het achtergrondproces stopte onverwacht (code ${code}) en is herstart.`,
     );
-    setTimeout(() => startCoreProcess(readConfig()), 1000);
+    // Oplopend wachten: 1, 2, 4, 8, 16 seconden.
+    const wachten = 1000 * 2 ** (herstarts - 1);
+    if (herstartTimer) clearTimeout(herstartTimer);
+    herstartTimer = setTimeout(() => startCoreProcess(readConfig()), wachten);
   });
 }
 
@@ -401,18 +491,21 @@ function registerIpc(): void {
     if (existsSync(pad)) shell.showItemInFolder(pad);
   });
 
-  ipcMain.handle('bestand:opslaan-als', async (_event, voorstel: string, inhoud: string, codering: string) => {
-    const result = await dialog.showSaveDialog({
-      title: 'Opslaan als',
-      defaultPath: join(app.getPath('documents'), voorstel),
-      filters: filtersFor(voorstel),
-    });
-    if (result.canceled || !result.filePath) return { opgeslagen: false };
-    await writeFile(result.filePath, inhoud, codering === 'base64' ? 'base64' : 'utf8');
-    // Na een export: melding met "Toon in map" en "Openen" (hoofdstuk 2.8).
-    notifyExport(result.filePath);
-    return { opgeslagen: true, pad: result.filePath };
-  });
+  ipcMain.handle(
+    'bestand:opslaan-als',
+    async (_event, voorstel: string, inhoud: string, codering: string) => {
+      const result = await dialog.showSaveDialog({
+        title: 'Opslaan als',
+        defaultPath: join(app.getPath('documents'), voorstel),
+        filters: filtersFor(voorstel),
+      });
+      if (result.canceled || !result.filePath) return { opgeslagen: false };
+      await writeFile(result.filePath, inhoud, codering === 'base64' ? 'base64' : 'utf8');
+      // Na een export: melding met "Toon in map" en "Openen" (hoofdstuk 2.8).
+      notifyExport(result.filePath);
+      return { opgeslagen: true, pad: result.filePath };
+    },
+  );
 
   ipcMain.handle('bestand:openen', async () => {
     const result = await dialog.showOpenDialog({
@@ -436,17 +529,20 @@ function registerIpc(): void {
     if (existsSync(pad)) await shell.openPath(pad);
   });
 
-  ipcMain.handle('pdf:afdrukken', async (_event, html: string, voorstel: string, liggend: boolean) => {
-    const result = await dialog.showSaveDialog({
-      title: 'PDF opslaan',
-      defaultPath: join(app.getPath('documents'), voorstel),
-      filters: [{ name: 'PDF-document', extensions: ['pdf'] }],
-    });
-    if (result.canceled || !result.filePath) return { opgeslagen: false };
-    await renderHtmlToPdf(html, result.filePath, { landscape: liggend });
-    notifyExport(result.filePath);
-    return { opgeslagen: true, pad: result.filePath };
-  });
+  ipcMain.handle(
+    'pdf:afdrukken',
+    async (_event, html: string, voorstel: string, liggend: boolean) => {
+      const result = await dialog.showSaveDialog({
+        title: 'PDF opslaan',
+        defaultPath: join(app.getPath('documents'), voorstel),
+        filters: [{ name: 'PDF-document', extensions: ['pdf'] }],
+      });
+      if (result.canceled || !result.filePath) return { opgeslagen: false };
+      await renderHtmlToPdf(html, result.filePath, { landscape: liggend });
+      notifyExport(result.filePath);
+      return { opgeslagen: true, pad: result.filePath };
+    },
+  );
 
   ipcMain.handle('melding:tonen', (_event, titel: string, tekst: string, link?: string) => {
     notify(titel, tekst, link);
@@ -466,7 +562,9 @@ function filtersFor(filename: string): Electron.FileFilter[] {
     db: { name: 'Databaseback-up', extensions: ['db'] },
   };
   const match = known[extension];
-  return match ? [match, { name: 'Alle bestanden', extensions: ['*'] }] : [{ name: 'Alle bestanden', extensions: ['*'] }];
+  return match
+    ? [match, { name: 'Alle bestanden', extensions: ['*'] }]
+    : [{ name: 'Alle bestanden', extensions: ['*'] }];
 }
 
 function notifyExport(path: string): void {
@@ -503,9 +601,7 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     app.setName(APP_NAME);
     if (process.defaultApp) {
-      app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
-        join(process.argv[1] ?? ''),
-      ]);
+      app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [join(process.argv[1] ?? '')]);
     } else {
       app.setAsDefaultProtocolClient(PROTOCOL);
     }

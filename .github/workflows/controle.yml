@@ -78,6 +78,15 @@ jobs:
       - name: Scenario's draaien
         run: npx playwright test
 
+      # De scenario's draaien de kern rechtstreeks met Node en slaan Electron
+      # over. Daardoor bleef de kern die vanaf een verkeerd pad gestart werd
+      # onzichtbaar: de geïnstalleerde applicatie startte nooit op, en niets in
+      # CI merkte dat. Deze stap start de ingepakte applicatie echt.
+      - name: De ingepakte applicatie echt starten
+        run: |
+          npx electron-builder --dir --config electron-builder.yml
+          xvfb-run -a node e2e/opstart.mjs
+
       - name: Verslag bewaren bij een fout
         if: failure()
         uses: actions/upload-artifact@v6
@@ -149,6 +158,11 @@ jobs:
             || { echo "het beginpunt out/main/index.cjs zit niet in de asar"; exit 1; }
 
           echo "De installatie bevat alles wat nodig is."
+
+      # En daarna: start hij ook? De controle hierboven kijkt alleen of de
+      # bestanden er zijn, niet of de applicatie ze vindt.
+      - name: De geïnstalleerde applicatie echt starten
+        run: node e2e/opstart.mjs
 
       - name: Installer bewaren
         uses: actions/upload-artifact@v6

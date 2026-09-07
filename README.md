@@ -297,6 +297,7 @@ decimalen.
 ```bash
 npm test               # de rekenkern en de API
 npm run test:e2e       # de schermen in een browser
+npm run test:opstart   # start de ingepakte applicatie echt op
 ```
 
 947 tests op de kern, waaronder de verplichte gevallen: de volledige tabel met
@@ -312,9 +313,14 @@ luisteraar op JavaScript-fouten, een rapportage draaien, een `DELETE` in de
 SQL-modus geweigerd zien worden, een back-up maken. Vijf ervan draaien op een
 telefoonformaat en bewaken de menulade en de breedte van de drukste schermen.
 
-Wat de scenario's níet dekken en dus met de hand moet vóór een uitlevering: het
-Electron-venster zelf, het applicatiemenu, het systeemvak, de opslaan-dialoog
-en het afdrukken naar PDF.
+Daarnaast start `npm run test:opstart` de **ingepakte** applicatie op en wacht
+tot de kern zich meldt in `logs/schil.log`. Die controle bestaat omdat de
+applicatie een tijd lang wél te bouwen maar niet te starten was: de kern werd
+vanaf een pad gestart dat één maplaag ernaast lag, en geen enkele andere test
+raakte Electron aan.
+
+Wat ook dat niet dekt en dus met de hand moet vóór een uitlevering: het
+applicatiemenu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.
 
 Op een afgesloten machine waar al een Chromium klaarstaat, wijst
 `PLAYWRIGHT_CHROMIUM_PATH` Playwright daarheen in plaats van er zelf een op te

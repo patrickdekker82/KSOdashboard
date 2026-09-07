@@ -434,6 +434,38 @@ fouten zaten die de applicatie onbruikbaar maakten.
   menu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.
 - Te draaien met `npm run test:e2e`; er staat een derde baan in CI voor.
 
+### De geïnstalleerde applicatie startte niet
+De ernstigste fout tot nu toe, en de eerste die pas boven kwam door de
+applicatie werkelijk te installeren.
+
+- **De kern werd gestart vanaf een pad dat niet bestaat.** `out/core/host.cjs`
+  in plaats van `out/main/core/host.cjs` — één maplaag ernaast. De fork
+  mislukte meteen, de herstartlus ving dat op, en de applicatie bleef eindeloos
+  opnieuw starten zonder ooit te zeggen wát er ontbrak.
+- **De herstartlus had geen bovengrens.** Elke seconde opnieuw, voor altijd. Bij
+  een fout die zichzelf niet oplost betekende dat een applicatie die alleen nog
+  maar "opnieuw gestart" meldde. Nu maximaal vijf pogingen met oplopende
+  wachttijd (1, 2, 4, 8, 16 seconden), daarna één duidelijke melding met de
+  plek van het logboek.
+- **Ontbreekt het kernbestand, dan wordt er niet herstart.** Dat lost zichzelf
+  niet op; er verschijnt meteen een melding die het pad noemt.
+- **De schil schrijft nu `logs/schil.log`.** Er was letterlijk niets om naar te
+  kijken als de kern niet opkwam: de kern logt pas als hij draait, en juist dan
+  is er geen probleem. Elke poging, elke fout en de poort bij een geslaagde
+  start staan er nu in.
+- **Een startfout van de kern zelf leidt niet meer tot herstarten.** Een
+  databaselocatie op een netwerkschijf verandert niet door het nog eens te
+  proberen.
+
+### Opstartcontrole
+`e2e/opstart.mjs` start de ingepakte applicatie echt en wacht tot de kern zich
+meldt. De bestaande controles konden dit niet zien: de unit-tests raken Electron
+niet, de schermscenario's draaien de kern rechtstreeks met Node, en de controle
+in CI keek alleen of het beginpunt ín de asar zat — niet of de applicatie het
+vond. De controle draait nu op beide platformen: op Linux na de scenario's, op
+Windows na het bouwen van de installer. Nagegaan dat hij de oorspronkelijke fout
+ook werkelijk vangt door die terug te zetten in de asar.
+
 ### CI-herstel
 - **De Windows-baan faalde op de controle, niet op de bouw.** `asar list` bouwt
   zijn paden met `path.join` vanaf `/`, dus op Windows komt er
