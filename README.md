@@ -340,7 +340,8 @@ een sync-client raakt beschadigd. Back-upkopieën mogen daar wel heen.
 
 | Bestand | Voor wie |
 |---|---|
-| `docs/INSTALLATIE.md` | wie de app installeert |
+| `docs/STARTGIDS.md` | wie voor het eerst installeert, vanaf GitHub |
+| `docs/INSTALLATIE.md` | wie de app installeert met een kant-en-klaar bestand |
 | `docs/GEBRUIKERSHANDLEIDING.md` | de dagelijkse gebruiker |
 | `docs/BEHEERDERSHANDLEIDING.md` | de beheerder |
 | `docs/BESLISSINGEN.md` | wie wil weten waarom iets zo gebouwd is |

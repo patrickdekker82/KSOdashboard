@@ -1,7 +1,12 @@
 # Showroom Suite installeren
 
-Deze handleiding is voor wie de app installeert. U hoeft geen verstand van
-computers te hebben; volg de stappen van boven naar beneden.
+Deze handleiding is voor wie de app installeert met een kant-en-klaar
+installatiebestand. U hoeft geen verstand van computers te hebben; volg de
+stappen van boven naar beneden.
+
+> Heeft u nog geen installatiebestand, en draait de Showroom Suite nog nergens?
+> Begin dan bij `STARTGIDS.md`. Die legt uit hoe u het bestand van GitHub
+> ophaalt en wat er na de installatie nog geregeld moet worden.
 
 ## Wat u nodig heeft
 

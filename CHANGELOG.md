@@ -434,6 +434,14 @@ fouten zaten die de applicatie onbruikbaar maakten.
   menu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.
 - Te draaien met `npm run test:e2e`; er staat een derde baan in CI voor.
 
+### Documentatie
+- `docs/STARTGIDS.md`: stap voor stap van de code op GitHub naar een werkende
+  app. De bestaande installatiehandleiding begint bij een kant-en-klaar
+  installatiebestand, en dat bestaat bij de allereerste keer nog niet. De gids
+  loopt door tot en met het lijstje dat je naloopt voordat je zegt dat het klaar
+  is: eigen wachtwoorden, ongebruikte accounts gearchiveerd, één back-up
+  gemaakt.
+
 ### Nog niet gebouwd
 De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail; zie
 de beslissing daarover in `docs/BESLISSINGEN.md`.
