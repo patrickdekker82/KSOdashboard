@@ -11,7 +11,7 @@ import { startCore, type RunningCore } from './bootstrap.ts';
 type StartMessage = {
   type: 'start';
   dataDirectory: string;
-  mode?: 'standalone' | 'host' | 'client';
+  mode?: 'standalone' | 'host';
   port?: number;
   demo?: boolean;
   mappedDrives?: string[];

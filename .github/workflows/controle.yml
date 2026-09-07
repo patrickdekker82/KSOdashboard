@@ -1,0 +1,104 @@
+# Controle bij elke push en pull request.
+#
+# Twee banen, met opzet gescheiden. `controle` is snel en draait op Linux: die
+# hoort binnen een paar minuten klaar te zijn en blokkeert het werk. `installer`
+# draait op Windows en bouwt de échte NSIS-installer.
+#
+# Die tweede baan is er niet voor de sier. Vier fouten die de applicatie
+# onbruikbaar maakten — een ontbrekend `main`-veld, niet meegeleverde
+# afhankelijkheden, een ESM-bundel die geen CommonJS-pakket kon laden en een
+# ontbrekend pictogram — kwamen geen van alle boven bij `npm run build`. Ze
+# kwamen boven bij het echt inpakken. Dat hoort dus in CI te staan en niet in
+# het hoofd van degene die toevallig aan de beurt is.
+
+name: Controle
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Een nieuwe push maakt een lopende controle op dezelfde tak overbodig.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  controle:
+    name: Typen, lint en tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # De kern gebruikt het ingebouwde node:sqlite; dat vraagt 22.13 of
+          # nieuwer. Zie ook "engines" in package.json.
+          node-version: '22'
+          cache: npm
+
+      - name: Afhankelijkheden installeren
+        run: npm ci
+
+      - name: Typen, lint en tests
+        run: npm run check
+
+      - name: Bouwen
+        run: npm run build
+
+  installer:
+    name: Windows-installer bouwen
+    runs-on: windows-latest
+    # Pas als de snelle controle groen is: een installer bouwen kost minuten en
+    # heeft geen zin als de tests al rood staan.
+    needs: controle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Afhankelijkheden installeren
+        run: npm ci
+
+      - name: Installer bouwen
+        run: npm run build:win
+        env:
+          # Geen ondertekening in CI: daar is een certificaat voor nodig dat
+          # niet in een publieke repository hoort. De installer werkt wel,
+          # Windows toont alleen een SmartScreen-waarschuwing.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Controleren dat de ingepakte applicatie compleet is
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          uitgepakt="release/win-unpacked/resources"
+          test -f "$uitgepakt/app.asar" || { echo "geen app.asar"; exit 1; }
+
+          # De hasher is een native module en moet uitgepakt naast de asar
+          # staan; zit hij erin, dan start de applicatie niet.
+          test -d "$uitgepakt/app.asar.unpacked/node_modules/@node-rs" \
+            || { echo "@node-rs/argon2 ontbreekt in de installatie"; exit 1; }
+
+          # De migraties worden als leesbaar bestand meegeleverd.
+          test -f "$uitgepakt/db/migrations/0001_initieel.sql" \
+            || { echo "de migraties ontbreken"; exit 1; }
+
+          # En het beginpunt waar electron-builder naar zoekt.
+          npx asar list "$uitgepakt/app.asar" | grep -q "^/out/main/index.cjs$" \
+            || { echo "het beginpunt out/main/index.cjs zit niet in de asar"; exit 1; }
+
+          echo "De installatie bevat alles wat nodig is."
+
+      - name: Installer bewaren
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShowroomSuite-installer
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14

@@ -61,7 +61,23 @@ export default defineConfig({
     },
     build: {
       outDir: 'out/renderer',
-      rollupOptions: { input: resolve(__dirname, 'packages/renderer/index.html') },
+      // Ruim 2 MB in één bestand betekent dat het inlogscherm wacht op code
+      // voor grafieken die pas op het dashboard nodig zijn. Op een
+      // showroom-pc met een trage schijf is dat merkbaar.
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        input: resolve(__dirname, 'packages/renderer/index.html'),
+        /*
+         * Geen `manualChunks`.
+         *
+         * Recharts wordt door de schermen met `lazy()` geladen; Rollup zet hem
+         * dan vanzelf in een eigen bestand dat pas opgehaald wordt wanneer er
+         * een grafiek in beeld komt. Een handmatige chunk maakte het juist
+         * erger: die belandt in de statische lijst en krijgt een
+         * `modulepreload` in de HTML, waardoor hij alsnog bij het opstarten
+         * werd opgehaald.
+         */
+      },
     },
   },
 });

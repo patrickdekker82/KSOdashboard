@@ -396,6 +396,10 @@ kopiëren.
 Staat er in het voorstel nog een plaatshouder als `«PERSOON_9»`, dan heeft het
 model die zelf verzonnen. Het scherm waarschuwt daarvoor. Haal hem weg.
 
+Staat er dat het **maandbudget op** is? Dan heeft de afdeling deze maand het
+afgesproken bedrag voor de assistent verbruikt. Er is niets verstuurd en niets
+misgegaan; een beheerder kan het budget ophogen bij Instellingen → AI.
+
 Ziet u de knop maar staat er "de assistent staat uit"? Dan is er geen
 API-sleutel ingevuld. Een beheerder doet dat bij Instellingen → AI. Zonder
 sleutel verlaat er niets deze computer.
@@ -485,9 +489,6 @@ verliezen.
 
 Mailen gaat via een bestand dat u in Outlook opent. De app verstuurt niets uit
 zichzelf en haalt geen inkomende mail binnen; zie "Berichten versturen".
-
-De assistent houdt nog geen maandbudget bij. Wat het gekost heeft is wel per
-maand terug te zien bij Instellingen → AI → Logboek.
 
 Verder gaat er niets naar buiten. De enige uitzondering is de assistent, en die
 staat uit tot een beheerder er een sleutel voor invult.

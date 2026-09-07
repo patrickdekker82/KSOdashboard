@@ -336,8 +336,16 @@ De bedragen zijn een raming in **dollars**, berekend uit de tokenprijzen van het
 model. Er wordt geen wisselkoers verzonnen; de factuur van de leverancier is
 leidend.
 
-Een automatisch maandbudget met waarschuwing bij 80% is er nog niet. Houd het
-verbruik voorlopig in de gaten via het maandoverzicht in het logboek.
+### Maandbudget
+
+Bij **Instellingen → AI → Koppeling** staat een maandbudget in dollars. Boven
+die grens weigert de assistent — vóórdat er iets naar de dienst gaat, dus er
+wordt dan ook niets verstuurd en niets uitgegeven. Vanaf 80% verschijnt er een
+waarschuwing bij het bedrag.
+
+Het gaat om de kalendermaand, zodat u het naast de factuur kunt leggen. Een leeg
+veld of nul betekent: geen grens. Het budget ophogen werkt direct; de gebruiker
+hoeft niet tot volgende maand te wachten.
 
 ### Antwoorden zijn voorstellen
 

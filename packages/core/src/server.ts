@@ -15,6 +15,7 @@ import type { DatabaseHandle } from './db/client.ts';
 import { schemaVersion } from './db/migrate.ts';
 import {
   SESSION_COOKIE,
+  SESSION_TTL_DAYS,
   createSession,
   deleteAllSessions,
   deleteSession,
@@ -41,7 +42,16 @@ import { registerBackupRoutes } from './modules/backup/routes.ts';
 
 export { ApiError };
 
-export type NetworkMode = 'standalone' | 'host' | 'client';
+/**
+ * De netwerkstand van de kern.
+ *
+ * Er was ook een `client`-stand bedacht, waarin de applicatie geen eigen
+ * database opent maar met een host praat. Die is nooit gebouwd, en hij is ook
+ * niet nodig: wie meekijkt doet dat in de browser op het adres van de host.
+ * Eén versie van de schermen, niets aparts om bij te werken. Het derde geval
+ * is daarom weg — een stand die je kunt kiezen maar die niets doet, is een val.
+ */
+export type NetworkMode = 'standalone' | 'host';
 
 export type CoreOptions = {
   handle: DatabaseHandle;
@@ -298,7 +308,9 @@ function registerAuthRoutes(app: FastifyInstance): void {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        maxAge: 30 * 86_400,
+        // Even lang als de sessie zelf; anders staat er een cookie die de
+        // server allang niet meer accepteert.
+        maxAge: SESSION_TTL_DAYS * 86_400,
       });
 
       return { gebruiker: resolveSession(handle, token) };

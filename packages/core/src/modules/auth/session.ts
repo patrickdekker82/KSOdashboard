@@ -10,7 +10,16 @@ import type { DatabaseHandle } from '../../db/client.ts';
 import type { UserRole } from '@showroom/shared';
 
 /** Sessions last 30 days and are extended on use. */
-export const SESSION_TTL_DAYS = 30;
+/**
+ * Hoe lang een sessie meegaat, in dagen.
+ *
+ * Een werkweek en niet een maand. De showroom-pc is een gedeelde machine: een
+ * sessie die dertig dagen blijft staan betekent dat wie er maandagochtend
+ * achter kruipt nog steeds als de collega van vorige maand is ingelogd. Elke
+ * aanroep schuift de vervaldatum op, dus wie dagelijks werkt merkt er niets
+ * van; wie twee weken op vakantie is, logt opnieuw in.
+ */
+export const SESSION_TTL_DAYS = 7;
 export const SESSION_COOKIE = 'showroom_sessie';
 
 export type SessionUser = {

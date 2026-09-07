@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { formatDecimal, STATUS_TOKENS } from '@showroom/shared';
 import { endpoints } from '../lib/api.ts';
-import { BezettingsGrafiek } from '../components/BezettingsGrafiek.tsx';
+import { BezettingsGrafiek } from '../components/GrafiekLater.tsx';
 import { Signaleringen } from './signaleringen/Signaleringen.tsx';
 import { formatCurrency } from '@showroom/shared';
 import type { JSX, ReactNode } from 'react';

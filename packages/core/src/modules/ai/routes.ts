@@ -5,7 +5,15 @@ import { bewaarGeheim, heeftGeheim, KluisFout, leesGeheim } from '../secrets/klu
 import { AiFout, maakModel, type Model } from './client.ts';
 import { CONTEXTBLOKKEN, ONDERWERPEN } from './dossier.ts';
 import { MODELLEN, PRIJZEN } from './prijzen.ts';
-import { bereidVoor, laadPreset, laadPresets, verbruikPerMaand, voerUit } from './uitvoeren.ts';
+import {
+  bereidVoor,
+  laadPreset,
+  laadPresets,
+  leesBudget,
+  verbruikPerMaand,
+  voerUit,
+  WAARSCHUWING_VANAF,
+} from './uitvoeren.ts';
 
 type Rij = Record<string, unknown>;
 
@@ -68,8 +76,43 @@ export async function registerAiRoutes(app: FastifyInstance): Promise<void> {
         })),
         onderwerpen: [...ONDERWERPEN.keys()],
         contextblokken: [...CONTEXTBLOKKEN],
+        budget: leesBudget(request.core.handle),
+        waarschuwingVanaf: WAARSCHUWING_VANAF,
       },
     };
+  });
+
+  /** Het maandbudget zetten. Alleen een beheerder. */
+  app.put('/api/v1/ai/budget', async (request) => {
+    const gebruiker = requireRole(request, 'admin');
+    const body = (request.body ?? {}) as Rij;
+    const centen = Number(body.centen);
+
+    if (!Number.isFinite(centen) || centen < 0) {
+      throw new ApiError(400, 'ongeldig', 'Geef een bedrag van nul of hoger op.');
+    }
+
+    const rij = request.core.handle.raw
+      .prepare("SELECT value FROM settings WHERE key = 'ai'")
+      .get() as { value: string } | undefined;
+
+    let instelling: Rij = {};
+    try {
+      instelling = JSON.parse(rij?.value ?? '{}') as Rij;
+    } catch {
+      instelling = {};
+    }
+
+    request.core.handle.raw
+      .prepare(
+        `INSERT INTO settings (key, value, updated_by) VALUES ('ai', ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value,
+                                        updated_at = datetime('now'),
+                                        updated_by = excluded.updated_by`,
+      )
+      .run(JSON.stringify({ ...instelling, maandbudget_cents: Math.trunc(centen) }), gebruiker.id);
+
+    return { data: leesBudget(request.core.handle) };
   });
 
   /** De sleutel invoeren of wissen. Alleen een beheerder. */

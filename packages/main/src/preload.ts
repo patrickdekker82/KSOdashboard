@@ -10,7 +10,7 @@ export type HostStatus = {
   port: number;
   appToken: string;
   schemaVersion: string;
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   address: string;
   status: 'gestart' | 'starten' | 'fout';
   message?: string;
@@ -20,7 +20,7 @@ export type SaveResult = { opgeslagen: boolean; pad?: string };
 
 /** Wat `config:lezen` teruggeeft: de instellingen van déze werkplek. */
 export type AppInstellingen = {
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   port: number;
   hostAddress?: string;
   dataDirectory?: string;

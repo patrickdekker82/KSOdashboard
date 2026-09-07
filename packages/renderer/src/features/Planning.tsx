@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DEFAULT_CAPACITY_SETTINGS } from '@showroom/shared';
 import { endpoints } from '../lib/api.ts';
-import { BezettingsGrafiek } from '../components/BezettingsGrafiek.tsx';
+import { BezettingsGrafiek } from '../components/GrafiekLater.tsx';
 import { Kaart, Skelet } from './Dashboard.tsx';
 import type { JSX } from 'react';
 

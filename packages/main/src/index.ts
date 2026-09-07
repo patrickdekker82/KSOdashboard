@@ -38,14 +38,14 @@ type CoreStatus = {
   port: number;
   appToken: string;
   schemaVersion: string;
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   address: string;
   status: 'starten' | 'gestart' | 'fout';
   message?: string;
 };
 
 type AppConfig = {
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   port: number;
   hostAddress?: string;
   dataDirectory?: string;

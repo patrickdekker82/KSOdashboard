@@ -161,7 +161,103 @@ function Koppeling(): JSX.Element {
             .join(', ') || '—'}
         </p>
       </Kaart>
+
+      <Budgetkaart />
     </div>
+  );
+}
+
+/**
+ * Het maandbudget.
+ *
+ * Een waarschuwing achteraf is geen budget: boven de grens weigert de kern de
+ * aanroep vóórdat er iets de deur uit gaat. Dat staat er ook bij, want een
+ * gebruiker die "budget op" leest hoort te weten dat er niets verstuurd is.
+ */
+function Budgetkaart(): JSX.Element {
+  const queryClient = useQueryClient();
+  const [euro, setEuro] = useState<string | null>(null);
+  const [melding, setMelding] = useState<string | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
+
+  const status = useQuery({ queryKey: ['ai-status'], queryFn: () => endpoints.aiStatus() });
+  const budget = status.data?.data.budget;
+  const vanaf = status.data?.data.waarschuwingVanaf ?? 80;
+
+  const opslaan = useMutation({
+    mutationFn: (centen: number) => endpoints.aiBudget(centen),
+    onSuccess: () => {
+      setFout(null);
+      setEuro(null);
+      setMelding('Het maandbudget is opgeslagen.');
+      void queryClient.invalidateQueries({ queryKey: ['ai-status'] });
+    },
+    onError: (error: unknown) =>
+      setFout(error instanceof ApiFout ? error.message : 'Opslaan lukte niet.'),
+  });
+
+  const inVeld =
+    euro ??
+    (budget?.grensCenten === null || budget?.grensCenten === undefined
+      ? ''
+      : (budget.grensCenten / 100).toFixed(2));
+
+  // Bijna op krijgt dezelfde kleur als 'op': er is geen aparte waarschuwkleur
+  // in het thema, en een derde kleur verzinnen maakt het dashboard rommelig.
+  const kleur = budget?.op === true || budget?.bijnaOp === true ? 'var(--ziekte)' : undefined;
+
+  return (
+    <Kaart accent={kleur}>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>Maandbudget</h2>
+      <p style={{ fontSize: 12, color: 'var(--inkt-zacht)', margin: '0 0 10px', lineHeight: 1.5 }}>
+        Boven deze grens weigert de assistent, vóórdat er iets naar de dienst gaat. Vanaf {vanaf}%
+        staat er een waarschuwing bij. Laat het veld leeg of zet er nul in voor geen grens.
+        Bedragen in dollar, want zo factureert de leverancier.
+      </p>
+
+      {budget !== undefined && (
+        <p style={{ fontSize: 12, margin: '0 0 10px', color: kleur }}>
+          Deze maand ({budget.maand}) staat er{' '}
+          <strong>{toonKosten(budget.besteedCenten)}</strong> op
+          {budget.grensCenten === null
+            ? ' — er is geen grens ingesteld.'
+            : ` van ${toonKosten(budget.grensCenten)} (${budget.percentage ?? 0}%).`}
+          {budget.op && ' Het budget is op; de assistent weigert tot volgende maand of tot u het ophoogt.'}
+          {budget.bijnaOp && ' Het budget is bijna op.'}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <label style={{ fontSize: 12 }}>
+          Grens per maand (US$)
+          <input
+            className="focus-ring"
+            type="number"
+            min={0}
+            step="0.01"
+            value={inVeld}
+            onChange={(event) => setEuro(event.target.value)}
+            style={{ ...invoerStijl, width: 140, marginTop: 3, display: 'block' }}
+          />
+        </label>
+        <button
+          type="button"
+          className="focus-ring"
+          disabled={euro === null || opslaan.isPending}
+          onClick={() => opslaan.mutate(Math.round(Number(euro ?? '0') * 100))}
+          style={dialoogKnop}
+        >
+          Opslaan
+        </button>
+      </div>
+
+      {melding !== null && (
+        <p style={{ fontSize: 12, color: 'var(--belasting)', margin: '10px 0 0' }}>{melding}</p>
+      )}
+      {fout !== null && (
+        <p style={{ fontSize: 12, color: 'var(--ziekte)', margin: '10px 0 0' }}>{fout}</p>
+      )}
+    </Kaart>
   );
 }
 

@@ -9,7 +9,7 @@
  * Het trechterrapport uit fase 4 blijft bestaan als eigen scherm; dat is een
  * vaste rapportage met een grafiek en geen bouwer.
  */
-import { useMemo, useState, type JSX } from 'react';
+import { Suspense, lazy, useMemo, useState, type JSX } from 'react';
 import { formatDate } from '@showroom/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,7 +27,11 @@ import {
 import type { Gebruiker } from '../../lib/api.ts';
 import { Kaart } from '../Dashboard.tsx';
 import { dialoogKnop, dialoogSelect, invoerStijl } from '../kansen/Dialoog.tsx';
-import { Pijplijnrapport } from '../kansen/Pijplijnrapport.tsx';
+// Het trechterrapport tekent een grafiek en trekt daarmee Recharts mee. Pas
+// laden zodra iemand op dat tabblad klikt, anders wacht elk ander scherm erop.
+const Pijplijnrapport = lazy(async () => ({
+  default: (await import('../kansen/Pijplijnrapport.tsx')).Pijplijnrapport,
+}));
 
 type Tab = 'bouwer' | 'opgeslagen' | 'sql' | 'trechter';
 
@@ -77,7 +81,15 @@ export function Rapportages({ ik }: { ik: Gebruiker }): JSX.Element {
       {tab === 'bouwer' && <Bouwer />}
       {tab === 'opgeslagen' && <Opgeslagen ik={ik} onOpenen={() => setTab('bouwer')} />}
       {tab === 'sql' && <SqlModus />}
-      {tab === 'trechter' && <Pijplijnrapport />}
+      {tab === 'trechter' && (
+        <Suspense
+          fallback={
+            <p style={{ fontSize: 12, color: 'var(--inkt-zacht)' }}>Rapport wordt geladen…</p>
+          }
+        >
+          <Pijplijnrapport />
+        </Suspense>
+      )}
     </div>
   );
 }

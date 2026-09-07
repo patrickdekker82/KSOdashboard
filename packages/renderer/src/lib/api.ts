@@ -16,7 +16,7 @@ export type HostStatus = {
   port: number;
   appToken: string;
   schemaVersion: string;
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   address: string;
   status: 'gestart' | 'starten' | 'fout';
   message?: string;
@@ -24,7 +24,7 @@ export type HostStatus = {
 
 /** De instellingen van déze werkplek, uit config.json van de schil. */
 export type AppInstellingen = {
-  mode: 'standalone' | 'host' | 'client';
+  mode: 'standalone' | 'host';
   port: number;
   hostAddress?: string;
   dataDirectory?: string;
@@ -556,6 +556,7 @@ export const endpoints = {
   aiStatus: () => api.get<{ data: AiStatus }>('/ai/status'),
   aiSleutel: (sleutel: string) =>
     api.put<{ data: { ingeschakeld: boolean } }>('/ai/key', { key: sleutel }),
+  aiBudget: (centen: number) => api.put<{ data: AiBudget }>('/ai/budget', { centen }),
   aiPresets: (alleenActieve = false) =>
     api.get<{ data: AiPreset[] }>(`/ai/presets${alleenActieve ? '?active=true' : ''}`),
   aiPresetOpslaan: (id: number, body: Partial<AiPresetInvoer>) =>
@@ -1140,12 +1141,24 @@ export type Bellijstregel = {
 
 // --- AI-assistent -----------------------------------------------------------
 
+export type AiBudget = {
+  /** De grens in dollarcent. `null` betekent: geen budget ingesteld. */
+  grensCenten: number | null;
+  besteedCenten: number;
+  percentage: number | null;
+  bijnaOp: boolean;
+  op: boolean;
+  maand: string;
+};
+
 export type AiStatus = {
   /** Zonder API-sleutel staat de hele assistent uit; dat is de standaard. */
   ingeschakeld: boolean;
   modellen: Array<{ id: string; prijsBekend: boolean }>;
   onderwerpen: string[];
   contextblokken: string[];
+  budget: AiBudget;
+  waarschuwingVanaf: number;
 };
 
 export type AiPreset = {
@@ -1202,6 +1215,7 @@ export type AiUitvoering = {
   vervangen: number;
   onbekend: string[];
   ontbrekend: string[];
+  budget: AiBudget;
 };
 
 export type AiRun = {

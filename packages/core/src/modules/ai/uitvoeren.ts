@@ -29,7 +29,7 @@ import {
 } from './anonimiseer.ts';
 import { bekendeGegevens, bouwDossier, CONTEXTBLOKKEN, ONDERWERPEN } from './dossier.ts';
 import { AiFout, type Model } from './client.ts';
-import { raamKosten } from './prijzen.ts';
+import { raamKosten, toonKosten } from './prijzen.ts';
 
 type Rij = Record<string, unknown>;
 
@@ -62,6 +62,8 @@ export type Uitvoering = {
   onbekend: string[];
   /** Plaatshouders in het sjabloon die niet ingevuld konden worden. */
   ontbrekend: string[];
+  /** De stand van het maandbudget ná deze aanroep. */
+  budget: Budget;
 };
 
 /** Zet een databaserij om in een preset. */
@@ -215,6 +217,24 @@ export async function voerUit(
   gebruikerId: number,
 ): Promise<Uitvoering> {
   const voorbereid = bereidVoor(handle, opdracht, gebruikerId);
+
+  /*
+   * De budgetgrens vóór het netwerk, niet erna.
+   *
+   * Een waarschuwing achteraf is geen budget. Wie over de grens zit krijgt een
+   * nette melding met het bedrag erbij, zodat duidelijk is wat er aan de hand
+   * is en wie het op kan hogen.
+   */
+  const budget = leesBudget(handle);
+  if (budget.op && budget.grensCenten !== null) {
+    throw new AiFout(
+      'budget_op',
+      `Het maandbudget voor de assistent is op (${toonKosten(budget.besteedCenten)} van ` +
+        `${toonKosten(budget.grensCenten)} in ${budget.maand}). Een beheerder kan het ophogen ` +
+        'bij Instellingen › AI.',
+    );
+  }
+
   const begin = Date.now();
 
   try {
@@ -259,6 +279,8 @@ export async function voerUit(
       vervangen: voorbereid.woordenboek.vervangingen.length,
       onbekend: onbekendePlaatshouders(antwoord.tekst, voorbereid.woordenboek),
       ontbrekend: voorbereid.ontbrekend,
+      // Ná het loggen, zodat deze aanroep meetelt.
+      budget: leesBudget(handle),
     };
   } catch (fout) {
     const aiFout = fout instanceof AiFout ? fout : new AiFout('onbekende_fout', String(fout));
@@ -334,6 +356,71 @@ function legVast(handle: DatabaseHandle, regel: Logregel): number {
 
   const rij = handle.raw.prepare('SELECT last_insert_rowid() AS id').get() as { id: number };
   return Number(rij.id);
+}
+
+/**
+ * Het maandbudget: wat er deze maand al op staat, en of er nog ruimte is.
+ *
+ * De grens staat in de instelling `ai.maandbudget_cents`, in dollarcent — de
+ * munt waarin de leverancier factureert en waarin `ai_runs` de raming bewaart.
+ * Nul of minder betekent: geen budget, dus geen grens.
+ *
+ * De kalendermaand en niet een schuivend venster van dertig dagen: een
+ * beheerder die zijn factuur naast dit scherm legt, wil dezelfde periode zien.
+ */
+export type Budget = {
+  /** De grens in dollarcent. `null` als er geen budget is ingesteld. */
+  grensCenten: number | null;
+  besteedCenten: number;
+  /** Hoeveel procent van het budget op is. `null` zonder budget. */
+  percentage: number | null;
+  /** Vanaf 80% hoort de gebruiker het te weten. */
+  bijnaOp: boolean;
+  /** Op of over de grens: de assistent weigert. */
+  op: boolean;
+  maand: string;
+};
+
+/** Vanaf welk percentage het scherm waarschuwt. */
+export const WAARSCHUWING_VANAF = 80;
+
+export function leesBudget(handle: DatabaseHandle, nu = new Date()): Budget {
+  const maand = nu.toISOString().slice(0, 7);
+
+  const rij = handle.raw
+    .prepare("SELECT value FROM settings WHERE key = 'ai'")
+    .get() as { value: string } | undefined;
+
+  let grens: number | null = null;
+  try {
+    const instelling = JSON.parse(rij?.value ?? '{}') as Record<string, unknown>;
+    const waarde = Number(instelling.maandbudget_cents);
+    grens = Number.isFinite(waarde) && waarde > 0 ? Math.trunc(waarde) : null;
+  } catch {
+    // Een onleesbare instelling levert geen budget op in plaats van een
+    // applicatie die niets meer doet.
+    grens = null;
+  }
+
+  const besteed = handle.raw
+    .prepare(
+      `SELECT COALESCE(SUM(cost_estimate_cents), 0) AS centen
+         FROM ai_runs
+        WHERE strftime('%Y-%m', created_at) = ?`,
+    )
+    .get(maand) as { centen: number };
+
+  const besteedCenten = Number(besteed.centen);
+  const percentage = grens === null ? null : Math.round((besteedCenten / grens) * 100);
+
+  return {
+    grensCenten: grens,
+    besteedCenten,
+    percentage,
+    bijnaOp: percentage !== null && percentage >= WAARSCHUWING_VANAF && percentage < 100,
+    op: percentage !== null && percentage >= 100,
+    maand,
+  };
 }
 
 /** Het verbruik per maand, voor het logboekscherm. */
