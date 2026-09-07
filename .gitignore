@@ -11,3 +11,6 @@ coverage/
 *.db-shm
 .DS_Store
 Thumbs.db
+e2e/.sessies/
+test-results/
+playwright-report/

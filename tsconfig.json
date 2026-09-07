@@ -27,6 +27,6 @@
       "@renderer/*": ["packages/renderer/src/*"]
     }
   },
-  "include": ["packages/**/*.ts", "packages/**/*.tsx", "*.ts"],
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "e2e/**/*.ts", "*.ts"],
   "exclude": ["node_modules", "dist", "out", "release"]
 }

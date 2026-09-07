@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -31,5 +32,10 @@ export default tseslint.config(
     // Tests mogen ruimer met typen omgaan om randgevallen te kunnen opstellen.
     files: ['**/*.test.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
+  {
+    // De starter van de e2e-kern is gewoon Node-script: die kent `process`.
+    files: ['e2e/**/*.mjs'],
+    languageOptions: { globals: globals.node },
   },
 );

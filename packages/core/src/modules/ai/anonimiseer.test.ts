@@ -127,6 +127,110 @@ describe('vangnet zonder database', () => {
   });
 });
 
+describe('wat er in de praktijk in een notitieveld staat', () => {
+  // Deze gevallen komen niet uit mijn hoofd maar uit een proef met echte
+  // notitieteksten. Drie ervan gingen mis.
+  const KLANT: Bekend[] = [
+    { soort: 'PERSOON', waarde: 'Jan de Vries' },
+    { soort: 'PERSOON', waarde: 'de Vries' },
+    { soort: 'ORGANISATIE', waarde: 'Bouwbedrijf Meesters B.V.' },
+    { soort: 'ORGANISATIE', waarde: 'Meesters' },
+  ];
+
+  it('verminkt een e-mailadres niet met een kernwoord uit de klantnaam', () => {
+    // Dit ging mis: "Meesters" verving eerst het midden van het adres, waarna
+    // er "info@«ORGANISATIE_1».nl" stond en het domein alsnog zichtbaar bleef.
+    // Daarom gaan de patronen nu vóór de bekende waarden.
+    const { uit } = verberg('Zie j.devries@meesters.nl en info@meesters.nl.', KLANT);
+
+    expect(uit).toBe('Zie «EMAIL_1» en «EMAIL_2».');
+    expect(uit).not.toContain('meesters');
+  });
+
+  it('pakt een BSN, want dat hoort nooit de deur uit te gaan', () => {
+    const { uit } = verberg('BSN 123456782 stond per ongeluk in het dossier.');
+
+    expect(uit).toBe('BSN «BSN_1» stond per ongeluk in het dossier.');
+  });
+
+  it('laat een willekeurige reeks van negen cijfers met rust', () => {
+    // Ordernummers zijn ook negen cijfers. De elfproef scheidt ze; zonder die
+    // controle zou elke bestelling als persoonsgegeven worden aangezien.
+    const { uit } = verberg('Ordernummer 123456789 is verstuurd.');
+
+    expect(uit).toBe('Ordernummer 123456789 is verstuurd.');
+  });
+
+  it('pakt een KvK- en een BTW-nummer', () => {
+    const { uit } = verberg('KvK 12345678, BTW NL001234567B01.');
+
+    expect(uit).toBe('«KVK_1», BTW «BTW_1».');
+  });
+
+  it('ziet acht losse cijfers zonder het woord KvK niet als KvK-nummer', () => {
+    const { uit } = verberg('Factuur 87654321 staat open.');
+
+    expect(uit).toBe('Factuur 87654321 staat open.');
+  });
+
+  it('pakt een telefoonnummer met spaties én een aaneengesloten nummer', () => {
+    const { uit } = verberg('Contact via 06 12 34 56 78 of 0612345678.');
+
+    expect(uit).toBe('Contact via «TELEFOON_1» of «TELEFOON_2».');
+  });
+
+  it('pakt een IBAN zonder spaties', () => {
+    const { uit } = verberg('IBAN NL91ABNA0417164300 zonder spaties.');
+
+    expect(uit).toBe('IBAN «IBAN_1» zonder spaties.');
+  });
+
+  it('pakt een postcode zonder spatie en een huisnummer met letter', () => {
+    const { uit } = verberg('Adres: Dorpsstraat 12a, 3431CB Nieuwegein.');
+
+    expect(uit).toContain('«ADRES_1»');
+    expect(uit).not.toContain('Dorpsstraat');
+    expect(uit).not.toContain('3431CB');
+  });
+
+  it('vervangt de klantnaam ook als er alleen een kernwoord staat', () => {
+    const { uit } = verberg('Meesters BV heeft getekend.', KLANT);
+
+    expect(uit).toBe('«ORGANISATIE_1» BV heeft getekend.');
+  });
+
+  it('haalt bij een dubbele achternaam in elk geval het bekende deel weg', () => {
+    // "Bakker" staat niet in de database, dus die blijft staan. Half
+    // geanonimiseerd is hier beter dan niets, en het is eerlijker om dat vast
+    // te leggen dan te doen alsof het volledig lukt.
+    const { uit } = verberg('Mw. de Vries-Bakker was er ook bij.', KLANT);
+
+    expect(uit).toBe('Mw. «PERSOON_1»-Bakker was er ook bij.');
+  });
+
+  it('herkent een roepnaam niet, en dat weten we', () => {
+    // "Jantje" voor "Jan" is niet met een regel te vangen. Vastgelegd zodat
+    // niemand denkt dat dit wél gedekt is.
+    const { uit } = verberg('Jantje wil graag een offerte.', KLANT);
+
+    expect(uit).toBe('Jantje wil graag een offerte.');
+  });
+});
+
+describe('de vangrail ziet de nieuwe soorten ook', () => {
+  it('meldt een BSN dat na het anonimiseren zou blijven staan', () => {
+    const boek = bouwWoordenboek('Niets.', []);
+
+    expect(restantenPersoonsgegevens('BSN 123456782', boek)).toContain('123456782');
+  });
+
+  it('meldt een KvK-nummer', () => {
+    const boek = bouwWoordenboek('Niets.', []);
+
+    expect(restantenPersoonsgegevens('KvK 12345678', boek).length).toBeGreaterThan(0);
+  });
+});
+
 describe('herstellen', () => {
   it('zet alle soorten terug', () => {
     const tekst =

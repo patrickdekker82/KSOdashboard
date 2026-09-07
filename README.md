@@ -49,6 +49,7 @@ Vereist: Node.js 22.13 of nieuwer (voor de ingebouwde `node:sqlite`).
 ```bash
 npm ci
 npm run check          # typecheck + lint + tests
+npm run test:e2e       # de schermen, in een browser tegen de gebouwde kern
 npm run dev            # de app in ontwikkelmodus
 npm run build:win      # NSIS-installer voor Windows x64
 ```
@@ -294,14 +295,30 @@ decimalen.
 ## Tests
 
 ```bash
-npm test
+npm test               # de rekenkern en de API
+npm run test:e2e       # de schermen in een browser
 ```
 
-730 tests, waaronder de verplichte gevallen: de volledige tabel met
+947 tests op de kern, waaronder de verplichte gevallen: de volledige tabel met
 beschikbaarheidsvoorbeelden, de dubbeltellingsregel, de paasdata van 2024 tot
 en met 2035, de verschuivingsregel voor Koningsdag, de convolutie met en zonder
 sluitingsperiode, de jaarovergang met week 53, en pogingen om via het filter
 SQL binnen te smokkelen.
+
+Daarnaast 22 Playwright-scenario's door de schermen. Die starten zelf de
+**gebouwde** kern in de hostmodus (`npm run test:e2e` bouwt eerst) en lopen de
+weg die een gebruiker loopt: inloggen, elk menu-onderdeel langs met een
+luisteraar op JavaScript-fouten, een rapportage draaien, een `DELETE` in de
+SQL-modus geweigerd zien worden, een back-up maken. Vijf ervan draaien op een
+telefoonformaat en bewaken de menulade en de breedte van de drukste schermen.
+
+Wat de scenario's níet dekken en dus met de hand moet vóór een uitlevering: het
+Electron-venster zelf, het applicatiemenu, het systeemvak, de opslaan-dialoog
+en het afdrukken naar PDF.
+
+Op een afgesloten machine waar al een Chromium klaarstaat, wijst
+`PLAYWRIGHT_CHROMIUM_PATH` Playwright daarheen in plaats van er zelf een op te
+halen.
 
 ## Bestandslocaties
 

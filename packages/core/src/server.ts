@@ -11,6 +11,10 @@ import { ApiError } from './api-error.ts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { DatabaseHandle } from './db/client.ts';
 import { schemaVersion } from './db/migrate.ts';
 import {
@@ -74,6 +78,14 @@ declare module 'fastify' {
 }
 
 
+/** `840000` → "14 minuten". Voor de melding bij te veel inlogpogingen. */
+function wachttijd(milliseconden: number): string {
+  const seconden = Math.ceil(milliseconden / 1000);
+  if (seconden < 60) return `${seconden} ${seconden === 1 ? 'seconde' : 'seconden'}`;
+  const minuten = Math.ceil(seconden / 60);
+  return `${minuten} ${minuten === 1 ? 'minuut' : 'minuten'}`;
+}
+
 /** Endpoints reachable without a session. */
 const PUBLIC_PATHS = new Set(['/api/v1/health', '/api/v1/auth/login']);
 
@@ -93,7 +105,26 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
   const app = Fastify({ logger: options.logger ?? false });
 
   await app.register(cookie);
-  await app.register(rateLimit, { global: false });
+  await app.register(rateLimit, {
+    global: false,
+    /*
+     * De melding in het Nederlands.
+     *
+     * De standaardtekst van de plug-in is Engels ("Rate limit exceeded, retry
+     * in 14 minutes") en die verscheen gewoon op het inlogscherm, tussen alle
+     * Nederlandse teksten door. Een e2e-scenario liep ertegenaan.
+     */
+    errorResponseBuilder: (_request, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      code: 'te_veel_pogingen',
+      // `context.after` is óók Engels ("14 minutes"), dus de wachttijd wordt
+      // hier zelf uit de resterende milliseconden opgemaakt.
+      message:
+        `Te veel pogingen. Probeer het over ${wachttijd(context.ttl)} opnieuw, ` +
+        'of vraag een beheerder om uw wachtwoord opnieuw in te stellen.',
+    }),
+  });
 
   app.decorateRequest('user', null);
   // Een getter in plaats van een waarde: Fastify 5 waarschuwt terecht tegen
@@ -136,9 +167,28 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
     });
   });
 
-  app.setNotFoundHandler((_request, reply) =>
-    reply.code(404).send({ error: { code: 'niet_gevonden', message: 'Onbekend adres.' } }),
-  );
+  /*
+   * In de hostmodus serveert de kern ook de schermen zelf.
+   *
+   * Zonder dit krijgt de collega die het adres van de host in zijn browser
+   * typt alleen `{"error":"Onbekend adres"}` — en dan bestaat de mobiele
+   * weergave uit hoofdstuk 12 alleen op papier. In de alleenstaande modus
+   * gebeurt dit niet: daar laadt Electron de bestanden zelf, en een
+   * webserver die niemand gebruikt is een aanvalsvlak zonder doel.
+   */
+  const schermen = zoekSchermen();
+  if (options.mode === 'host' && schermen !== null) {
+    await app.register(fastifyStatic, { root: schermen, prefix: '/', index: 'index.html' });
+  }
+
+  app.setNotFoundHandler((request, reply) => {
+    // Alles buiten /api is een route van de schermen: de navigatie loopt via
+    // de hash, maar een browser die ververst vraagt het pad zelf op.
+    if (options.mode === 'host' && schermen !== null && !request.url.startsWith('/api/')) {
+      return reply.sendFile('index.html');
+    }
+    return reply.code(404).send({ error: { code: 'niet_gevonden', message: 'Onbekend adres.' } });
+  });
 
   // --- authenticatie --------------------------------------------------------
   app.addHook('onRequest', async (request, reply) => {
@@ -240,6 +290,21 @@ export function requireRole(request: FastifyRequest, minimum: 'manager' | 'admin
     );
   }
   return user;
+}
+
+/**
+ * Waar de gebouwde schermen staan.
+ *
+ * Naast de kern in de bundel (`out/main/core/` → `out/renderer/`). In
+ * ontwikkeling draait de kern uit de bron en staan ze er niet; dan levert dit
+ * `null` op en serveert de kern niets — de ontwikkelserver van Vite doet dat.
+ */
+function zoekSchermen(): string | null {
+  const hier = dirname(fileURLToPath(import.meta.url));
+  for (const kandidaat of [join(hier, '../renderer'), join(hier, '../../renderer')]) {
+    if (existsSync(join(kandidaat, 'index.html'))) return kandidaat;
+  }
+  return null;
 }
 
 export function currentUser(request: FastifyRequest): SessionUser {

@@ -370,6 +370,70 @@ Daarna is de gebouwde applicatie uit de asar gestart en bevraagd: inloggen
 - De schermen die "nog niet gebouwd" meldden voor fasen die inmiddels af zijn,
   zeggen dat niet meer.
 
+### Verbeterpunten uit de doorlichting
+De punten uit de doorlichting, één voor één opgepakt.
+
+- **De sessie duurt zeven dagen in plaats van dertig.** Dertig dagen was ruim
+  bemeten voor een applicatie die in de hostmodus vanaf elke telefoon op het
+  kantoornetwerk bereikbaar is. Zeven dagen betekent: wie op maandag inlogt,
+  logt de maandag erna opnieuw in — en een gestolen cookie is een week later
+  waardeloos in plaats van een maand.
+- **De client-modus is weg.** Er stond een derde netwerkstand in de typen die
+  nergens werd afgehandeld; wie hem koos kreeg een applicatie die nergens
+  verbinding mee maakte. Alleen `standalone` en `host` bestaan nog.
+- **De AI-assistent heeft een maandbudget.** De teller stond er al, maar niets
+  hield hem tegen. Nu wordt vóór elke aanroep gekeken of het budget van deze
+  maand op is — vóór het netwerkverkeer, want daarna is het geld al uit. Vanaf
+  80 procent verschijnt er een waarschuwing, bij 100 procent weigert de kern de
+  aanroep met een melding die zegt wanneer het budget weer opengaat. In te
+  stellen via `PUT /api/v1/ai/budget`; dertien tests.
+- **De rendererbundel is gesplitst.** Recharts is 864 kB en werd bij elke start
+  meegeladen, ook op de schermen zonder grafiek. De grafieken zitten nu in een
+  eigen bestand dat pas opgehaald wordt als er een grafiek in beeld komt; het
+  wrapper-component leidt zijn eigen props af van het echte component, zodat de
+  twee niet uit elkaar kunnen lopen.
+- **CI bouwt de Windows-installer.** De vier fouten hierboven kwamen geen van
+  alle boven bij `npm run build`. Er staat nu een Windows-baan in
+  `.github/workflows/controle.yml` die de echte installer bouwt en daarna
+  controleert dat de asar het beginpunt bevat, dat `@node-rs/argon2` uitgepakt
+  naast de asar staat en dat de migraties meegeleverd zijn.
+- **De anonimisering herkent meer van wat een collega werkelijk intypt.** BSN
+  (met de elfproef, zodat een gewoon negencijferig nummer niet ten onrechte
+  wordt weggehaald), KvK- en btw-nummers. Belangrijker was de volgorde: een
+  e-mailadres als `info@meesters.nl` werd eerst half vervangen door de
+  bedrijfsnaam die er toevallig in stond. Structuren met een eigen vorm
+  (e-mail, IBAN, btw, KvK) gaan nu vóór de bekende namen, het vangnet (telefoon,
+  straat, postcode) erna. 34 tests, waaronder een blok met notitieteksten zoals
+  ze in de praktijk voorkomen.
+- **De kern serveert de schermen zelf.** In de hostmodus draaide wel de API maar
+  werd de renderer nergens uitgeleverd: de hostmodus en daarmee de hele mobiele
+  weergave bestonden alleen op papier. De kern serveert nu `out/renderer` met
+  een terugval op `index.html`, zodat een diepe link als `/rapportages` ook werkt
+  bij het verversen. Adressen onder `/api/` blijven JSON teruggeven.
+- **De snelheidsbegrenzing spreekt Nederlands.** Wie te vaak achter elkaar
+  probeerde in te loggen kreeg "Rate limit exceeded, retry in 14 minutes" —
+  Engels, midden tussen de Nederlandse meldingen. Nu een Nederlandse tekst met
+  de wachttijd in minuten.
+
+### Scenario's door de schermen (hoofdstuk 13)
+Tot nu toe raakte geen enkele test de renderer aan — precies de laag waar de
+fouten zaten die de applicatie onbruikbaar maakten.
+
+- 22 Playwright-scenario's die tegen de **gebouwde** kern in de hostmodus
+  draaien (`out/main/core/host.cjs` naast `out/renderer`), niet tegen de bron:
+  anders bewijzen ze niets over wat er geïnstalleerd wordt.
+- Op de desktop: door elk menu-onderdeel lopen en meekijken of er een
+  JavaScript-fout valt, de klantenlijst en de tijdlijn, een rapportage draaien,
+  een `DELETE` in de SQL-modus geweigerd zien worden én daarna controleren dat
+  de klanten er nog staan, een back-up maken, en de melding bij een fout
+  wachtwoord.
+- Op een telefoonformaat: de menulade begint dicht, gaat open, sluit na het
+  kiezen van een scherm en ook met de sluitknop, en de drukste schermen passen
+  in de breedte van het toestel zonder de pagina zijwaarts te laten schuiven.
+- Wat níet gedekt is en dus met de hand moet: het Electron-venster zelf, het
+  menu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.
+- Te draaien met `npm run test:e2e`; er staat een derde baan in CI voor.
+
 ### Nog niet gebouwd
 De Microsoft Graph-koppeling voor automatisch verzenden en inkomende mail; zie
 de beslissing daarover in `docs/BESLISSINGEN.md`.

@@ -759,6 +759,48 @@ zodat iOS niet inzoomt bij het aantikken, en aanraakvlakken worden groter. Het
 onderscheid loopt via `matchMedia` en niet via een resize-luisteraar, zodat er
 niet bij elke pixel opnieuw gerenderd wordt.
 
+### De schermtests draaien in een browser, niet in Electron
+
+Playwright kan een Electron-venster aansturen. Toch draaien de scenario's tegen
+de hostmodus in een gewone browser. Drie redenen: het is dezelfde renderer en
+dezelfde kern, dus wat je daar bewijst geldt ook in het venster; het draait op
+een bouwserver zonder beeldscherm; en het bewaakt meteen de mobiele weergave,
+want die loopt via precies deze weg.
+
+Wat daarmee niet gedekt is, staat bovenaan het testbestand: het venster zelf,
+het applicatiemenu, het systeemvak, de opslaan-dialoog en het afdrukken naar
+PDF. Dat blijft handwerk vóór een uitlevering.
+
+De scenario's draaien tegen de **gebouwde** kern en niet tegen de bron. Dat is
+geen detail: de vier fouten die de applicatie onbruikbaar maakten, kwamen geen
+van alle boven bij `npm run build` maar pas bij het echt inpakken en starten.
+Een test tegen de bron bewijst niets over wat er op een werkplek staat.
+
+### Eén keer inloggen voor alle scenario's
+
+Elk scenario liet eerst zelf inloggen. Dat liep stuk op de snelheidsbegrenzing
+van tien pogingen per kwartier — precies zoals bedoeld, alleen speelden de
+tests nu zelf de aanvaller. De begrenzing is dus níet verruimd; in plaats
+daarvan logt een aparte opstapfase één keer per rol in en bewaren de scenario's
+die sessie.
+
+Bijvangst: die storing bracht aan het licht dat de begrenzing een Engelse tekst
+teruggaf, midden tussen de Nederlandse meldingen.
+
+### De anonimisering kijkt eerst naar vorm, dan naar bekende namen
+
+Een e-mailadres als `info@meesters.nl` werd `info@«ORGANISATIE_1».nl`: de
+bedrijfsnaam uit de database werd herkend midden in het adres en vervangen, en
+wat overbleef was nog steeds herleidbaar. Daarom eerst de structuren die aan hun
+eigen vorm te herkennen zijn (e-mail, IBAN, btw, KvK), dan de namen uit de
+database, en pas daarna het vangnet (telefoonnummers, straat met huisnummer,
+postcode). Die laatste groep moet ná de namen, anders knipt hij een adres
+doormidden dat als geheel herkend had kunnen worden.
+
+Een BSN wordt alleen als BSN weggehaald als het door de elfproef komt. Anders
+zou elk negencijferig getal — een ordernummer, een bouwnummerreeks —
+verdwijnen, en dan verandert de vraag die je stelt.
+
 ## Vooruit
 
 - **PostgreSQL blijft mogelijk.** SQLite-specifieke SQL staat alleen in

@@ -16,7 +16,16 @@
  */
 
 /** Soorten gegevens die we herkennen. De naam komt terug in de plaatshouder. */
-export type Soort = 'PERSOON' | 'ORGANISATIE' | 'ADRES' | 'EMAIL' | 'TELEFOON' | 'IBAN';
+export type Soort =
+  | 'PERSOON'
+  | 'ORGANISATIE'
+  | 'ADRES'
+  | 'EMAIL'
+  | 'TELEFOON'
+  | 'IBAN'
+  | 'BSN'
+  | 'KVK'
+  | 'BTW';
 
 export type Vervanging = {
   soort: Soort;
@@ -40,7 +49,7 @@ const SLUIT = '»';
 
 /** Herkent een plaatshouder in een antwoord. */
 const PLAATSHOUDER = new RegExp(
-  `${OPEN}(PERSOON|ORGANISATIE|ADRES|EMAIL|TELEFOON|IBAN)_(\\d+)${SLUIT}`,
+  `${OPEN}(PERSOON|ORGANISATIE|ADRES|EMAIL|TELEFOON|IBAN|BSN|KVK|BTW)_(\\d+)${SLUIT}`,
   'gu',
 );
 
@@ -52,11 +61,35 @@ const PLAATSHOUDER = new RegExp(
  * Volgorde telt: IBAN vóór telefoon, anders knabbelt het telefoonpatroon aan
  * de cijfers van een rekeningnummer.
  */
-const PATRONEN: Array<{ soort: Soort; patroon: RegExp }> = [
+/**
+ * Structuren die in hun geheel vervangen moeten worden, vóór alle andere
+ * vervangingen.
+ *
+ * Een e-mailadres of IBAN is één ondeelbaar ding. Gaat er eerst een los woord
+ * overheen, dan blijft de rest staan: bij "info@meesters.nl" verving het
+ * kernwoord "Meesters" uit de klantnaam het midden van het adres, en wat
+ * overbleef werd niet meer als adres herkend. Dat lekte het domein.
+ */
+const STRUCTUREN: Array<{ soort: Soort; patroon: RegExp }> = [
   // Een e-mailadres, ruim genomen maar zonder de omringende leestekens.
   { soort: 'EMAIL', patroon: /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.\p{L}{2,}/gu },
   // Nederlandse IBAN: NL, twee controlecijfers, vier letters, tien cijfers.
   { soort: 'IBAN', patroon: /\bNL\d{2}[ ]?[A-Z]{4}[ ]?(?:\d{4}[ ]?){2}\d{2}\b/g },
+  // BTW-nummer: NL, negen cijfers, B, twee cijfers.
+  { soort: 'BTW', patroon: /\bNL\d{9}B\d{2}\b/gi },
+  // KvK-nummer: acht cijfers, maar alleen als het woord ernaast staat. Zonder
+  // die eis zou elk ordernummer van acht cijfers als KvK worden gezien.
+  { soort: 'KVK', patroon: /\bkvk[\s.:-]*(?:nr|nummer)?[\s.:-]*\d{8}\b/gi },
+];
+
+/**
+ * Het vangnet: patronen die pas aan de beurt komen ná de bekende waarden.
+ *
+ * Wat uit de database komt is completer. "Van Goghlaan 3-B" staat als
+ * straatnaam in het klantdossier; het patroon hieronder ziet daar alleen
+ * "Goghlaan 3-B" van. Draai je de volgorde om, dan blijft "Van" staan.
+ */
+const VANGNET: Array<{ soort: Soort; patroon: RegExp }> = [
   // Telefoonnummers: 06-12345678, 030 1234567, +31 6 12345678.
   {
     soort: 'TELEFOON',
@@ -77,6 +110,29 @@ const PATRONEN: Array<{ soort: Soort; patroon: RegExp }> = [
   // Postcode, met of zonder spatie.
   { soort: 'ADRES', patroon: /\b\d{4}\s?[A-Z]{2}\b/g },
 ];
+
+/** Alle patronen samen, voor de vangrail die achteraf controleert. */
+const PATRONEN = [...STRUCTUREN, ...VANGNET];
+
+/**
+ * Het BSN apart, want daar hoort een controle bij.
+ *
+ * Negen losse cijfers komen ook voor als ordernummer of als kenmerk van een
+ * leverancier. De elfproef zeeft die eruit: een echt burgerservicenummer
+ * voldoet eraan, een willekeurige reeks vrijwel nooit. Een BSN in een
+ * notitieveld hoort er sowieso niet te staan, maar als het er staat mag het in
+ * geen geval de deur uit.
+ */
+function isBsn(cijfers: string): boolean {
+  if (!/^\d{9}$/.test(cijfers)) return false;
+
+  let som = 0;
+  for (let index = 0; index < 9; index += 1) {
+    const gewicht = index === 8 ? -1 : 9 - index;
+    som += Number(cijfers[index]) * gewicht;
+  }
+  return som % 11 === 0;
+}
 
 /** Tekens die in een regex letterlijk genomen moeten worden. */
 function ontsnap(tekst: string): string {
@@ -128,14 +184,28 @@ export function bouwWoordenboek(tekst: string, bekend: Bekend[]): Woordenboek {
     vervangingen.push({ soort, waarde: schoon, plaatshouder });
   };
 
-  // Eerst de bekende waarden, langste eerst.
+  // Drie rondes, en de volgorde is elke keer met opzet: eerst de ondeelbare
+  // structuren, dan wat de database weet, en pas daarna het vangnet.
+  for (const { soort, patroon } of STRUCTUREN) {
+    for (const treffer of tekst.matchAll(new RegExp(patroon.source, patroon.flags))) {
+      voegToe(soort, treffer[0]);
+    }
+  }
+
+  // Het BSN hoort bij de structuren, maar heeft een controle nodig.
+  for (const treffer of tekst.matchAll(/\b\d{9}\b/g)) {
+    if (isBsn(treffer[0])) voegToe('BSN', treffer[0]);
+  }
+
+  // Dan de bekende waarden uit de database, langste eerst — anders blijft er
+  // bij "Jan van der Berg" een achternaam staan.
   const gesorteerd = [...bekend].sort((a, b) => b.waarde.trim().length - a.waarde.trim().length);
   for (const item of gesorteerd) {
     if (bevat(tekst, item.waarde.trim())) voegToe(item.soort, item.waarde);
   }
 
-  // Daarna het vangnet, in de vaste volgorde van PATRONEN.
-  for (const { soort, patroon } of PATRONEN) {
+  // En als laatste het vangnet, voor wat er in vrije tekst is bijgetypt.
+  for (const { soort, patroon } of VANGNET) {
     for (const treffer of tekst.matchAll(new RegExp(patroon.source, patroon.flags))) {
       voegToe(soort, treffer[0]);
     }
@@ -233,6 +303,10 @@ export function restantenPersoonsgegevens(tekst: string, woordenboek: Woordenboe
     for (const treffer of tekst.matchAll(new RegExp(patroon.source, patroon.flags))) {
       gevonden.add(treffer[0]);
     }
+  }
+
+  for (const treffer of tekst.matchAll(/\b\d{9}\b/g)) {
+    if (isBsn(treffer[0])) gevonden.add(treffer[0]);
   }
 
   return [...gevonden];

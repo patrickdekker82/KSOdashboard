@@ -1,8 +1,10 @@
 # Controle bij elke push en pull request.
 #
-# Twee banen, met opzet gescheiden. `controle` is snel en draait op Linux: die
-# hoort binnen een paar minuten klaar te zijn en blokkeert het werk. `installer`
-# draait op Windows en bouwt de échte NSIS-installer.
+# Drie banen, met opzet gescheiden. `controle` is snel en draait op Linux: die
+# hoort binnen een paar minuten klaar te zijn en blokkeert het werk. `schermen`
+# start de gebouwde kern in de hostmodus en loopt met een browser de weg die een
+# gebruiker loopt. `installer` draait op Windows en bouwt de échte
+# NSIS-installer.
 #
 # Die tweede baan is er niet voor de sier. Vier fouten die de applicatie
 # onbruikbaar maakten — een ontbrekend `main`-veld, niet meegeleverde
@@ -46,6 +48,45 @@ jobs:
 
       - name: Bouwen
         run: npm run build
+
+  schermen:
+    name: Schermen in een browser (e2e)
+    runs-on: ubuntu-latest
+    # Pas als de snelle controle groen is; anders is dit alleen ruis achter een
+    # fout die al gemeld is.
+    needs: controle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Afhankelijkheden installeren
+        run: npm ci
+
+      - name: Browser ophalen
+        run: npx playwright install --with-deps chromium
+
+      # De scenario's draaien tegen de gebouwde kern (`out/main/core/host.cjs`)
+      # naast `out/renderer`: alleen zo bewijzen ze iets over wat er straks
+      # geïnstalleerd wordt.
+      - name: Bouwen
+        run: npm run build
+
+      - name: Scenario's draaien
+        run: npx playwright test
+
+      - name: Verslag bewaren bij een fout
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-verslag
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
 
   installer:
     name: Windows-installer bouwen
