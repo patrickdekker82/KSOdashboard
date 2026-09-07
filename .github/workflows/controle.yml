@@ -86,6 +86,7 @@ jobs:
         run: |
           npx electron-builder --dir --config electron-builder.yml
           xvfb-run -a node e2e/opstart.mjs
+          xvfb-run -a node e2e/venster.mjs
 
       - name: Verslag bewaren bij een fout
         if: failure()
@@ -162,7 +163,9 @@ jobs:
       # En daarna: start hij ook? De controle hierboven kijkt alleen of de
       # bestanden er zijn, niet of de applicatie ze vindt.
       - name: De geïnstalleerde applicatie echt starten
-        run: node e2e/opstart.mjs
+        run: |
+          node e2e/opstart.mjs
+          node e2e/venster.mjs
 
       - name: Installer bewaren
         uses: actions/upload-artifact@v6

@@ -29,7 +29,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
-    "test:opstart": "npm run build:unpack && node e2e/opstart.mjs",
+    "test:opstart": "npm run build:unpack && node e2e/opstart.mjs && node e2e/venster.mjs",
     "test:e2e:ui": "playwright test --ui",
     "check": "npm run typecheck && npm run lint && npm run test",
     "db:generate": "drizzle-kit generate --config packages/core/drizzle.config.ts",

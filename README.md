@@ -313,11 +313,16 @@ luisteraar op JavaScript-fouten, een rapportage draaien, een `DELETE` in de
 SQL-modus geweigerd zien worden, een back-up maken. Vijf ervan draaien op een
 telefoonformaat en bewaken de menulade en de breedte van de drukste schermen.
 
-Daarnaast start `npm run test:opstart` de **ingepakte** applicatie op en wacht
-tot de kern zich meldt in `logs/schil.log`. Die controle bestaat omdat de
-applicatie een tijd lang wél te bouwen maar niet te starten was: de kern werd
-vanaf een pad gestart dat één maplaag ernaast lag, en geen enkele andere test
-raakte Electron aan.
+Daarnaast doet `npm run test:opstart` twee dingen met de **ingepakte**
+applicatie: hij start hem op en wacht tot de kern zich meldt in
+`logs/schil.log`, en daarna opent hij het venster met Playwright en controleert
+dat het inlogscherm verschijnt in plaats van een storingsmelding.
+
+Die twee bestaan omdat de applicatie een tijd lang wél te bouwen maar niet te
+gebruiken was — eerst een kern die vanaf een pad ernaast gestart werd, daarna
+een preload die onder `sandbox: true` niet geladen kon worden — en geen enkele
+andere test Electron aanraakte. De schermscenario's hierboven lopen via de
+hostmodus, waar de preload niet in beeld komt.
 
 Wat ook dat niet dekt en dus met de hand moet vóór een uitlevering: het
 applicatiemenu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.

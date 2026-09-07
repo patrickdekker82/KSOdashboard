@@ -47,6 +47,17 @@ export default defineConfig({
       outDir: 'out/preload',
       rollupOptions: {
         input: { preload: resolve(__dirname, 'packages/main/src/preload.ts') },
+        /*
+         * CommonJS, net als de hoofdbundel — en hier is het geen keuze.
+         *
+         * Het venster draait met `sandbox: true`, en Electron laadt in een
+         * sandboxed renderer uitsluitend een CommonJS-preload. Als ESM werd
+         * `preload.mjs` stilzwijgend niet geladen: geen foutmelding, alleen een
+         * `window.showroom` die er niet was. De schermen vielen dan terug op de
+         * hostmodus-weg, deden `fetch('/api/v1/...')` op een `file://`-pagina,
+         * en toonden "De kern is niet bereikbaar / Failed to fetch".
+         */
+        output: { format: 'cjs', entryFileNames: '[name].cjs' },
       },
     },
   },

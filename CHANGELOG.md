@@ -457,6 +457,37 @@ applicatie werkelijk te installeren.
   databaselocatie op een netwerkschijf verandert niet door het nog eens te
   proberen.
 
+### De schermen bereikten de kern niet
+Nadat de kern eenmaal opkwam, bleef het venster "De kern is niet bereikbaar /
+Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
+
+- **De preload werd nooit geladen.** Het venster draait met `sandbox: true`, en
+  Electron laadt in een sandboxed renderer uitsluitend een CommonJS-preload.
+  `preload.mjs` was ESM en werd stilzwijgend overgeslagen: geen foutmelding,
+  alleen een `window.showroom` die er niet was. De schermen vielen daardoor
+  terug op de hostmodus-weg en deden `fetch('/api/v1/...')` op een
+  `file://`-pagina — dat is letterlijk "Failed to fetch". De preload wordt nu
+  als `.cjs` gebouwd, net als de hoofdbundel en om dezelfde soort reden.
+- **De schermen vroegen de poort voordat de kern er was.** `kernStatus()` gaf
+  klakkeloos terug wat de schil wist, en dat is bij het opstarten
+  `{ port: 0, status: 'starten' }`. Daar werd `http://127.0.0.1:0` van gemaakt.
+  Bij een eerste start duurt de kern het langst — 58 tabellen en vijf
+  wachtwoorden die met argon2 gehasht worden — dus die wedloop werd altijd
+  verloren. Er wordt nu gewacht tot de kern zich meldt, via het statusbericht
+  van de schil én een halve-seconde-navraag, met een uiterste wachttijd van een
+  minuut.
+- Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
+  van "Failed to fetch".
+
+### Venstercontrole
+`e2e/venster.mjs` start de ingepakte applicatie met Playwright en kijkt of het
+inlogscherm verschijnt in plaats van een storingsmelding. Dit is de eerste
+controle die de weg langs `window.showroom` aanraakt: alle bestaande scenario's
+liepen via de hostmodus, waar de schermen rechtstreeks met dezelfde oorsprong
+praten en de preload dus niet nodig is. Nagegaan dat hij de fout ook echt vangt
+door hem terug te zetten: dan meldt hij "De kern is niet bereikbaar / Failed to
+fetch", precies wat er op het scherm stond.
+
 ### Opstartcontrole
 `e2e/opstart.mjs` start de ingepakte applicatie echt en wacht tot de kern zich
 meldt. De bestaande controles konden dit niet zien: de unit-tests raken Electron

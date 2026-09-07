@@ -98,13 +98,33 @@ export class ApiFout extends Error {
 }
 
 let host: HostStatus | null = null;
+/** Eén wachtende belofte delen, zodat tien vragen niet tien keer wachten. */
+let wachtend: Promise<HostStatus> | null = null;
 
-/** Resolves the core's address once, then caches it. */
+/** Hoe lang we de kern de tijd geven voordat we het opgeven. */
+const KERN_WACHTTIJD_MS = 60_000;
+
+/**
+ * Het adres van de kern, en pas teruggeven als hij er ook echt is.
+ *
+ * Hier stond alleen een vraag naar de status, waarvan het antwoord klakkeloos
+ * werd teruggegeven. Bij het opstarten is dat antwoord `{ port: 0, status:
+ * 'starten' }`, want de kern is dan nog bezig — bij een eerste start het
+ * langst, met 58 tabellen en vijf wachtwoorden die met argon2 gehasht worden.
+ * De schermen bouwden daar `http://127.0.0.1:0` van, en dat is precies de
+ * "Failed to fetch" die de gebruiker zag. Het venster is er nu eenmaal eerder
+ * dan de kern; daar hoort gewacht te worden, niet geraden.
+ */
 export async function kernStatus(): Promise<HostStatus> {
   if (host && host.status === 'gestart') return host;
   if (window.showroom) {
-    host = await window.showroom.hostStatus();
-    return host;
+    if (wachtend) return wachtend;
+    wachtend = wachtOpKern(window.showroom);
+    try {
+      return await wachtend;
+    } finally {
+      wachtend = null;
+    }
   }
   // Zonder Electron (browser via de hostmodus) praat de pagina met dezelfde
   // oorsprong en verloopt de authenticatie via de sessiecookie.
@@ -117,6 +137,77 @@ export async function kernStatus(): Promise<HostStatus> {
     status: 'gestart',
   };
   return host;
+}
+
+type Brug = NonNullable<Window['showroom']>;
+
+/**
+ * Wacht tot de kern zich meldt.
+ *
+ * Twee wegen tegelijk: de schil stuurt een bericht zodra de stand verandert,
+ * en er wordt daarnaast elke halve seconde gevraagd. Dat tweede is er voor het
+ * geval het bericht al voorbij was voordat dit scherm luisterde.
+ */
+async function wachtOpKern(brug: Brug): Promise<HostStatus> {
+  const eerste = await brug.hostStatus();
+  if (eerste.status === 'gestart') {
+    host = eerste;
+    return eerste;
+  }
+  if (eerste.status === 'fout') throw kernFout(eerste);
+
+  return new Promise<HostStatus>((resolve, reject) => {
+    let afgehandeld = false;
+    let stopLuisteren: (() => void) | null = null;
+    let tik: ReturnType<typeof setInterval> | null = null;
+    let uiterlijk: ReturnType<typeof setTimeout> | null = null;
+
+    const opruimen = (): void => {
+      stopLuisteren?.();
+      if (tik !== null) clearInterval(tik);
+      if (uiterlijk !== null) clearTimeout(uiterlijk);
+    };
+
+    const beoordeel = (status: HostStatus): void => {
+      if (afgehandeld) return;
+      if (status.status === 'gestart' && status.port > 0) {
+        afgehandeld = true;
+        opruimen();
+        host = status;
+        resolve(status);
+      } else if (status.status === 'fout') {
+        afgehandeld = true;
+        opruimen();
+        reject(kernFout(status));
+      }
+    };
+
+    stopLuisteren = brug.onKernStatus(beoordeel);
+    tik = setInterval(() => {
+      void brug
+        .hostStatus()
+        .then(beoordeel)
+        .catch(() => undefined);
+    }, 500);
+    uiterlijk = setTimeout(() => {
+      if (afgehandeld) return;
+      afgehandeld = true;
+      opruimen();
+      reject(
+        new ApiFout(
+          503,
+          'kern_traag',
+          'De kern reageert niet. Sluit de applicatie af en start hem opnieuw; ' +
+            'blijft het misgaan, stuur dan logs\\schil.log naar de beheerder.',
+        ),
+      );
+    }, KERN_WACHTTIJD_MS);
+  });
+}
+
+/** De melding van de kern zelf doorgeven in plaats van "Failed to fetch". */
+function kernFout(status: HostStatus): ApiFout {
+  return new ApiFout(503, 'kern_fout', status.message ?? 'De kern kon niet starten.');
 }
 
 async function verzoek<T>(pad: string, init: RequestInit = {}): Promise<T> {
@@ -134,9 +225,9 @@ async function verzoek<T>(pad: string, init: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as
-      | { error?: { code?: string; message?: string } }
-      | null;
+    const body = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
     throw new ApiFout(
       response.status,
       body?.error?.code ?? 'onbekend',
@@ -182,9 +273,9 @@ export async function uploadBijlage(
   });
 
   if (!response.ok) {
-    const fout = (await response.json().catch(() => null)) as
-      | { error?: { code?: string; message?: string } }
-      | null;
+    const fout = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
     throw new ApiFout(
       response.status,
       fout?.error?.code ?? 'onbekend',
@@ -222,9 +313,9 @@ export async function importVoorbeeld(
   });
 
   if (!response.ok) {
-    const fout = (await response.json().catch(() => null)) as
-      | { error?: { code?: string; message?: string } }
-      | null;
+    const fout = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
     throw new ApiFout(
       response.status,
       fout?.error?.code ?? 'onbekend',
@@ -256,7 +347,9 @@ export const endpoints = {
       `/capacity/weekly${from ? `?from=${from}${to ? `&to=${to}` : ''}` : ''}`,
     ),
   gaten: (from?: string, to?: string) =>
-    api.get<Lijst<CapacityGap>>(`/capacity/gaps${from ? `?from=${from}${to ? `&to=${to}` : ''}` : ''}`),
+    api.get<Lijst<CapacityGap>>(
+      `/capacity/gaps${from ? `?from=${from}${to ? `&to=${to}` : ''}` : ''}`,
+    ),
   simuleer: (scenario: Record<string, unknown>) =>
     api.post<Lijst<CapacityWeek>>('/capacity/simulate', scenario),
   perBegeleider: (from?: string, to?: string) =>
@@ -296,7 +389,13 @@ export const endpoints = {
   veldtypes: () =>
     api.get<{
       data: {
-        types: Array<{ type: FieldType; label: string; align: string; defaultWidth: number; operators: string[] }>;
+        types: Array<{
+          type: FieldType;
+          label: string;
+          align: string;
+          defaultWidth: number;
+          operators: string[];
+        }>;
         functies: string[];
         entiteiten: string[];
       };
@@ -311,8 +410,10 @@ export const endpoints = {
     api.post<{ verwijderd: boolean; rijen: number; melding: string }>(`/fields/${id}/purge`, {
       bevestiging,
     }),
-  veldenHerordenen: (entiteit: string, volgorde: Array<{ id: number; section_id: number | null; sort_order: number }>) =>
-    api.post<{ data: FieldDefinition[] }>('/fields/reorder', { entity_key: entiteit, volgorde }),
+  veldenHerordenen: (
+    entiteit: string,
+    volgorde: Array<{ id: number; section_id: number | null; sort_order: number }>,
+  ) => api.post<{ data: FieldDefinition[] }>('/fields/reorder', { entity_key: entiteit, volgorde }),
   formuleControleren: (expression: string) =>
     api.post<{ data: { ok: boolean; velden?: string[]; fout?: string } }>('/fields/check-formula', {
       expression,
@@ -343,7 +444,12 @@ export const endpoints = {
       data: { paren: DubbelPaar[]; records: Array<Record<string, unknown>> };
       meta: { entiteit: string; onderzocht: number; gevonden: number };
     }>(`/duplicates?entity=${entiteit}`),
-  samenvoegen: (entiteit: string, winnaarId: number, verliezerId: number, waarden: Record<string, unknown>) =>
+  samenvoegen: (
+    entiteit: string,
+    winnaarId: number,
+    verliezerId: number,
+    waarden: Record<string, unknown>,
+  ) =>
     api.post<{ data: { verplaatst: Array<{ tabel: string; kolom: string; rijen: number }> } }>(
       `/${entiteit}/${winnaarId}/merge`,
       { verliezerId, waarden },
@@ -351,16 +457,14 @@ export const endpoints = {
 
   bijlagen: (entiteit: string, id: number) =>
     api.get<{ data: Bijlage[] }>(`/${entiteit}/${id}/attachments`),
-  bijlageVerwijderen: (id: number) =>
-    api.del<{ verwijderd: boolean }>(`/attachments/${id}`),
+  bijlageVerwijderen: (id: number) => api.del<{ verwijderd: boolean }>(`/attachments/${id}`),
 
   avgDossier: (contactId: number) =>
     api.get<{ data: Record<string, unknown> }>(`/contacts/${contactId}/gdpr-export`),
   avgAnonimiseren: (contactId: number) =>
-    api.post<{ data: { overschreven: string[]; behouden: Array<{ wat: string; aantal: number }> } }>(
-      `/contacts/${contactId}/anonymise`,
-      { bevestiging: 'ANONIMISEREN' },
-    ),
+    api.post<{
+      data: { overschreven: string[]; behouden: Array<{ wat: string; aantal: number }> };
+    }>(`/contacts/${contactId}/anonymise`, { bevestiging: 'ANONIMISEREN' }),
 
   // --- kansen (fase 4) ------------------------------------------------------
   kansfasen: () => api.get<{ data: Fase[] }>('/opportunities/stages'),
@@ -370,11 +474,19 @@ export const endpoints = {
     ),
   kansNaarFase: (id: number, stageId: number) =>
     api.post<{ data: FaseWissel }>(`/opportunities/${id}/stage`, { stageId }),
-  kansWinnen: (id: number, regels: Array<{ lineId: number; wonAmountCents: number }>, maakProject: boolean) =>
-    api.post<{ data: { opportunityId: number; wonAmountCents: number; regels: number; projectId: number | null } }>(
-      `/opportunities/${id}/win`,
-      { regels, maakProject },
-    ),
+  kansWinnen: (
+    id: number,
+    regels: Array<{ lineId: number; wonAmountCents: number }>,
+    maakProject: boolean,
+  ) =>
+    api.post<{
+      data: {
+        opportunityId: number;
+        wonAmountCents: number;
+        regels: number;
+        projectId: number | null;
+      };
+    }>(`/opportunities/${id}/win`, { regels, maakProject }),
   kansVerliezen: (id: number, redenId: number | null, notitie: string | null) =>
     api.post<{ data: { opportunityId: number; reden: number | null } }>(
       `/opportunities/${id}/lose`,
@@ -404,8 +516,7 @@ export const endpoints = {
     api.post<{ id: number; status: string }>(`/absences/${id}/reject`, { note }),
   verlofAnnuleren: (id: number) =>
     api.post<{ id: number; status: string }>(`/absences/${id}/cancel`),
-  afwezigheidstypes: () =>
-    api.get<Lijst<Afwezigheidstype>>('/absence-types?pageSize=100'),
+  afwezigheidstypes: () => api.get<Lijst<Afwezigheidstype>>('/absence-types?pageSize=100'),
   inzettypes: () =>
     api.get<Lijst<{ id: number; name: string; code: string; color: string | null }>>(
       '/allocation-types?pageSize=100',
@@ -413,7 +524,12 @@ export const endpoints = {
 
   // --- planningimport (fase 6) ---------------------------------------------
   importVelden: () => api.get<{ data: ImportVeld[] }>('/imports/fields'),
-  importDoorvoeren: (batchId: number, koppeling: Koppeling, bestaandeBijwerken: boolean, kopregel: number) =>
+  importDoorvoeren: (
+    batchId: number,
+    koppeling: Koppeling,
+    bestaandeBijwerken: boolean,
+    kopregel: number,
+  ) =>
     api.post<{ data: ImportUitkomst }>(`/imports/${batchId}/commit`, {
       koppeling,
       bestaandeBijwerken,
@@ -503,12 +619,19 @@ export const endpoints = {
       uitkomst?: string | null;
       vervolg?: { type: string; subject: string; dueAt: string } | null;
     },
-  ) => api.post<{ data: { activiteitId: number; vervolgId: number | null } }>(
-    `/activities/${id}/complete`,
-    body,
-  ),
+  ) =>
+    api.post<{ data: { activiteitId: number; vervolgId: number | null } }>(
+      `/activities/${id}/complete`,
+      body,
+    ),
   bellijst: (id: number) => api.get<{ data: Bellijstregel[] }>(`/call-lists/${id}/members`),
-  belregelMarkeren: (id: number, entiteit: string, recordId: number, gedaan: boolean, notitie: string | null) =>
+  belregelMarkeren: (
+    id: number,
+    entiteit: string,
+    recordId: number,
+    gedaan: boolean,
+    notitie: string | null,
+  ) =>
     api.post<{ data: { lijstId: number; recordId: number } }>(`/call-lists/${id}/members/mark`, {
       entity: entiteit,
       recordId,
@@ -549,8 +672,7 @@ export const endpoints = {
     sql?: string;
     gedeeld: boolean;
   }) => api.post<{ data: OpgeslagenRapport }>('/reports/saved', body),
-  rapportVerwijderen: (id: number) =>
-    api.del<{ data: { id: number } }>(`/reports/saved/${id}`),
+  rapportVerwijderen: (id: number) => api.del<{ data: { id: number } }>(`/reports/saved/${id}`),
 
   // --- AI-assistent (fase 10) -----------------------------------------------
   aiStatus: () => api.get<{ data: AiStatus }>('/ai/status'),
@@ -1138,7 +1260,6 @@ export type Bellijstregel = {
   afgehandeld: boolean;
 };
 
-
 // --- AI-assistent -----------------------------------------------------------
 
 export type AiBudget = {
@@ -1244,7 +1365,6 @@ export type AiMaand = {
   fouten: number;
 };
 
-
 // --- rapportages ------------------------------------------------------------
 
 export type Rapportkolom = {
@@ -1312,7 +1432,6 @@ export type OpgeslagenRapport = {
   eigenaar: string | null;
   eigenaarId: number | null;
 };
-
 
 // --- back-up ----------------------------------------------------------------
 

@@ -255,7 +255,7 @@ function createWindow(config: AppConfig): BrowserWindow {
     icon: join(here, '../../build/icon.ico'),
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b0f19' : '#f8fafc',
     webPreferences: {
-      preload: join(here, '../preload/preload.mjs'),
+      preload: join(here, '../preload/preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
