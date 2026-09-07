@@ -434,6 +434,22 @@ fouten zaten die de applicatie onbruikbaar maakten.
   menu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.
 - Te draaien met `npm run test:e2e`; er staat een derde baan in CI voor.
 
+### CI-herstel
+- **De Windows-baan faalde op de controle, niet op de bouw.** `asar list` bouwt
+  zijn paden met `path.join` vanaf `/`, dus op Windows komt er
+  `\out\main\index.cjs` uit en op Linux `/out/main/index.cjs`. De controle
+  zocht letterlijk naar de tweede vorm en kon op Windows dus nooit slagen —
+  terwijl de installer al die tijd gewoon gebouwd werd. De listing wordt nu
+  vertaald voordat er gezocht wordt.
+- Faalt `asar` zélf, dan zei de melding ten onrechte dat het beginpunt ontbrak.
+  Dat zijn twee verschillende fouten en ze krijgen nu twee verschillende
+  meldingen.
+- `@electron/asar` staat nu als eigen ontwikkelafhankelijkheid in
+  `package.json`. Hij was er alleen doordat electron-builder hem meebrengt, en
+  daar hoort een controlestap niet op te leunen.
+- De actions draaien op Node 24: `checkout@v5`, `setup-node@v5` en
+  `upload-artifact@v6` — per actie de laagste versie die Node 24 gebruikt.
+
 ### Documentatie
 - `docs/STARTGIDS.md`: stap voor stap van de code op GitHub naar een werkende
   app. De bestaande installatiehandleiding begint bij een kant-en-klaar

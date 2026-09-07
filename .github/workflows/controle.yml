@@ -31,9 +31,9 @@ jobs:
     name: Typen, lint en tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # De kern gebruikt het ingebouwde node:sqlite; dat vraagt 22.13 of
           # nieuwer. Zie ook "engines" in package.json.
@@ -56,9 +56,9 @@ jobs:
     # fout die al gemeld is.
     needs: controle
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -80,7 +80,7 @@ jobs:
 
       - name: Verslag bewaren bij een fout
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-verslag
           path: |
@@ -95,9 +95,9 @@ jobs:
     # heeft geen zin als de tests al rood staan.
     needs: controle
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -131,13 +131,27 @@ jobs:
             || { echo "de migraties ontbreken"; exit 1; }
 
           # En het beginpunt waar electron-builder naar zoekt.
-          npx asar list "$uitgepakt/app.asar" | grep -q "^/out/main/index.cjs$" \
+          #
+          # `asar list` bouwt zijn paden met path.join vanaf "/", dus op Windows
+          # komt er \out\main\index.cjs uit en op Linux /out/main/index.cjs.
+          # Zonder die vertaling faalt deze controle altijd op Windows, terwijl
+          # de installer gewoon klopt — precies wat er hier gebeurde.
+          #
+          # De listing eerst apart ophalen: als `asar` zelf omvalt, is dat een
+          # andere fout dan een ontbrekend bestand, en dan hoort er ook een
+          # andere melding te staan.
+          if ! inhoud="$(npx --no-install asar list "$uitgepakt/app.asar")"; then
+            echo "de asar kon niet gelezen worden — staat @electron/asar geïnstalleerd?"
+            exit 1
+          fi
+
+          printf '%s\n' "$inhoud" | tr '\\' '/' | grep -qx "/out/main/index.cjs" \
             || { echo "het beginpunt out/main/index.cjs zit niet in de asar"; exit 1; }
 
           echo "De installatie bevat alles wat nodig is."
 
       - name: Installer bewaren
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ShowroomSuite-installer
           path: release/*.exe
