@@ -8,6 +8,7 @@ import { openDatabase, type DatabaseHandle } from './db/client.ts';
 import { applyViews, migrationFiles, runMigrations } from './db/migrate.ts';
 import { DEMO_PASSWORD, seed } from './db/seed.ts';
 import { buildCore } from './server.ts';
+import { startCore } from './bootstrap.ts';
 
 const APP_TOKEN = 'test-token-abcdefghijklmnop';
 const REFERENCE = new Date('2026-09-07T00:00:00Z');
@@ -1303,5 +1304,39 @@ describe('zelf verlof aanvragen uitzetten', () => {
     });
 
     expect(response.statusCode).toBe(201);
+  });
+});
+
+describe('het adres dat de kern teruggeeft', () => {
+  /*
+   * Waarom hier een test op staat: in de hostmodus luistert de kern op
+   * 0.0.0.0, en dat werd ook als adres teruggegeven. Zolang dat veld alleen
+   * ter informatie was viel het niet op. Sinds het venster de schermen bij de
+   * kern ophaalt, laadde het in de hostmodus van http://0.0.0.0:4317 — een
+   * adres waar je niet naartoe kunt verbinden — en bleef het scherm leeg.
+   */
+  it('is loopback in de alleenstaande stand', async () => {
+    const map = mkdtempSync(join(tmpdir(), 'showroom-adres-'));
+    const kern = await startCore({ dataDirectory: map, mode: 'standalone' });
+    try {
+      expect(kern.address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+    } finally {
+      await kern.stop();
+      rmSync(map, { recursive: true, force: true });
+    }
+  });
+
+  it('is óók loopback in de hostmodus, want 0.0.0.0 is geen bestemming', async () => {
+    const map = mkdtempSync(join(tmpdir(), 'showroom-adres-host-'));
+    // Poort 0: laat het besturingssysteem er een vrije kiezen, zodat deze test
+    // niet botst met een kern die al op 4317 draait.
+    const kern = await startCore({ dataDirectory: map, mode: 'host', port: 0 });
+    try {
+      expect(kern.address).not.toContain('0.0.0.0');
+      expect(kern.address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+    } finally {
+      await kern.stop();
+      rmSync(map, { recursive: true, force: true });
+    }
   });
 });

@@ -692,7 +692,16 @@ if (!app.requestSingleInstanceLock()) {
               : 'De app draait alleenstaand op deze pc.',
           detail:
             config.mode === 'host'
-              ? `Collega's en telefoons bereiken de app op ${coreStatus.address}.`
+              ? (() => {
+                  // Niet coreStatus.address: dat is loopback, en daar komt een
+                  // collega nooit. Hij heeft het LAN-adres van deze pc nodig.
+                  const adressen = lanAdressen();
+                  return adressen.length === 0
+                    ? 'Deze pc heeft geen netwerkadres; controleer de netwerkverbinding.'
+                    : `Collega's en telefoons bereiken de app op ${adressen
+                        .map((adres) => `http://${adres}:${String(config.port)}`)
+                        .join(' of ')}.`;
+                })()
               : 'Alleen deze pc heeft toegang. Zet de hostmodus aan bij Instellingen > Netwerk.',
           buttons: ['Sluiten'],
         });

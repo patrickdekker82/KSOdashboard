@@ -479,6 +479,35 @@ Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
 - Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
   van "Failed to fetch".
 
+### De hostmodus liet geen enkel scherm zien (0.3.1)
+De applicatie draaide, maar na het omzetten naar netwerktoegang bleef het
+venster leeg.
+
+- **De kern gaf `http://0.0.0.0:4317` terug als adres.** Dat is het adres
+  waaróp geluisterd wordt — "alle netwerkkaarten" — en geen bestemming waar je
+  naartoe kunt verbinden. Zolang dat veld alleen ter informatie was viel het
+  niet op; sinds het venster de schermen bij de kern ophaalt, laadde het in de
+  hostmodus van een adres dat niet bestaat en bleef alles leeg. Het adres is nu
+  altijd loopback, wat in beide standen werkt: in de hostmodus zit 127.0.0.1 in
+  die 0.0.0.0 besloten.
+- **De melding voor collega's noemde datzelfde adres.** "Collega's bereiken de
+  app op http://0.0.0.0:4317" is onbruikbaar advies. Er staat nu het LAN-adres
+  van deze pc, of een nette melding als die er niet is.
+- Deze fout was er vóór het venster van de kern ging laden ook al, maar
+  onzichtbaar. Het is dus mijn eigen reparatie die hem naar boven bracht.
+
+Twee controles erbij. Een test op het adres zelf, die faalt op de oude versie
+met `expected 'http://0.0.0.0:39339' not to contain '0.0.0.0'`. En de
+venstercontrole zet de applicatie nu echt om naar de hostmodus, herstart hem —
+zoals het scherm zelf voorschrijft — en kijkt of er dan een scherm komt. Op de
+oude versie meldt die: *het venster bleef op het wachtscherm "Verbinden met de
+kern…" staan*.
+
+Bijkomend: de keuzelijst voor de netwerkstand stond ín zijn label, waardoor de
+naam ervan "Stand Alleenstaand (alleen deze pc) Host (ook op het netwerk)" werd
+— een voorlezing van de hele lijst in plaats van een naam. Nu gekoppeld met
+`htmlFor`, net als elders.
+
 ### Verlof invoeren, kansen aanmaken, pakketten samenstellen (0.3.0)
 
 - **Verlof voor een collega invullen kan nu ook echt.** Het recht bestond al

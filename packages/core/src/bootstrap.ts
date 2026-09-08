@@ -157,7 +157,21 @@ export async function startCore(options: BootstrapOptions): Promise<RunningCore>
     port,
     appToken,
     schemaVersion: schemaVersion(handle),
-    address: `http://${mode === 'host' ? '0.0.0.0' : '127.0.0.1'}:${port}`,
+    /*
+     * Het adres om naartoe te verbinden, en dat is iets anders dan het adres
+     * waarop geluisterd wordt.
+     *
+     * In de hostmodus luistert de kern op 0.0.0.0 — "alle netwerkkaarten" — en
+     * dat is geen bestemming: je kunt er niet naartoe verbinden. Zolang dit
+     * veld alleen ter informatie was viel dat niet op, maar sinds het venster
+     * de schermen bij de kern ophaalt, laadde het in de hostmodus van
+     * http://0.0.0.0:4317 en bleef alles leeg.
+     *
+     * Loopback werkt in beide standen: in de hostmodus zit 127.0.0.1 in die
+     * 0.0.0.0 besloten. Het adres dat een collega intypt is weer iets anders —
+     * dat is het LAN-adres van deze pc, en dat weet de schil.
+     */
+    address: `http://127.0.0.1:${port}`,
     stop: async () => {
       stopControle();
       stopBackup();

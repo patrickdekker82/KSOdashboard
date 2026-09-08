@@ -109,7 +109,11 @@ try {
     if (await verder.isVisible().catch(() => false)) {
       await doorNaarDeApplicatie(venster);
       await maakEnVerwijderEenKlant(venster);
-      afsluiten(0, 'Het venster opent, inloggen lukt en een klant aanmaken en verwijderen werkt.');
+      await schakelNaarHostmodus(venster);
+      afsluiten(
+        0,
+        'Het venster opent, inloggen lukt, aanmaken en verwijderen werkt, en de hostmodus laadt.',
+      );
     } else if (await melding.isVisible().catch(() => false)) {
       afsluiten(1, `Inloggen werd geweigerd: ${await melding.innerText()}`);
     } else {
@@ -185,4 +189,72 @@ async function maakEnVerwijderEenKlant(venster) {
   if (/body cannot be empty|content-type/i.test(tekst)) {
     throw new Error(`Verwijderen gaf een fout in beeld:\n${tekst.slice(0, 300)}`);
   }
+}
+
+/**
+ * De hostmodus aanzetten, de applicatie herstarten, en kijken of de schermen
+ * dan nog laden.
+ *
+ * Waarom hij herstart: het scherm zegt zelf "sluit de applicatie en start hem
+ * opnieuw" — de kern draait pas in de nieuwe stand na een herstart. Zonder die
+ * herstart test je niets.
+ *
+ * Waarom deze controle bestaat: de kern luistert in de hostmodus op 0.0.0.0 en
+ * gaf dat ook terug als adres. Dat is geen bestemming — je kunt er niet naartoe
+ * verbinden — dus het venster laadde van http://0.0.0.0:4317 en bleef leeg. De
+ * applicatie draaide gewoon door; alleen zag je niets meer.
+ */
+async function schakelNaarHostmodus(venster) {
+  await venster.getByRole('link', { name: 'Instellingen', exact: true }).click();
+  await venster
+    .getByText(/Netwerk/)
+    .first()
+    .click();
+
+  const stand = venster.getByLabel(/^stand$/i);
+  await stand.waitFor({ state: 'visible', timeout: 20_000 });
+  await stand.selectOption('host');
+  await venster
+    .getByRole('button', { name: /^opslaan$/i })
+    .first()
+    .click();
+  await venster
+    .getByText(/opgeslagen/i)
+    .first()
+    .waitFor({ state: 'visible', timeout: 20_000 });
+
+  // Herstarten met dezelfde gegevensmap, zodat config.json blijft staan.
+  await app.close();
+  app = await electron.launch({
+    executablePath: uitvoer,
+    args: ['--no-sandbox', `--user-data-dir=${gegevensmap}`],
+    timeout: 60_000,
+  });
+  const opnieuw = await app.firstWindow({ timeout: 60_000 });
+  await opnieuw.waitForLoadState('domcontentloaded').catch(() => undefined);
+
+  // Eerst het adres, dan pas wachten op inhoud. Andersom levert een
+  // nietszeggende time-out op terwijl de oorzaak in de adresbalk staat.
+  const url = opnieuw.url();
+  if (url.includes('0.0.0.0')) {
+    throw new Error(
+      `In de hostmodus laadt het venster van ${url}. Dat is het adres waaróp de kern ` +
+        'luistert, niet een adres waar je naartoe kunt verbinden — het scherm blijft leeg.',
+    );
+  }
+
+  await opnieuw
+    .getByRole('button', { name: /inloggen/i })
+    .or(opnieuw.getByRole('navigation', { name: /hoofdnavigatie/i }))
+    .first()
+    .waitFor({ state: 'visible', timeout: 60_000 })
+    .catch(() => {
+      // Blijft hij op het wachtscherm hangen, dan is de kern wel opgekomen
+      // maar lukte het laden niet. Dat is precies hoe deze fout zich in de
+      // praktijk voordoet: de applicatie draait, er is alleen niets te zien.
+      const waar = url.startsWith('data:')
+        ? 'het venster bleef op het wachtscherm "Verbinden met de kern…" staan'
+        : `het venster staat op ${url}`;
+      throw new Error(`Na het omzetten naar de hostmodus komt er geen scherm: ${waar}.`);
+    });
 }

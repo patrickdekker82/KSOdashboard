@@ -25,7 +25,9 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
       .configLezen()
       .then(setConfig)
       .catch((error: unknown) =>
-        setFout(error instanceof Error ? error.message : 'De instellingen konden niet worden gelezen.'),
+        setFout(
+          error instanceof Error ? error.message : 'De instellingen konden niet worden gelezen.',
+        ),
       );
   }, []);
 
@@ -87,18 +89,30 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
     <Terug onTerug={onTerug}>
       <Kaart accent={modus === 'host' ? 'var(--belasting)' : undefined}>
         <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>Netwerkstand</h2>
-        <p style={{ fontSize: 12, color: 'var(--inkt-zacht)', margin: '0 0 10px', lineHeight: 1.5 }}>
-          <strong>Alleenstaand</strong> is de gewone stand: de applicatie luistert alleen op deze
-          pc en niemand anders komt erbij. In <strong>hostmodus</strong> luistert hij ook op het
+        <p
+          style={{ fontSize: 12, color: 'var(--inkt-zacht)', margin: '0 0 10px', lineHeight: 1.5 }}
+        >
+          <strong>Alleenstaand</strong> is de gewone stand: de applicatie luistert alleen op deze pc
+          en niemand anders komt erbij. In <strong>hostmodus</strong> luistert hij ook op het
           bedrijfsnetwerk, zodat een collega of een telefoon in de browser mee kan kijken. De
           database blijft dan op déze pc staan — dat is de bedoeling, want een database op een
           netwerkschijf raakt beschadigd.
         </p>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label style={{ fontSize: 12 }}>
-            Stand
+          {/*
+            De select staat búiten het label, niet erin.
+            Een <label> die het besturingselement omvat krijgt alle tekst van
+            zijn nakomelingen in de naam: "Stand Alleenstaand (alleen deze pc)
+            Host (ook op het netwerk)". Dat is geen naam maar een voorlezing van
+            de hele keuzelijst.
+          */}
+          <div style={{ fontSize: 12 }}>
+            <label htmlFor="netwerk-stand" style={{ display: 'block' }}>
+              Stand
+            </label>
             <select
+              id="netwerk-stand"
               className="focus-ring"
               value={modus}
               onChange={(event) =>
@@ -112,11 +126,14 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
               <option value="standalone">Alleenstaand (alleen deze pc)</option>
               <option value="host">Host (ook op het netwerk)</option>
             </select>
-          </label>
+          </div>
 
-          <label style={{ fontSize: 12 }}>
-            Poort
+          <div style={{ fontSize: 12 }}>
+            <label htmlFor="netwerk-poort" style={{ display: 'block' }}>
+              Poort
+            </label>
             <input
+              id="netwerk-poort"
               className="focus-ring"
               type="number"
               min={1024}
@@ -127,7 +144,7 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
               }
               style={{ ...invoerStijl, width: 110, marginTop: 3, display: 'block' }}
             />
-          </label>
+          </div>
         </div>
 
         {modus === 'host' && (
@@ -150,7 +167,14 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
                 ))}
               </ul>
             )}
-            <p style={{ fontSize: 11, color: 'var(--inkt-zacht)', margin: '8px 0 0', lineHeight: 1.5 }}>
+            <p
+              style={{
+                fontSize: 11,
+                color: 'var(--inkt-zacht)',
+                margin: '8px 0 0',
+                lineHeight: 1.5,
+              }}
+            >
               Iedereen logt in met zijn eigen account. Windows Firewall vraagt de eerste keer om
               toestemming voor de poort; dat moet u toestaan voor het <em>particuliere</em> netwerk.
             </p>
@@ -193,7 +217,9 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
 
       <Kaart>
         <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>Updates</h2>
-        <p style={{ fontSize: 12, color: 'var(--inkt-zacht)', margin: '0 0 10px', lineHeight: 1.5 }}>
+        <p
+          style={{ fontSize: 12, color: 'var(--inkt-zacht)', margin: '0 0 10px', lineHeight: 1.5 }}
+        >
           De applicatie haalt niets op bij een leverancier. Wijs hier de map aan waar uw
           systeembeheerder de installer neerzet — meestal een map op de netwerkschijf. Blijft dit
           leeg, dan wordt er nooit ergens gekeken.
@@ -232,7 +258,12 @@ export function Netwerk({ onTerug }: { onTerug: () => void }): JSX.Element {
           className="focus-ring"
           disabled={bezig || Object.keys(concept).length === 0}
           onClick={() => void opslaan()}
-          style={{ ...dialoogKnop, background: 'var(--belasting)', color: '#fff', borderColor: 'transparent' }}
+          style={{
+            ...dialoogKnop,
+            background: 'var(--belasting)',
+            color: '#fff',
+            borderColor: 'transparent',
+          }}
         >
           Opslaan
         </button>
