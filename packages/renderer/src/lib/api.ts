@@ -95,6 +95,8 @@ export type Gebruiker = {
   role: 'admin' | 'manager' | 'user' | 'readonly';
   mustChangePassword: boolean;
   isKopersbegeleider: boolean;
+  /** Mag verlof en inzet voor collega's invullen, los van de rol. */
+  magVerlofBeheren: boolean;
 };
 
 declare global {
@@ -1183,6 +1185,16 @@ export type Pakketregel = {
   unit: string | null;
   unit_price_cents: number;
   sales_price_cents: number | null;
+  /** Inkoopprijs van het gekoppelde product, in centen. */
+  purchase_price_cents: number | null;
+  /**
+   * Marge op de kostprijs, in basispunten. Staat hier iets, dan volgt de
+   * verkoopprijs uit de inkoopprijs plus deze marge; leeg betekent dat de
+   * ingevulde verkoopprijs geldt.
+   */
+  margin_bp: number | null;
+  /** De prijs die werkelijk geldt, door de kern berekend. */
+  verkoop_cents: number;
   discount_bp: number;
   is_optional: number;
   category_label: string | null;

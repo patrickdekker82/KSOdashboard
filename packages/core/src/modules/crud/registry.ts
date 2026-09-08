@@ -55,7 +55,7 @@ export type EntityDefinition = {
    */
   beforeWrite?: (context: {
     handle: DatabaseHandle;
-    gebruiker: { id: number; role: UserRole };
+    gebruiker: { id: number; role: UserRole; magVerlofBeheren?: boolean };
     invoer: Record<string, unknown>;
     bestaand: Record<string, unknown> | null;
     actie: SchrijfActie;
@@ -232,7 +232,11 @@ export const ENTITIES: EntityDefinition[] = [
     // Verlof is van een persoon en kent een goedkeuringsstroom: zonder deze
     // bewaker kon iedereen verlof voor een collega boeken en zijn eigen
     // aanvraag meteen goedkeuren.
-    beforeWrite: eigenRegistratie({ wat: 'verlofaanvraag', statusViaStroom: true }),
+    beforeWrite: eigenRegistratie({
+      wat: 'verlof',
+      statusViaStroom: true,
+      zelfAanvragenInstelling: 'verlof_zelf_aanvragen',
+    }),
   }),
   entity({
     key: 'capacity-allocations',
@@ -245,7 +249,10 @@ export const ENTITIES: EntityDefinition[] = [
     filterable: ['id', 'user_id', 'allocation_type_id', 'project_id', 'start_date', 'end_date', 'status', ...AUDIT],
     searchable: ['title', 'external_project_name'],
     defaultSort: 'start_date DESC',
-    beforeWrite: eigenRegistratie({ wat: 'inzet elders' }),
+    beforeWrite: eigenRegistratie({
+      wat: 'inzet elders',
+      zelfAanvragenInstelling: 'verlof_zelf_aanvragen',
+    }),
   }),
   entity({
     // Het verlofrecht per medewerker per jaar. Wat er van dat recht af gaat,
@@ -342,7 +349,8 @@ export const ENTITIES: EntityDefinition[] = [
     table: 'package_items',
     writable: [
       'package_id', 'product_id', 'description', 'quantity', 'unit_price_cents',
-      'discount_bp', 'is_optional', 'is_quantity_variable', 'sort_order', 'category_label',
+      'margin_bp', 'discount_bp', 'is_optional', 'is_quantity_variable', 'sort_order',
+      'category_label',
     ],
     filterable: ['id', 'package_id', 'product_id', 'is_optional'],
     defaultSort: 'sort_order ASC',

@@ -84,8 +84,8 @@ export function Keuzelijsten({ onTerug }: { onTerug: () => void }): JSX.Element 
         <>
           De waarden achter de keuzevelden: projectstatus, bronnen, redenen van verlies,
           afwezigheidstypes. Een waarde die al gebruikt is kunt u beter <em>inactief</em> maken dan
-          verwijderen — dan blijft hij staan op de records waar hij op stond, en kan niemand hem
-          nog kiezen.
+          verwijderen — dan blijft hij staan op de records waar hij op stond, en kan niemand hem nog
+          kiezen.
         </>
       }
     >
@@ -166,6 +166,16 @@ const CAPACITEIT: Instelling[] = [
       'Onder deze marge waarschuwt de applicatie bij een offerte. 1500 basispunten is 15 procent.',
     soort: 'getal',
     stap: 100,
+  },
+  {
+    sleutel: 'verlof_zelf_aanvragen',
+    label: "Collega's vragen zelf verlof aan",
+    uitleg:
+      'Staat dit uit, dan voert alleen wie het recht heeft verlof en inzet in — de beheerder, ' +
+      "een manager, of iemand met het vinkje in het gebruikersbeheer. Collega's zien hun eigen " +
+      'verlof dan wel, maar kunnen niets aanvragen. De kern weigert het dan ook echt; het ' +
+      'formulier is niet alleen verborgen.',
+    soort: 'aan_uit',
   },
   {
     sleutel: 'goedkeuring_verlof_verplicht',
@@ -283,13 +293,26 @@ export function Capaciteit({ onTerug }: { onTerug: () => void }): JSX.Element {
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+            marginTop: 16,
+            flexWrap: 'wrap',
+          }}
+        >
           <button
             type="button"
             className="focus-ring"
             disabled={Object.keys(concept).length === 0 || opslaan.isPending}
             onClick={() => opslaan.mutate()}
-            style={{ ...dialoogKnop, background: 'var(--belasting)', color: '#fff', borderColor: 'transparent' }}
+            style={{
+              ...dialoogKnop,
+              background: 'var(--belasting)',
+              color: '#fff',
+              borderColor: 'transparent',
+            }}
           >
             Opslaan
           </button>

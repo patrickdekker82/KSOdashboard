@@ -1,0 +1,14 @@
+-- Verkoopprijs uit kostprijs plus marge, per pakketregel.
+--
+-- Een pakket kende al drie manieren om aan een prijs te komen: de som van de
+-- regels, die som plus een opslag, of een vaste prijs. Wat er niet was: de
+-- verkoopprijs van één regel afleiden uit de inkoopprijs van het product.
+--
+-- Dat is precies wat je wilt als je een pakket samenstelt: je kent de
+-- inkoopprijs, je weet welke marge erop moet, en de verkoopprijs volgt. En hij
+-- blijft volgen — verandert de inkoopprijs bij de leverancier, dan schuift de
+-- verkoopprijs mee zonder dat iemand elk pakket langs hoeft.
+--
+-- Leeg (NULL) betekent: de ingevulde verkoopprijs geldt, zoals altijd. Zo
+-- verandert er niets aan bestaande pakketten.
+ALTER TABLE package_items ADD COLUMN margin_bp INTEGER;

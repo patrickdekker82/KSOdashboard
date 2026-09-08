@@ -3,6 +3,29 @@ import type { FastifyInstance } from 'fastify';
 import { ApiError, currentUser } from '../../server.ts';
 import { bekijkVolgendNummer } from '../numbering/sequences.ts';
 import { pricePackage } from './pricing.ts';
+import { addMarginBp } from '@showroom/shared';
+
+type Regel = Record<string, unknown>;
+
+/**
+ * De verkoopprijs van één pakketregel.
+ *
+ * Staat er een marge op de regel, dan wordt de prijs afgeleid uit de
+ * inkoopprijs van het product: kostprijs plus die marge. Dat is wat je wilt bij
+ * het samenstellen van een pakket, en het blijft kloppen als de leverancier
+ * zijn prijs wijzigt.
+ *
+ * Zonder marge geldt de ingevulde prijs, en anders die van het product zelf.
+ */
+export function regelPrijs(regel: Regel): number {
+  const marge = regel.margin_bp;
+  if (marge !== null && marge !== undefined) {
+    return addMarginBp(Number(regel.purchase_price_cents ?? 0), Number(marge));
+  }
+  return Number(regel.unit_price_cents) > 0
+    ? Number(regel.unit_price_cents)
+    : Number(regel.sales_price_cents ?? 0);
+}
 import {
   accepteerOfferte,
   herberekenOfferte,
@@ -71,10 +94,7 @@ export async function registerPackageRoutes(app: FastifyInstance): Promise<void>
           items: regels.map((regel) => ({
             description: String(regel.description ?? regel.product_naam ?? 'Regel'),
             quantity: Number(regel.quantity),
-            unitPriceCents:
-              Number(regel.unit_price_cents) > 0
-                ? Number(regel.unit_price_cents)
-                : Number(regel.sales_price_cents ?? 0),
+            unitPriceCents: regelPrijs(regel),
             discountBp: Number(regel.discount_bp ?? 0),
             vatRateBp: Number(regel.vat_rate_bp ?? 2100),
             costPriceCents: Number(regel.purchase_price_cents ?? 0),
@@ -87,6 +107,11 @@ export async function registerPackageRoutes(app: FastifyInstance): Promise<void>
           regels: regels.map((regel) => ({
             ...regel,
             naam: String(regel.description ?? regel.product_naam ?? 'Regel'),
+            // De prijs die werkelijk geldt: met een marge komt hij uit de
+            // inkoopprijs, anders uit de regel of het product. Hier berekend en
+            // niet in het scherm, want twee plekken die hetzelfde uitrekenen
+            // lopen vroeg of laat uit elkaar.
+            verkoop_cents: regelPrijs(regel),
           })),
           prijs: {
             subtotaalCents: prijs.totalExclVatCents,

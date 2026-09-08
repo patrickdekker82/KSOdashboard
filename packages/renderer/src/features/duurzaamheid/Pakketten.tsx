@@ -16,6 +16,7 @@ import { endpoints, type PakketMetPrijs } from '../../lib/api.ts';
 import { Kaart, Skelet } from '../Dashboard.tsx';
 import { dialoogKnop } from '../kansen/Dialoog.tsx';
 import { OfferteDialoog } from './OfferteDialoog.tsx';
+import { PakketEditor } from './PakketEditor.tsx';
 
 const PRIJSMODUS: Record<PakketMetPrijs['pricing_mode'], string> = {
   sum: 'som van de regels',
@@ -26,13 +27,38 @@ const PRIJSMODUS: Record<PakketMetPrijs['pricing_mode'], string> = {
 export function Pakketten({ navigeer }: { navigeer: (pad: string) => void }): JSX.Element {
   const [offerteVoor, setOfferteVoor] = useState<PakketMetPrijs | null>(null);
   const [open, setOpen] = useState<number | null>(null);
+  /*
+   * Het id en niet het pakket zelf.
+   *
+   * Met een meegegeven object bleef de editor naar een momentopname kijken:
+   * een toegevoegde regel kwam wel in de database maar niet in beeld, want het
+   * object in deze state was nog het oude. Via het id wordt bij elke render de
+   * verse versie uit de query gepakt.
+   */
+  const [bewerktId, setBewerktId] = useState<number | 'nieuw' | null>(null);
 
   const pakketten = useQuery({ queryKey: ['pakketten'], queryFn: () => endpoints.pakketten() });
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <header>
-        <h1 style={{ fontSize: 18, margin: 0 }}>Duurzaamheidspakketten</h1>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: 18, margin: 0 }}>Duurzaamheidspakketten</h1>
+          <button
+            type="button"
+            className="focus-ring"
+            onClick={() => setBewerktId('nieuw')}
+            style={{
+              ...dialoogKnop,
+              background: 'var(--belasting)',
+              color: '#fff',
+              borderColor: 'transparent',
+              marginLeft: 'auto',
+            }}
+          >
+            + Nieuw pakket
+          </button>
+        </div>
         <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--inkt-stil)', lineHeight: 1.6 }}>
           De prijs wordt uitgerekend uit de regels; hij staat niet vast opgeslagen. Wijzigt de
           inkoop- of verkoopprijs van een product, dan staat het hier meteen goed.
@@ -93,11 +119,7 @@ export function Pakketten({ navigeer }: { navigeer: (pad: string) => void }): JS
             >
               <Cijfer label="Excl. btw" waarde={formatCurrency(pakket.prijs.subtotaalCents)} />
               <Cijfer label="Btw" waarde={formatCurrency(pakket.prijs.btwCents)} />
-              <Cijfer
-                label="Incl. btw"
-                waarde={formatCurrency(pakket.prijs.totaalCents)}
-                nadruk
-              />
+              <Cijfer label="Incl. btw" waarde={formatCurrency(pakket.prijs.totaalCents)} nadruk />
               {/* Intern cijfer: dit hoort op het scherm en niet op de offerte. */}
               <Cijfer
                 label="Marge (intern)"
@@ -124,6 +146,14 @@ export function Pakketten({ navigeer }: { navigeer: (pad: string) => void }): JS
               <button
                 type="button"
                 className="focus-ring"
+                onClick={() => setBewerktId(pakket.id)}
+                style={dialoogKnop}
+              >
+                Bewerken…
+              </button>
+              <button
+                type="button"
+                className="focus-ring"
                 onClick={() => setOfferteVoor(pakket)}
                 style={{ ...dialoogKnop, background: 'var(--belasting)', color: '#fff', border: 0 }}
               >
@@ -136,11 +166,21 @@ export function Pakketten({ navigeer }: { navigeer: (pad: string) => void }): JS
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--rand)' }}>
-                      <th scope="col" style={kop}>Onderdeel</th>
-                      <th scope="col" style={{ ...kop, textAlign: 'right' }}>Aantal</th>
-                      <th scope="col" style={kop}>Eenheid</th>
-                      <th scope="col" style={{ ...kop, textAlign: 'right' }}>Stuksprijs</th>
-                      <th scope="col" style={kop}>Soort</th>
+                      <th scope="col" style={kop}>
+                        Onderdeel
+                      </th>
+                      <th scope="col" style={{ ...kop, textAlign: 'right' }}>
+                        Aantal
+                      </th>
+                      <th scope="col" style={kop}>
+                        Eenheid
+                      </th>
+                      <th scope="col" style={{ ...kop, textAlign: 'right' }}>
+                        Stuksprijs
+                      </th>
+                      <th scope="col" style={kop}>
+                        Soort
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -172,14 +212,28 @@ export function Pakketten({ navigeer }: { navigeer: (pad: string) => void }): JS
                   </tbody>
                 </table>
                 <p style={{ fontSize: 11, color: 'var(--inkt-stil)', margin: '8px 0 0' }}>
-                  Optionele onderdelen tellen niet mee in de pakketprijs hierboven; de klant kiest ze
-                  er per offerte bij.
+                  Optionele onderdelen tellen niet mee in de pakketprijs hierboven; de klant kiest
+                  ze er per offerte bij.
                 </p>
               </div>
             )}
           </Kaart>
         );
       })}
+
+      {/*
+        Alleen tonen als we het pakket ook echt hebben. Een niet-gevonden id
+        zou anders als "nieuw pakket" worden opgevat, en dan maakt een
+        bewerkactie stilletjes een tweede pakket aan.
+      */}
+      {bewerktId === 'nieuw' && <PakketEditor pakket={null} onSluit={() => setBewerktId(null)} />}
+      {typeof bewerktId === 'number' &&
+        (() => {
+          const gekozen = (pakketten.data?.data ?? []).find((rij) => rij.id === bewerktId);
+          return gekozen === undefined ? null : (
+            <PakketEditor pakket={gekozen} onSluit={() => setBewerktId(null)} />
+          );
+        })()}
 
       {offerteVoor && (
         <OfferteDialoog

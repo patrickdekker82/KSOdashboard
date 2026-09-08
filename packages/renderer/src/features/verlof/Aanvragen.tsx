@@ -37,17 +37,48 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
   const [melding, setMelding] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
 
+  /*
+   * Voor wie het verlof is.
+   *
+   * Dit scherm was vastgezet op de ingelogde gebruiker, terwijl de kern het al
+   * toestond dat een manager, beheerder of iemand met het vinkje het voor een
+   * collega invult. Alleen wie dat recht heeft ziet deze keuze.
+   */
+  const magVoorAnderen =
+    ik.role === 'admin' || ik.role === 'manager' || ik.magVerlofBeheren === true;
+  const [voorWie, setVoorWie] = useState(ik.id);
+  const doelId = magVoorAnderen ? voorWie : ik.id;
+
+  const collegas = useQuery({
+    queryKey: ['verlof-collegas'],
+    queryFn: () => endpoints.lijst<{ id: number; name: string }>('users', '?pageSize=200'),
+    enabled: magVoorAnderen,
+    staleTime: 5 * 60_000,
+  });
+
+  const instellingen = useQuery({
+    queryKey: ['instellingen'],
+    queryFn: () => endpoints.instellingenLezen(),
+    staleTime: 60_000,
+  });
+  // Ontbreekt de sleutel, dan mag het: een bestaande installatie hoort niet
+  // stiller te worden door een nieuwe instelling.
+  const zelfAanvragenMag =
+    (instellingen.data?.data as Record<string, unknown> | undefined)?.verlof_zelf_aanvragen !==
+    false;
+  const magInvoeren = magVoorAnderen || zelfAanvragenMag;
+
   const types = useQuery({
     queryKey: ['afwezigheidstypes'],
     queryFn: () => endpoints.afwezigheidstypes(),
   });
 
   const mijn = useQuery({
-    queryKey: ['mijn-verlof', ik.id],
+    queryKey: ['mijn-verlof', doelId],
     queryFn: () =>
       endpoints.lijst<Afwezigheid>(
         'absences',
-        `?filter=${btoa(JSON.stringify({ field: 'user_id', operator: 'eq', value: ik.id }))}&pageSize=100`,
+        `?filter=${btoa(JSON.stringify({ field: 'user_id', operator: 'eq', value: doelId }))}&pageSize=100`,
       ),
   });
 
@@ -68,14 +99,17 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
 
   // De waarschuwing loopt mee met wat er staat, dus zonder knop "controleren".
   const conflicten = useQuery({
-    queryKey: ['verlofconflicten', ik.id, start, tot, dagdeel],
-    queryFn: () => endpoints.verlofConflicten(ik.id, start, tot, dagdeel),
+    queryKey: ['verlofconflicten', doelId, start, tot, dagdeel],
+    queryFn: () => endpoints.verlofConflicten(doelId, start, tot, dagdeel),
     enabled: compleet,
   });
 
   const aanvragen = useMutation({
     mutationFn: () =>
       endpoints.bewaar<Afwezigheid>('absences', null, {
+        // Alleen meesturen als het echt voor een ander is; de kern vult
+        // anders zelf de ingelogde gebruiker in.
+        ...(doelId === ik.id ? {} : { user_id: doelId }),
         absence_type_id: typeId,
         start_date: start,
         end_date: tot,
@@ -116,15 +150,50 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <Kaart>
-        <h2 style={{ fontSize: 15, margin: '0 0 12px' }}>Verlof aanvragen</h2>
+        <h2 style={{ fontSize: 15, margin: '0 0 12px' }}>
+          {magVoorAnderen && doelId !== ik.id ? 'Verlof invoeren' : 'Verlof aanvragen'}
+        </h2>
+
+        {!magInvoeren && (
+          <p
+            style={{
+              fontSize: 13,
+              color: 'var(--inkt-zacht)',
+              margin: '0 0 12px',
+              lineHeight: 1.55,
+            }}
+          >
+            Op deze afdeling wordt verlof niet door uzelf ingevoerd. Geef het door aan wie de
+            planning bijhoudt; hieronder ziet u wel wat er voor u vastligt.
+          </p>
+        )}
 
         <div
           style={{
             display: 'grid',
             gap: 12,
             gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            ...(magInvoeren ? {} : { display: 'none' }),
           }}
         >
+          {magVoorAnderen && (
+            <label style={{ fontSize: 12 }}>
+              Voor wie
+              <select
+                className="focus-ring"
+                value={voorWie}
+                onChange={(event) => setVoorWie(Number(event.target.value))}
+                style={{ ...invoerStijl, width: '100%', marginTop: 3, display: 'block' }}
+              >
+                {(collegas.data?.data ?? []).map((collega) => (
+                  <option key={collega.id} value={collega.id}>
+                    {collega.id === ik.id ? `${collega.name} (uzelf)` : collega.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <label style={{ fontSize: 12 }}>
             Soort
             <select
@@ -162,7 +231,9 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
               onChange={(event) => setEind(event.target.value)}
               style={{ ...invoerStijl, width: '100%', marginTop: 3 }}
             />
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--inkt-stil)', marginTop: 2 }}>
+            <span
+              style={{ display: 'block', fontSize: 11, color: 'var(--inkt-stil)', marginTop: 2 }}
+            >
               Leeg laten voor één dag.
             </span>
           </label>
@@ -185,7 +256,9 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
               ))}
             </select>
             {gekozenType?.allow_half_days === 0 && (
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--inkt-stil)', marginTop: 2 }}>
+              <span
+                style={{ display: 'block', fontSize: 11, color: 'var(--inkt-stil)', marginTop: 2 }}
+              >
                 Bij dit soort afwezigheid kan geen halve dag.
               </span>
             )}
@@ -204,13 +277,17 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
         </label>
 
         {gekozenType?.visibility === 'management' && (
-          <p style={{ fontSize: 11, color: 'var(--inkt-stil)', margin: '8px 0 0', lineHeight: 1.6 }}>
-            Collega's zien alleen dat u afwezig bent, niet wat voor soort afwezigheid het is.
-            Noteer hier dus niets wat privé is.
+          <p
+            style={{ fontSize: 11, color: 'var(--inkt-stil)', margin: '8px 0 0', lineHeight: 1.6 }}
+          >
+            Collega's zien alleen dat u afwezig bent, niet wat voor soort afwezigheid het is. Noteer
+            hier dus niets wat privé is.
           </p>
         )}
 
-        {compleet && <Waarschuwing conflict={conflicten.data?.data} bezig={conflicten.isFetching} />}
+        {compleet && (
+          <Waarschuwing conflict={conflicten.data?.data} bezig={conflicten.isFetching} />
+        )}
 
         {fout && (
           <p role="alert" style={{ color: 'var(--ziekte)', fontSize: 12, marginTop: 10 }}>
@@ -252,12 +329,24 @@ export function Aanvragen({ ik }: { ik: Gebruiker }): JSX.Element {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--rand)' }}>
-                  <th scope="col" style={kop}>Soort</th>
-                  <th scope="col" style={kop}>Van</th>
-                  <th scope="col" style={kop}>Tot en met</th>
-                  <th scope="col" style={kop}>Status</th>
-                  <th scope="col" style={kop}>Toelichting</th>
-                  <th scope="col" style={kop}><span className="alleen-voorlezen">Acties</span></th>
+                  <th scope="col" style={kop}>
+                    Soort
+                  </th>
+                  <th scope="col" style={kop}>
+                    Van
+                  </th>
+                  <th scope="col" style={kop}>
+                    Tot en met
+                  </th>
+                  <th scope="col" style={kop}>
+                    Status
+                  </th>
+                  <th scope="col" style={kop}>
+                    Toelichting
+                  </th>
+                  <th scope="col" style={kop}>
+                    <span className="alleen-voorlezen">Acties</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>

@@ -1227,3 +1227,81 @@ describe('verlof voor een collega invullen', () => {
     expect(response.statusCode).toBe(201);
   });
 });
+
+describe('zelf verlof aanvragen uitzetten', () => {
+  /** Zet de instelling zoals het instellingenscherm dat doet. */
+  function zetInstelling(waarde: boolean): void {
+    handle.raw
+      .prepare(
+        `INSERT INTO settings (key, value) VALUES ('verlof_zelf_aanvragen', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      )
+      .run(JSON.stringify(waarde));
+  }
+
+  it('laat een medewerker zijn eigen verlof aanvragen zolang de instelling aanstaat', async () => {
+    zetInstelling(true);
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: 1, start_date: '2026-11-02', end_date: '2026-11-02' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+
+  it('weigert dat zodra de instelling uitstaat', async () => {
+    zetInstelling(false);
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: 1, start_date: '2026-11-03', end_date: '2026-11-03' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe('zelf_aanvragen_uit');
+  });
+
+  it('laat de beheerder het dan nog steeds voor een collega invoeren', async () => {
+    zetInstelling(false);
+    const cookie = await login();
+    const dennis = Number(
+      (
+        handle.raw
+          .prepare('SELECT id FROM users WHERE email = ?')
+          .get('dennis@showroom.local') as { id: number }
+      ).id,
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        user_id: dennis,
+        absence_type_id: 1,
+        start_date: '2026-11-04',
+        end_date: '2026-11-04',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+
+  it('mag zonder de instelling gewoon door: een bestaande installatie wordt niet stiller', async () => {
+    handle.raw.prepare("DELETE FROM settings WHERE key = 'verlof_zelf_aanvragen'").run();
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: { absence_type_id: 1, start_date: '2026-11-05', end_date: '2026-11-05' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+});

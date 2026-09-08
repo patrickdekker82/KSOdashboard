@@ -479,6 +479,40 @@ Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
 - Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
   van "Failed to fetch".
 
+### Verlof invoeren, kansen aanmaken, pakketten samenstellen (0.3.0)
+
+- **Verlof voor een collega invullen kan nu ook echt.** Het recht bestond al
+  sinds 0.2.0, maar het scherm was vastgezet op de ingelogde gebruiker: er was
+  geen veld om iemand anders te kiezen. Wie het recht heeft ziet nu bovenaan
+  *Voor wie*, en de eigen lijst, de conflictwaarschuwing en het saldo lopen
+  daarin mee.
+- **Zelf aanvragen kan uit.** Nieuwe instelling bij Capaciteitsinstellingen:
+  staat hij uit, dan voert alleen wie het recht heeft verlof en inzet in.
+  Collega's zien hun eigen verlof nog wel. De kern weigert het dan ook echt —
+  een verborgen formulier is een suggestie, geen regel. Vier tests, waaronder
+  die welke bewijst dat een bestaande installatie niet stiller wordt als de
+  instelling ontbreekt.
+- **Aanmaakknop op het kansenbord.** Een kans aanmaken kon al via
+  Lijstweergave, maar het bord is het scherm waar je binnenkomt, en daar leek
+  het alsof het niet kon.
+
+- **Pakketten zijn zelf samen te stellen.** Het pakkettenscherm kon alleen
+  tonen. Nu aanmaken en bewerken, met de drie prijsmanieren die de kern al
+  kende: som van de regels, die som plus een opslag, of een vaste prijs.
+- **Marge op de inkoopprijs, per regel.** Nieuwe migratie
+  `0006_regelmarge`: staat er een marge op een pakketregel, dan volgt de
+  verkoopprijs uit de inkoopprijs van het product plus die marge — en hij
+  blijft volgen, dus een prijswijziging bij de leverancier werkt vanzelf door.
+  Leeg laten betekent dat de ingevulde prijs geldt, zoals altijd. Zes tests op
+  de berekening, inclusief afronding op hele centen.
+- **Een productenscherm.** Zonder dit was de pakketeditor op een verse
+  installatie onbruikbaar: een pakketregel wijst naar een product, en er was
+  geen manier om er een aan te maken. Naam, artikelnummer, eenheid, inkoop- en
+  verkoopprijs, btw.
+- De berekende regelprijs komt uit de kern en niet uit een sommetje in het
+  scherm. Twee plekken die hetzelfde uitrekenen lopen vroeg of laat uit elkaar,
+  en dan is het de vraag welke van de twee op de offerte staat.
+
 ### Beheer: gebruikers, wachtwoorden, rechten en velden
 
 - **Het versienummer loopt weer op.** Elke build heette 0.1.0, dus in Apps en

@@ -16,6 +16,7 @@ import { ApiFout, endpoints, type BordKans, type Fase } from '../../lib/api.ts';
 import { Kaart, Skelet } from '../Dashboard.tsx';
 import { WinDialoog } from './WinDialoog.tsx';
 import { VerliesDialoog } from './VerliesDialoog.tsx';
+import { NieuwDialoog } from '../generiek/NieuwDialoog.tsx';
 
 type Dialoog = { soort: 'winnen' | 'verliezen'; kans: BordKans } | null;
 
@@ -32,6 +33,7 @@ export function Kansenbord({
   const [doelFase, setDoelFase] = useState<number | null>(null);
   const [dialoog, setDialoog] = useState<Dialoog>(null);
   const [melding, setMelding] = useState<string | null>(null);
+  const [nieuwOpen, setNieuwOpen] = useState(false);
 
   const bord = useQuery({
     queryKey: ['kansenbord', eigenaarId],
@@ -127,6 +129,19 @@ export function Kansenbord({
           Lijstweergave
         </button>
 
+        {/*
+          Aanmaken kon alleen via de lijstweergave, en dit bord is het scherm
+          waar je binnenkomt. Dan lijkt het alsof het niet kan.
+        */}
+        <button
+          type="button"
+          className="focus-ring"
+          onClick={() => setNieuwOpen(true)}
+          style={{ ...knopStijl, background: 'var(--belasting)', color: '#fff', border: 0 }}
+        >
+          + Nieuwe kans
+        </button>
+
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--inkt-stil)' }}>
           {kansen.length} open kans{kansen.length === 1 ? '' : 'en'} ·{' '}
           {formatCurrency(kansen.reduce((som, kans) => som + kans.amount_cents, 0))}
@@ -215,6 +230,18 @@ export function Kansenbord({
             );
           })}
         </div>
+      )}
+
+      {nieuwOpen && (
+        <NieuwDialoog
+          entiteit="opportunities"
+          titel="kans"
+          onSluit={() => setNieuwOpen(false)}
+          onAangemaakt={(id) => {
+            setNieuwOpen(false);
+            if (id > 0) onOpen(id);
+          }}
+        />
       )}
 
       {dialoog?.soort === 'winnen' && (

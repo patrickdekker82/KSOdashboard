@@ -13,6 +13,7 @@
  */
 import type { UserRole } from '@showroom/shared';
 import { ApiError } from '../../api-error.ts';
+import type { DatabaseHandle } from '../../db/client.ts';
 import type { EntityDefinition } from './registry.ts';
 
 type Rij = Record<string, unknown>;
@@ -31,9 +32,30 @@ function magVoorIedereen(gebruiker: { role: UserRole; magVerlofBeheren?: boolean
   );
 }
 
+/**
+ * Leest of collega's zelf mogen invoeren. Ontbreekt de instelling, dan mag het:
+ * een bestaande installatie hoort niet stiller te worden door een nieuwe sleutel.
+ */
+function zelfAanvragenMag(handle: DatabaseHandle, sleutel: string): boolean {
+  const rij = handle.raw.prepare('SELECT value FROM settings WHERE key = ?').get(sleutel) as
+    | { value: string }
+    | undefined;
+  if (!rij) return true;
+  try {
+    return JSON.parse(rij.value) !== false;
+  } catch {
+    return true;
+  }
+}
+
 export type EigenRegistratieOpties = {
   /** Hoe de registratie in een foutmelding heet, bijvoorbeeld "verlofaanvraag". */
   wat: string;
+  /**
+   * Sleutel van de instelling die zegt of collega's zelf mogen invoeren. Weg
+   * laten betekent: altijd toegestaan.
+   */
+  zelfAanvragenInstelling?: string;
   /**
    * Zet de statuskolom buiten bereik van de gewone gebruiker. De status
    * verandert dan alleen nog via de goedkeuringsstroom.
@@ -48,8 +70,27 @@ export type EigenRegistratieOpties = {
 export function eigenRegistratie(
   opties: EigenRegistratieOpties,
 ): NonNullable<EntityDefinition['beforeWrite']> {
-  return ({ gebruiker, invoer, bestaand, actie }) => {
+  return ({ handle, gebruiker, invoer, bestaand, actie }) => {
     const iedereen = magVoorIedereen(gebruiker);
+
+    /*
+     * Sommige afdelingen willen niet dat collega's zelf iets aanvragen: één
+     * iemand houdt de planning bij en de rest meldt het mondeling. Staat de
+     * instelling uit, dan kan alleen wie het recht heeft nog invoeren.
+     *
+     * Server-side, niet alleen het formulier verbergen: een scherm verbergen
+     * is een suggestie, geen regel.
+     */
+    if (opties.zelfAanvragenInstelling !== undefined && !iedereen && actie === 'aangemaakt') {
+      if (!zelfAanvragenMag(handle, opties.zelfAanvragenInstelling)) {
+        throw new ApiError(
+          403,
+          'zelf_aanvragen_uit',
+          `Op deze afdeling wordt ${opties.wat} niet door uzelf ingevoerd. ` +
+            'Geef het door aan wie de planning bijhoudt.',
+        );
+      }
+    }
 
     // Wie geen medewerker meestuurt, bedoelt zichzelf. Dat scheelt de UI een
     // veld en voorkomt een NOT NULL-fout uit SQLite.

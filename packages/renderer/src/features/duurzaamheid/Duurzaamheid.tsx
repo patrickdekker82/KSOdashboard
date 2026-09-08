@@ -4,15 +4,17 @@
  */
 import { useState, type JSX } from 'react';
 import { Pakketten } from './Pakketten.tsx';
+import { Producten } from './Producten.tsx';
 import { GeneriekeLijst } from '../generiek/GeneriekeLijst.tsx';
 
-type Tab = 'pakketten' | 'offertes';
+type Tab = 'pakketten' | 'producten' | 'offertes';
 
 export function Duurzaamheid({ navigeer }: { navigeer: (pad: string) => void }): JSX.Element {
   const [tab, setTab] = useState<Tab>('pakketten');
 
   const tabbladen: Array<{ sleutel: Tab; label: string }> = [
     { sleutel: 'pakketten', label: 'Pakketten' },
+    { sleutel: 'producten', label: 'Producten' },
     { sleutel: 'offertes', label: 'Offertes' },
   ];
 
@@ -52,6 +54,7 @@ export function Duurzaamheid({ navigeer }: { navigeer: (pad: string) => void }):
 
       <div role="tabpanel">
         {tab === 'pakketten' && <Pakketten navigeer={navigeer} />}
+        {tab === 'producten' && <Producten />}
         {tab === 'offertes' && (
           <GeneriekeLijst
             entiteit="package-quotes"
