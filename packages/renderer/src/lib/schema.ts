@@ -13,7 +13,7 @@ import type { Keuze } from '../components/velden/VeldInvoer.tsx';
 import type { Opzoeker } from '../components/velden/VeldWaarde.tsx';
 
 /** Kolom in een verwijsentiteit die als label dient. */
-const LABELKOLOM: Record<string, string> = {
+export const LABELKOLOM: Record<string, string> = {
   users: 'name',
   organizations: 'name',
   contacts: 'last_name',
@@ -26,6 +26,17 @@ const LABELKOLOM: Record<string, string> = {
   products: 'name',
   packages: 'name',
 };
+
+/** De entiteit waar een verwijzingsveld heen wijst. */
+export function verwijsEntiteit(veld: FieldDefinition): string {
+  return veld.type === 'user' ? 'users' : (veld.relationEntity ?? 'users');
+}
+
+/** Het label van een rij uit een verwijsentiteit. */
+export function labelVanRij(entiteit: string, rij: Record<string, unknown>): string {
+  const kolom = LABELKOLOM[entiteit] ?? 'name';
+  return String(rij[kolom] ?? rij.name ?? rij.initials ?? `#${String(rij.id)}`);
+}
 
 export type EntiteitSchema = {
   velden: FieldDefinition[];

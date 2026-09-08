@@ -19,6 +19,7 @@ import { OfferteDetail } from './features/duurzaamheid/OfferteDetail.tsx';
 import { Instellingen } from './features/instellingen/Instellingen.tsx';
 import { AiInstellingen } from './features/ai/AiInstellingen.tsx';
 import { Backup } from './features/instellingen/Backup.tsx';
+import { Disciplines } from './features/instellingen/Disciplines.tsx';
 import { Netwerk } from './features/instellingen/Netwerk.tsx';
 import {
   Capaciteit,
@@ -34,6 +35,7 @@ import { KansDetail } from './features/kansen/KansDetail.tsx';
 import { Rapportages } from './features/rapportages/Rapportages.tsx';
 import { Importwizard } from './features/projecten/Importwizard.tsx';
 import { Projectfasen } from './features/projecten/Projectfasen.tsx';
+import { Projectdisciplines } from './features/projecten/Projectdisciplines.tsx';
 import type { JSX } from 'react';
 
 export function App(): JSX.Element {
@@ -106,9 +108,13 @@ export function App(): JSX.Element {
 }
 
 /** Entiteiten die via de generieke lijst en detailpagina lopen. */
-const GENERIEK: Record<string, { entiteit: string; titel: string }> = {
-  '/klanten': { entiteit: 'organizations', titel: 'Klanten' },
-  '/contactpersonen': { entiteit: 'contacts', titel: 'Contactpersonen' },
+const GENERIEK: Record<string, { entiteit: string; titel: string; enkelvoud: string }> = {
+  '/klanten': { entiteit: 'organizations', titel: 'Klanten', enkelvoud: 'klant' },
+  '/contactpersonen': {
+    entiteit: 'contacts',
+    titel: 'Contactpersonen',
+    enkelvoud: 'contactpersoon',
+  },
 };
 
 /** Leest het record-id uit een pad als `/kansen/12`. Geeft `null` bij `/kansen`. */
@@ -149,6 +155,8 @@ function Inhoud({
     return <Keuzelijsten onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/instellingen/capaciteit'))
     return <Capaciteit onTerug={() => navigeer('/instellingen')} />;
+  if (pad.startsWith('/instellingen/disciplines'))
+    return <Disciplines onTerug={() => navigeer('/instellingen')} />;
   if (pad.startsWith('/dubbelen')) return <Dubbelen navigeer={navigeer} />;
   if (pad.startsWith('/rapportages')) return <Rapportages ik={gebruiker} />;
 
@@ -171,6 +179,7 @@ function Inhoud({
       <GeneriekeLijst
         entiteit="projects"
         titel="Projecten"
+        enkelvoud="project"
         onOpen={(projectId) => navigeer(`/projecten/${projectId}`)}
         acties={
           <button
@@ -197,7 +206,12 @@ function Inhoud({
         id={id}
         titel="Projecten"
         onTerug={() => navigeer('/projecten')}
-        extra={<Projectfasen projectId={id} />}
+        extra={
+          <>
+            <Projectdisciplines projectId={id} />
+            <Projectfasen projectId={id} />
+          </>
+        }
       />
     );
   }
@@ -210,6 +224,7 @@ function Inhoud({
       <GeneriekeLijst
         entiteit="opportunities"
         titel="Kansen"
+        enkelvoud="kans"
         onOpen={(kansId) => navigeer(`/kansen/${kansId}`)}
       />
     );
@@ -245,6 +260,7 @@ function Inhoud({
       <GeneriekeLijst
         entiteit={opzet.entiteit}
         titel={opzet.titel}
+        enkelvoud={opzet.enkelvoud}
         onOpen={(recordId) => navigeer(`${basis}/${recordId}`)}
       />
     );

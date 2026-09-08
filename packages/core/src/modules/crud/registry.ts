@@ -211,6 +211,13 @@ export const ENTITIES: EntityDefinition[] = [
     defaultSort: 'sort_order ASC',
   }),
   entity({
+    key: 'project-disciplines',
+    table: 'project_disciplines',
+    writable: ['project_id', 'discipline_id', 'note', 'custom_fields'],
+    filterable: ['id', 'project_id', 'discipline_id', ...AUDIT],
+    defaultSort: 'id ASC',
+  }),
+  entity({
     key: 'absences',
     table: 'absences',
     writable: [

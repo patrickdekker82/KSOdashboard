@@ -107,7 +107,9 @@ try {
     ]).catch(() => undefined);
 
     if (await verder.isVisible().catch(() => false)) {
-      afsluiten(0, 'Het venster opent, inloggen lukt en de sessie blijft staan.');
+      await doorNaarDeApplicatie(venster);
+      await maakEnVerwijderEenKlant(venster);
+      afsluiten(0, 'Het venster opent, inloggen lukt en een klant aanmaken en verwijderen werkt.');
     } else if (await melding.isVisible().catch(() => false)) {
       afsluiten(1, `Inloggen werd geweigerd: ${await melding.innerText()}`);
     } else {
@@ -121,4 +123,66 @@ try {
   }
 } catch (fout) {
   afsluiten(1, `Het venster kwam niet op: ${fout instanceof Error ? fout.message : String(fout)}`);
+}
+
+/**
+ * Door het verplichte wachtwoordscherm heen, de applicatie in.
+ *
+ * Het wijzigen maakt alle sessies ongeldig — met opzet — dus daarna moet er
+ * opnieuw ingelogd worden.
+ */
+async function doorNaarDeApplicatie(venster) {
+  await venster.getByLabel(/huidig wachtwoord/i).fill('Showroom2026!');
+  await venster.getByLabel(/^nieuw wachtwoord$/i).fill('Sleutelbos2026x');
+  await venster.getByLabel(/nogmaals/i).fill('Sleutelbos2026x');
+  await venster.getByRole('button', { name: /wachtwoord wijzigen/i }).click();
+
+  const inlog = venster.getByRole('button', { name: /inloggen/i });
+  await inlog.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined);
+  if (await inlog.isVisible().catch(() => false)) {
+    await venster.getByLabel(/e-mailadres/i).fill('patrick@showroom.local');
+    await venster.getByLabel(/^wachtwoord$/i).fill('Sleutelbos2026x');
+    await inlog.click();
+  }
+  await venster
+    .getByRole('navigation', { name: /hoofdnavigatie/i })
+    .waitFor({ state: 'visible', timeout: 30_000 });
+}
+
+/**
+ * Een klant aanmaken, openen en weer verwijderen.
+ *
+ * De lijst toonde alleen wat er al was: geen knop om iets toe te voegen, geen
+ * manier om iets weg te halen. De kern kon het allang. Dit scenario loopt de
+ * hele weg, want daar bleek ook nog een tweede fout in te zitten: een DELETE
+ * zonder body die zich wél als JSON aankondigde, en die Fastify weigerde.
+ */
+async function maakEnVerwijderEenKlant(venster) {
+  await venster.getByRole('link', { name: 'Klanten', exact: true }).click();
+
+  const nieuw = venster.getByRole('button', { name: /\+ nieuw/i });
+  await nieuw.waitFor({ state: 'visible', timeout: 20_000 });
+  await nieuw.click();
+
+  const dialoog = venster.getByRole('dialog');
+  await dialoog.waitFor({ state: 'visible', timeout: 15_000 });
+  await dialoog.locator('input').first().fill('Proefklant uit de opstartcontrole');
+  await venster.getByRole('button', { name: /^aanmaken$/i }).click();
+
+  // Na het aanmaken hoort de detailpagina open te staan.
+  await venster.getByRole('button', { name: /^bewerken$/i }).waitFor({ timeout: 20_000 });
+
+  await venster.getByRole('button', { name: /verwijderen…/i }).click();
+  await venster.getByRole('dialog').waitFor({ state: 'visible', timeout: 10_000 });
+  await venster
+    .getByRole('dialog')
+    .getByRole('button', { name: /^verwijderen$/i })
+    .click();
+
+  // Terug in de lijst, en de melding over een lege body mag nergens staan.
+  await nieuw.waitFor({ state: 'visible', timeout: 20_000 });
+  const tekst = await venster.locator('main').innerText();
+  if (/body cannot be empty|content-type/i.test(tekst)) {
+    throw new Error(`Verwijderen gaf een fout in beeld:\n${tekst.slice(0, 300)}`);
+  }
 }

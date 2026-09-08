@@ -41,6 +41,14 @@ const ONDERDELEN: Array<{ pad: string; titel: string; uitleg: string; klaar: boo
     klaar: true,
   },
   {
+    pad: '/instellingen/disciplines',
+    titel: 'Productdisciplines',
+    uitleg:
+      'Badkamer, keuken, tegelwerk: waar een kans en een project uit opgebouwd zijn. Met een ' +
+      'standaardmarge en een doorlooptijd per discipline.',
+    klaar: true,
+  },
+  {
     pad: '/instellingen/capaciteit',
     titel: 'Capaciteitsinstellingen',
     uitleg:

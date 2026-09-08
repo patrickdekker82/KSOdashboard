@@ -801,6 +801,28 @@ Een BSN wordt alleen als BSN weggehaald als het door de elfproef komt. Anders
 zou elk negencijferig getal — een ordernummer, een bouwnummerreeks —
 verdwijnen, en dan verandert de vraag die je stelt.
 
+### Een project heeft meerdere disciplines
+
+`project_disciplines` is een koppeltabel en geen kolom `discipline_id` op
+`projects`. Een woning met een badkamer én een keuken is de gewone situatie en
+niet de uitzondering; een enkele kolom had de eerste week gewerkt en daarna
+gewrongen, en dan zit je met een migratie op gevulde data.
+
+De koppeling draagt een eigen notitie, want elk project verzint hier iets eigens:
+"alleen bouwnummer 1 t/m 20", "showroom via de leverancier".
+
+Kansen houden hun bestaande weg via `opportunity_lines`: daar hangt per
+discipline ook een bedrag en een marge aan, en dat is iets anders dan de vraag
+welke disciplines er in een project meelopen.
+
+### Verwijzingen worden gezocht, niet uitgeklapt
+
+Een verwijzingsveld laadt maximaal vijfhonderd rijen. Dat is geen keuzelijst
+meer maar een zoekprobleem, dus het veld zoekt twee kanten op: in wat al geladen
+is (meteen, zonder wachten) en bij de kern (zodat nummer 501 ook gevonden
+wordt). Gewone keuzelijsten — statussen, bronnen — blijven uitklappen: die zijn
+kort en veranderen zelden.
+
 ## Vooruit
 
 - **PostgreSQL blijft mogelijk.** SQLite-specifieke SQL staat alleen in

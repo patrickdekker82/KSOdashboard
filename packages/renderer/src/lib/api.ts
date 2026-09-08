@@ -49,6 +49,28 @@ export type Updateuitkomst = {
   gecontroleerdOp: string;
 };
 
+/** Een productdiscipline: badkamer, keuken, tegelwerk. */
+export type Discipline = {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  default_margin_bp: number;
+  default_lead_weeks: number | null;
+  sort_order: number;
+  active: number;
+  archived_at: string | null;
+};
+
+/** De koppeling tussen een project en een discipline. */
+export type Projectdiscipline = {
+  id: number;
+  project_id: number;
+  discipline_id: number;
+  note: string | null;
+};
+
 export type Gebruiker = {
   id: number;
   name: string;
@@ -85,16 +107,42 @@ declare global {
   }
 }
 
+/** Wat de kern per veld terugmeldt bij een validatiefout. */
+export type VeldFout = { veld: string; label?: string; melding: string };
+
 export class ApiFout extends Error {
   readonly status: number;
   readonly code: string;
+  /**
+   * De details die de kern meestuurt, meestal een lijst veldfouten.
+   *
+   * Die werden hier weggegooid terwijl de schermen er wél op rekenden: de
+   * detailpagina zette veldfouten bij het veld zelf, maar kreeg ze nooit en
+   * viel altijd terug op één regel bovenaan.
+   */
+  readonly details?: unknown;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
     this.name = 'ApiFout';
     this.status = status;
     this.code = code;
+    this.details = details;
   }
+}
+
+/** Haalt de veldfouten uit een API-fout, of een lege lijst. */
+export function veldFouten(error: unknown): VeldFout[] {
+  if (!(error instanceof ApiFout)) return [];
+  const details = error.details;
+  if (!Array.isArray(details)) return [];
+  return details.filter(
+    (item): item is VeldFout =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as VeldFout).veld === 'string' &&
+      typeof (item as VeldFout).melding === 'string',
+  );
 }
 
 let host: HostStatus | null = null;
@@ -218,7 +266,16 @@ async function verzoek<T>(pad: string, init: RequestInit = {}): Promise<T> {
     ...init,
     credentials: 'include',
     headers: {
-      'content-type': 'application/json',
+      /*
+       * Alleen een JSON-header als er ook JSON meegaat.
+       *
+       * Een DELETE heeft geen body, en Fastify weigert een leeg verzoek dat
+       * zich als JSON aankondigt: "Body cannot be empty when content-type is
+       * set to 'application/json'". Verwijderen liep daar op stuk.
+       */
+      ...(init.body === undefined || init.body === null
+        ? {}
+        : { 'content-type': 'application/json' }),
       ...(status.appToken ? { 'x-showroom-token': status.appToken } : {}),
       ...(init.headers ?? {}),
     },
@@ -226,12 +283,13 @@ async function verzoek<T>(pad: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
-      error?: { code?: string; message?: string };
+      error?: { code?: string; message?: string; details?: unknown };
     } | null;
     throw new ApiFout(
       response.status,
       body?.error?.code ?? 'onbekend',
       body?.error?.message ?? 'Er ging iets mis bij het ophalen van de gegevens.',
+      body?.error?.details,
     );
   }
 

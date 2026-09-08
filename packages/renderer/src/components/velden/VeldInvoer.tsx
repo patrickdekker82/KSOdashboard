@@ -6,6 +6,7 @@
  */
 import type { CSSProperties, JSX } from 'react';
 import type { FieldDefinition } from '@showroom/shared';
+import { Verwijzingskiezer } from './Verwijzingskiezer.tsx';
 
 export type Keuze = { value: string; label: string; color?: string | null };
 
@@ -59,8 +60,7 @@ export function VeldInvoer({
       case 'formula':
         return (
           <output style={{ ...stijl, display: 'block', color: 'var(--inkt-zacht)' }}>
-            {tekst === '' ? '—' : tekst}{' '}
-            <span style={{ fontSize: 11 }}>(berekend)</span>
+            {tekst === '' ? '—' : tekst} <span style={{ fontSize: 11 }}>(berekend)</span>
           </output>
         );
 
@@ -90,18 +90,29 @@ export function VeldInvoer({
           </label>
         );
 
-      case 'select':
+      // Verwijzingen gaan door de kiezer met typen-en-zoeken; een keuzelijst
+      // (select) blijft een keuzelijst, want die is kort en vast.
       case 'relation':
       case 'user':
+        return (
+          <Verwijzingskiezer
+            veld={veld}
+            waarde={waarde}
+            keuzes={keuzes}
+            onWijzig={onWijzig}
+            id={id}
+            stijl={stijl}
+            fout={fout}
+            beschrijfBij={fout ? `${id}-fout` : veld.helpText ? `${id}-hulp` : undefined}
+          />
+        );
+
+      case 'select':
         return (
           <select
             {...gemeenschappelijk}
             value={tekst}
-            onChange={(event) => {
-              const gekozen = event.target.value;
-              if (gekozen === '') return onWijzig(null);
-              onWijzig(veld.type === 'select' ? gekozen : Number(gekozen));
-            }}
+            onChange={(event) => onWijzig(event.target.value === '' ? null : event.target.value)}
           >
             <option value="">— kies —</option>
             {keuzes.map((keuze) => (
@@ -193,7 +204,9 @@ export function VeldInvoer({
               // Opslag is in centen; het formulier toont euro's.
               value={waarde === null || waarde === undefined ? '' : Number(waarde) / 100}
               onChange={(event) =>
-                onWijzig(event.target.value === '' ? null : Math.round(Number(event.target.value) * 100))
+                onWijzig(
+                  event.target.value === '' ? null : Math.round(Number(event.target.value) * 100),
+                )
               }
             />
           </div>
@@ -209,7 +222,9 @@ export function VeldInvoer({
               // Opslag is in basispunten; het formulier toont procenten.
               value={waarde === null || waarde === undefined ? '' : Number(waarde) / 100}
               onChange={(event) =>
-                onWijzig(event.target.value === '' ? null : Math.round(Number(event.target.value) * 100))
+                onWijzig(
+                  event.target.value === '' ? null : Math.round(Number(event.target.value) * 100),
+                )
               }
             />
             <span style={{ color: 'var(--inkt-stil)' }}>%</span>
@@ -226,7 +241,9 @@ export function VeldInvoer({
             min={veld.validation.min}
             max={veld.validation.max}
             value={tekst}
-            onChange={(event) => onWijzig(event.target.value === '' ? null : Number(event.target.value))}
+            onChange={(event) =>
+              onWijzig(event.target.value === '' ? null : Number(event.target.value))
+            }
           />
         );
 

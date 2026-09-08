@@ -12,6 +12,7 @@ import { endpoints } from '../../lib/api.ts';
 import { useEntiteitSchema, waardeVan } from '../../lib/schema.ts';
 import { VeldWaarde, uitlijning } from '../../components/velden/VeldWaarde.tsx';
 import { Kaart, Skelet } from '../Dashboard.tsx';
+import { NieuwDialoog } from './NieuwDialoog.tsx';
 
 type Rij = Record<string, unknown>;
 
@@ -39,12 +40,18 @@ export function GeneriekeLijst({
   titel,
   onOpen,
   acties,
+  enkelvoud,
 }: {
   entiteit: string;
   titel: string;
   onOpen?: (id: number) => void;
   /** Knoppen die bij deze entiteit horen, naast de kolomkiezer. */
   acties?: ReactNode;
+  /**
+   * Het enkelvoud voor de aanmaakknop: "Nieuwe klant" leest beter dan
+   * "Nieuwe klanten". Zonder opgave wordt de titel gebruikt.
+   */
+  enkelvoud?: string;
 }): JSX.Element {
   const schema = useEntiteitSchema(entiteit);
   const [zoek, setZoek] = useState('');
@@ -53,6 +60,7 @@ export function GeneriekeLijst({
   const [filters, setFilters] = useState<Filter[]>([]);
   const [verborgen, setVerborgen] = useState<Set<string>>(new Set());
   const [kolomkiezerOpen, setKolomkiezerOpen] = useState(false);
+  const [nieuwOpen, setNieuwOpen] = useState(false);
 
   const kolommen = useMemo(
     () => schema.lijstVelden.filter((veld) => !verborgen.has(veld.fieldKey)),
@@ -84,13 +92,16 @@ export function GeneriekeLijst({
   });
 
   const meta = lijst.data?.meta as
-    | { page: number; pageSize: number; total: number; totalPages: number }
-    | undefined;
+    { page: number; pageSize: number; total: number; totalPages: number } | undefined;
 
   function wisselSortering(veld: FieldDefinition): void {
     setPagina(1);
     setSortering((huidig) =>
-      huidig === veld.fieldKey ? `-${veld.fieldKey}` : huidig === `-${veld.fieldKey}` ? null : veld.fieldKey,
+      huidig === veld.fieldKey
+        ? `-${veld.fieldKey}`
+        : huidig === `-${veld.fieldKey}`
+          ? null
+          : veld.fieldKey,
     );
   }
 
@@ -112,6 +123,18 @@ export function GeneriekeLijst({
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      {nieuwOpen && (
+        <NieuwDialoog
+          entiteit={entiteit}
+          titel={enkelvoud ?? titel}
+          onSluit={() => setNieuwOpen(false)}
+          onAangemaakt={(nieuwId) => {
+            setNieuwOpen(false);
+            // Meteen openen: wie iets aanmaakt wil er bijna altijd verder in.
+            if (nieuwId > 0 && onOpen) onOpen(nieuwId);
+          }}
+        />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <h1 style={{ fontSize: 18, margin: 0 }}>{titel}</h1>
         {meta && (
@@ -180,6 +203,14 @@ export function GeneriekeLijst({
             <button
               type="button"
               className="focus-ring"
+              onClick={() => setNieuwOpen(true)}
+              style={{ ...knopStijl, background: 'var(--belasting)', color: '#fff', border: 0 }}
+            >
+              + Nieuw
+            </button>
+            <button
+              type="button"
+              className="focus-ring"
               onClick={() => setKolomkiezerOpen((open) => !open)}
               aria-expanded={kolomkiezerOpen}
               style={knopStijl}
@@ -204,7 +235,10 @@ export function GeneriekeLijst({
         </div>
 
         <div style={{ overflowX: 'auto', marginTop: 12 }}>
-          <table className="compact" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table
+            className="compact"
+            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
+          >
             <thead>
               <tr style={{ borderBottom: '1px solid var(--rand)' }}>
                 {kolommen.map((veld) => {
@@ -278,7 +312,11 @@ export function GeneriekeLijst({
                       key={veld.fieldKey}
                       style={{ textAlign: uitlijning(veld), padding: '6px 8px' }}
                     >
-                      <VeldWaarde veld={veld} waarde={waardeVan(rij, veld)} opzoeker={schema.opzoeker} />
+                      <VeldWaarde
+                        veld={veld}
+                        waarde={waardeVan(rij, veld)}
+                        opzoeker={schema.opzoeker}
+                      />
                     </td>
                   ))}
                 </tr>

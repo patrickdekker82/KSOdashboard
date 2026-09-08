@@ -479,6 +479,55 @@ Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
 - Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
   van "Failed to fetch".
 
+### Records aanmaken, bewerken en verwijderen
+De lijst kon alleen tonen wat er al was: filteren, sorteren, kolommen kiezen —
+maar niets toevoegen of weghalen. De kern kon dat allang; er zat geen knop aan.
+
+- **+ Nieuw** in elke lijst, met een dialoog die dezelfde velddefinities leest
+  als de detailpagina. Verplichte velden staan bovenaan en de knop blijft uit
+  tot ze ingevuld zijn. Na het aanmaken opent het record meteen.
+- **Verwijderen** op de detailpagina, met een bevestiging die eerlijk zegt wat
+  er gebeurt: archiveren, niet wissen. Een gearchiveerd record krijgt
+  **Terugzetten**.
+- **Veldfouten kwamen nooit aan.** De kern stuurde ze mee in `error.details`,
+  maar de renderer gooide dat weg bij het maken van de foutmelding. De
+  detailpagina had er al code voor staan die dus nooit liep. Nu komen ze door
+  en staan ze bij het veld waar ze over gaan.
+- **Verwijderen liep stuk op een lege body.** Elk verzoek stuurde
+  `content-type: application/json`, ook een DELETE zonder inhoud, en Fastify
+  weigert dat: "Body cannot be empty when content-type is set to
+  'application/json'". De header gaat nu alleen mee als er ook echt JSON in zit.
+
+### Productdisciplines
+De tabel en de API bestonden al en kansen rekenden er met hun regels mee, maar
+er was geen scherm om er zelf een toe te voegen of een marge bij te stellen.
+
+- **Instellingen → Productdisciplines**: aanmaken, bewerken, archiveren, met een
+  standaardmarge in procenten (intern basispunten), een doorlooptijd, een kleur
+  en een volgorde.
+- **Projecten krijgen disciplines.** Nieuwe migratie `0004_projectdisciplines`
+  met een koppeltabel, en een paneel op de projectpagina om ze te koppelen en te
+  ontkoppelen, met een notitie per koppeling. Veel-op-veel: een woning met een
+  badkamer én een keuken is de gewone situatie.
+- Een eigen scherm en niet de generieke lijst: die leunt op het veldenregister,
+  en daar staan disciplines niet in. Een bestaande installatie zou dan een leeg
+  scherm krijgen, want velddefinities komen uit de seed en die draait maar één
+  keer.
+
+### Verwijzingen zoeken door te typen
+Velden die naar een ander record wijzen — de organisatie bij een contactpersoon,
+de klant bij een kans — waren een keuzelijst met alles erin. Bij een paar
+honderd klanten scrol je jezelf suf, en boven de 500 stond een klant er niet
+eens meer in: zoveel laadt het scherm er namelijk maar.
+
+- Een invoerveld dat filtert terwijl u typt, met de pijltjes en Enter te
+  bedienen, en een kruisje om leeg te maken.
+- Twee kanten op zoeken: meteen in wat al geladen is, zodat er geen wachttijd
+  tussen typen en zien zit, én bij de kern, zodat ook een klant buiten die
+  eerste vijfhonderd gevonden wordt. Treffers worden samengevoegd.
+- Gewone keuzelijsten (statussen, bronnen) blijven een keuzelijst: die zijn kort
+  en vast.
+
 ### Inloggen deed niets
 Het inlogscherm verscheen, maar met de juiste gegevens gebeurde er niets — ook
 geen foutmelding. Gemeten in het draaiende venster:

@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FieldDefinition } from '@showroom/shared';
-import { ApiFout, endpoints } from '../../lib/api.ts';
+import { ApiFout, endpoints, veldFouten } from '../../lib/api.ts';
 import { bouwPayload, useEntiteitSchema, waardeVan } from '../../lib/schema.ts';
 import { VeldInvoer } from '../../components/velden/VeldInvoer.tsx';
 import { VeldWaarde } from '../../components/velden/VeldWaarde.tsx';
@@ -18,9 +18,9 @@ import { Tijdlijn } from './Tijdlijn.tsx';
 import { AvgPaneel } from './AvgPaneel.tsx';
 import { MailDialoog } from '../email/MailDialoog.tsx';
 import { AI_ENTITEITEN, AiDialoog } from '../ai/AiDialoog.tsx';
+import { Dialoog } from '../kansen/Dialoog.tsx';
 
 type Rij = Record<string, unknown>;
-type VeldFout = { veld: string; label: string; melding: string };
 
 export function GeneriekDetail({
   entiteit,
@@ -47,6 +47,7 @@ export function GeneriekDetail({
   const [melding, setMelding] = useState<string | null>(null);
   const [mailen, setMailen] = useState(false);
   const [assistent, setAssistent] = useState(false);
+  const [verwijderVraag, setVerwijderVraag] = useState(false);
 
   const record = useQuery({
     queryKey: ['record', entiteit, id],
@@ -74,15 +75,42 @@ export function GeneriekDetail({
     },
     onError: (error: unknown) => {
       // De kern meldt alle veldfouten tegelijk; die zetten we bij het veld zelf.
-      if (error instanceof ApiFout) {
-        const details = (error as ApiFout & { details?: VeldFout[] }).details;
-        if (Array.isArray(details)) {
-          setFouten(Object.fromEntries(details.map((fout) => [fout.veld, fout.melding])));
-          return;
-        }
-        setMelding(error.message);
+      const perVeld = veldFouten(error);
+      if (perVeld.length > 0) {
+        setFouten(Object.fromEntries(perVeld.map((fout) => [fout.veld, fout.melding])));
+        return;
       }
+      setMelding(error instanceof ApiFout ? error.message : 'Opslaan lukte niet.');
     },
+  });
+
+  /*
+   * Verwijderen is archiveren.
+   *
+   * De kern zet `archived_at` en laat het record staan, want anders verdwijnt
+   * ook de geschiedenis: wie het aanmaakte, welke activiteiten eraan hingen,
+   * en waar het in een rapportage van vorig kwartaal in meetelde. Herstellen
+   * kan daardoor gewoon.
+   */
+  const verwijderen = useMutation({
+    mutationFn: () => endpoints.verwijder(entiteit, id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['lijst', entiteit] });
+      onTerug();
+    },
+    onError: (error: unknown) =>
+      setMelding(error instanceof ApiFout ? error.message : 'Verwijderen lukte niet.'),
+  });
+
+  const herstellen = useMutation({
+    mutationFn: () => endpoints.herstel(entiteit, id),
+    onSuccess: () => {
+      setMelding('Teruggezet.');
+      void queryClient.invalidateQueries({ queryKey: ['record', entiteit, id] });
+      void queryClient.invalidateQueries({ queryKey: ['lijst', entiteit] });
+    },
+    onError: (error: unknown) =>
+      setMelding(error instanceof ApiFout ? error.message : 'Terugzetten lukte niet.'),
   });
 
   const perSectie = useMemo(() => {
@@ -116,6 +144,7 @@ export function GeneriekDetail({
     );
   }
 
+  const gearchiveerd = rij.archived_at !== null && rij.archived_at !== undefined;
   const kopveld = schema.velden.find((veld) => veld.isLocked) ?? schema.velden[0];
   const kop = kopveld ? String(waardeVan(rij, kopveld) ?? titel) : titel;
 
@@ -170,14 +199,36 @@ export function GeneriekDetail({
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              className="focus-ring"
-              onClick={() => setBewerken(true)}
-              style={knopStijl}
-            >
-              Bewerken
-            </button>
+            <>
+              {gearchiveerd ? (
+                <button
+                  type="button"
+                  className="focus-ring"
+                  onClick={() => herstellen.mutate()}
+                  disabled={herstellen.isPending}
+                  style={knopStijl}
+                >
+                  {herstellen.isPending ? 'Bezig…' : 'Terugzetten'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="focus-ring"
+                  onClick={() => setVerwijderVraag(true)}
+                  style={{ ...knopStijl, color: 'var(--ziekte)' }}
+                >
+                  Verwijderen…
+                </button>
+              )}
+              <button
+                type="button"
+                className="focus-ring"
+                onClick={() => setBewerken(true)}
+                style={knopStijl}
+              >
+                Bewerken
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -194,7 +245,9 @@ export function GeneriekDetail({
         </p>
       )}
 
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)' }}>
+      <div
+        style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)' }}
+      >
         <div style={{ display: 'grid', gap: 16 }}>
           {schema.secties.map((sectie) => {
             const velden = perSectie.get(sectie.id) ?? [];
@@ -247,9 +300,49 @@ export function GeneriekDetail({
         </div>
       </div>
 
-      {mailen && (
-        <MailDialoog entiteit={entiteit} recordId={id} onSluit={() => setMailen(false)} />
+      {verwijderVraag && (
+        <Dialoog titel="Verwijderen?" onSluit={() => setVerwijderVraag(false)}>
+          <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+            <strong>{kop}</strong> wordt gearchiveerd. Het record blijft bewaard, samen met alles
+            wat eraan hangt, en u kunt het later terugzetten. Definitief wissen kan niet — dan zou
+            ook de geschiedenis verdwijnen.
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <button
+              type="button"
+
+              className="focus-ring"
+
+              onClick={() => setVerwijderVraag(false)}
+
+              style={knopStijl}
+            >
+              Annuleren
+            </button>
+
+            <button
+              type="button"
+
+              className="focus-ring"
+
+              disabled={verwijderen.isPending}
+
+              onClick={() => {
+                setVerwijderVraag(false);
+
+                verwijderen.mutate();
+              }}
+
+              style={{ ...knopStijl, background: 'var(--ziekte)', color: '#fff', border: 0 }}
+            >
+              {verwijderen.isPending ? 'Bezig…' : 'Verwijderen'}
+            </button>
+          </div>
+        </Dialoog>
       )}
+
+      {mailen && <MailDialoog entiteit={entiteit} recordId={id} onSluit={() => setMailen(false)} />}
 
       {assistent && (
         <AiDialoog entiteit={entiteit} recordId={id} onSluit={() => setAssistent(false)} />
