@@ -176,15 +176,27 @@ export async function buildCore(options: CoreOptions): Promise<FastifyInstance> 
    * gebeurt dit niet: daar laadt Electron de bestanden zelf, en een
    * webserver die niemand gebruikt is een aanvalsvlak zonder doel.
    */
+  /*
+   * De schermen worden in béide standen uitgeleverd, niet alleen in de
+   * hostmodus.
+   *
+   * Het Electron-venster laadde ze eerst van schijf, met `file://` als
+   * oorsprong. De kern draait op `http://127.0.0.1:<poort>`, en dat is voor de
+   * browser een andere site: een sessiecookie met `sameSite: 'lax'` wordt dan
+   * niet bewaard. Inloggen slaagde daardoor wel (200), maar de volgende vraag
+   * was weer 401 en de gebruiker belandde zonder melding terug op het
+   * inlogscherm. Nu haalt ook het venster de schermen hier op, is alles
+   * dezelfde oorsprong, en werkt de cookie zoals bedoeld.
+   */
   const schermen = zoekSchermen();
-  if (options.mode === 'host' && schermen !== null) {
+  if (schermen !== null) {
     await app.register(fastifyStatic, { root: schermen, prefix: '/', index: 'index.html' });
   }
 
   app.setNotFoundHandler((request, reply) => {
     // Alles buiten /api is een route van de schermen: de navigatie loopt via
     // de hash, maar een browser die ververst vraagt het pad zelf op.
-    if (options.mode === 'host' && schermen !== null && !request.url.startsWith('/api/')) {
+    if (schermen !== null && !request.url.startsWith('/api/')) {
       return reply.sendFile('index.html');
     }
     return reply.code(404).send({ error: { code: 'niet_gevonden', message: 'Onbekend adres.' } });

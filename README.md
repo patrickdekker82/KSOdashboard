@@ -315,14 +315,19 @@ telefoonformaat en bewaken de menulade en de breedte van de drukste schermen.
 
 Daarnaast doet `npm run test:opstart` twee dingen met de **ingepakte**
 applicatie: hij start hem op en wacht tot de kern zich meldt in
-`logs/schil.log`, en daarna opent hij het venster met Playwright en controleert
-dat het inlogscherm verschijnt in plaats van een storingsmelding.
+`logs/schil.log`, en daarna opent hij het venster met Playwright, controleert
+dat het inlogscherm verschijnt in plaats van een storingsmelding, en logt in om
+te zien of de sessie blijft staan.
 
 Die twee bestaan omdat de applicatie een tijd lang wél te bouwen maar niet te
-gebruiken was — eerst een kern die vanaf een pad ernaast gestart werd, daarna
-een preload die onder `sandbox: true` niet geladen kon worden — en geen enkele
-andere test Electron aanraakte. De schermscenario's hierboven lopen via de
-hostmodus, waar de preload niet in beeld komt.
+gebruiken was — een kern die vanaf een pad ernaast gestart werd, een preload die
+onder `sandbox: true` niet geladen kon worden, en een sessiecookie die op een
+`file://`-pagina niet bewaard bleef — en geen enkele andere test Electron
+aanraakte.
+
+Sinds het venster de schermen bij de kern ophaalt in plaats van van schijf,
+draaien het bureaublad en de hostmodus dezelfde weg. De schermscenario's
+hierboven zeggen daarmee ook iets over de geïnstalleerde applicatie.
 
 Wat ook dat niet dekt en dus met de hand moet vóór een uitlevering: het
 applicatiemenu, het systeemvak, de opslaan-dialoog en het afdrukken naar PDF.

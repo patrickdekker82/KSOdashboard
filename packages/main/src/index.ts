@@ -41,6 +41,21 @@ import { controleerUpdate } from './updates.ts';
 const here = dirname(fileURLToPath(import.meta.url));
 
 const APP_NAME = 'Showroom Suite';
+
+/**
+ * Wat er in beeld staat tot de kern luistert. Bewust een data-URL en geen
+ * bestand: een pad dat ernaast ligt is in dit project al twee keer de oorzaak
+ * geweest van een applicatie die niet startte.
+ */
+const WACHTSCHERM =
+  'data:text/html;charset=utf-8,' +
+  encodeURIComponent(
+    '<!doctype html><meta charset="utf-8"><title>Showroom Suite</title>' +
+      '<style>body{margin:0;height:100vh;display:grid;place-items:center;' +
+      'font:14px system-ui,sans-serif;background:#f8fafc;color:#475569}' +
+      '@media(prefers-color-scheme:dark){body{background:#0b0f19;color:#94a3b8}}' +
+      '</style><p>Verbinden met de kern…</p>',
+  );
 const PROTOCOL = 'showroom';
 
 type CoreStatus = {
@@ -181,6 +196,13 @@ function startCoreProcess(config: AppConfig): void {
       // Een kern die daadwerkelijk luistert maakt het herstartbudget weer vol.
       herstarts = 0;
       logSchil(`kern gestart op poort ${String(message.port)} (${String(message.address)})`);
+      // De schermen komen van de kern zelf; zodra hij luistert, kunnen ze
+      // geladen worden. Ook na een herstart, want dan is de poort anders.
+      const adres = String(message.address);
+      if (mainWindow && adres && !process.env.ELECTRON_RENDERER_URL) {
+        const huidig = mainWindow.webContents.getURL();
+        if (!huidig.startsWith(adres)) void mainWindow.loadURL(adres);
+      }
       coreStatus = {
         port: Number(message.port),
         appToken: String(message.appToken),
@@ -295,9 +317,25 @@ function createWindow(config: AppConfig): BrowserWindow {
     }
   });
 
+  /*
+   * Wachten op de kern, en dan pas de schermen laden.
+   *
+   * Hier stond `loadFile`, waarmee de schermen op `file://` draaiden. De kern
+   * draait op `http://127.0.0.1:<poort>`: een andere oorsprong, dus de
+   * sessiecookie werd niet bewaard en inloggen leek niets te doen. Het venster
+   * haalt de schermen nu bij de kern op, zodat alles dezelfde oorsprong heeft
+   * — precies zoals een collega die in de hostmodus meekijkt.
+   *
+   * Tot de kern er is staat er een wachtscherm; anders kijkt de gebruiker naar
+   * een leeg venster terwijl de eerste start zijn werk doet.
+   */
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) void window.loadURL(devServer);
-  else void window.loadFile(join(here, '../renderer/index.html'));
+  else if (coreStatus.status === 'gestart' && coreStatus.address) {
+    void window.loadURL(coreStatus.address);
+  } else {
+    void window.loadURL(WACHTSCHERM);
+  }
 
   return window;
 }

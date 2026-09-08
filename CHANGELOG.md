@@ -479,9 +479,42 @@ Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
 - Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
   van "Failed to fetch".
 
+### Inloggen deed niets
+Het inlogscherm verscheen, maar met de juiste gegevens gebeurde er niets — ook
+geen foutmelding. Gemeten in het draaiende venster:
+
+```
+POST /api/v1/auth/login  -> 200      (het wachtwoord klopte)
+GET  /api/v1/auth/me     -> 401      (de sessie was al weg)
+cookies: []                          (er werd niets bewaard)
+```
+
+De schermen draaiden op `file://` en de kern op `http://127.0.0.1:<poort>`. Dat
+is voor de browser een andere site, en een cookie met `sameSite: 'lax'` wordt
+dan niet bewaard. Het inloggen slaagde dus echt, maar de vraag erna was weer
+"wie bent u?" en de gebruiker stond terug op het inlogscherm — zonder melding,
+want vanuit de applicatie was er niets misgegaan.
+
+- **Het venster haalt de schermen nu bij de kern op** in plaats van van schijf,
+  net als een collega die in de hostmodus meekijkt. Daarmee is alles dezelfde
+  oorsprong en werkt de sessiecookie zoals bedoeld. Dat is ook de reden om het
+  zo te doen en niet de cookie op te rekken: `sameSite: 'none'` vraagt om
+  `Secure`, en dat kan niet in de hostmodus over gewoon http op het LAN.
+- **De kern levert de schermen in beide standen uit**, niet alleen in de
+  hostmodus.
+- Tot de kern luistert staat er een wachtscherm in beeld in plaats van een leeg
+  venster. Bewust een data-URL en geen bestand: een pad dat ernaast ligt is in
+  dit project al twee keer de oorzaak geweest van een applicatie die niet
+  startte.
+- Nevenvoordeel: het bureaublad en de hostmodus draaien nu letterlijk dezelfde
+  weg, dus de 22 schermscenario's zeggen eindelijk ook iets over de
+  geïnstalleerde applicatie.
+
 ### Venstercontrole
-`e2e/venster.mjs` start de ingepakte applicatie met Playwright en kijkt of het
-inlogscherm verschijnt in plaats van een storingsmelding. Dit is de eerste
+`e2e/venster.mjs` start de ingepakte applicatie met Playwright, kijkt of het
+inlogscherm verschijnt in plaats van een storingsmelding, en logt daarna ook
+echt in. Dat tweede is er bijgekomen nadat alleen "verschijnt het inlogscherm?"
+te weinig bleek: het verscheen, maar erdoorheen komen lukte niet. Dit is de eerste
 controle die de weg langs `window.showroom` aanraakt: alle bestaande scenario's
 liepen via de hostmodus, waar de schermen rechtstreeks met dezelfde oorsprong
 praten en de preload dus niet nodig is. Nagegaan dat hij de fout ook echt vangt
