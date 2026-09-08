@@ -17,9 +17,18 @@ import type { EntityDefinition } from './registry.ts';
 
 type Rij = Record<string, unknown>;
 
-/** Managers en beheerders plannen voor de hele afdeling; de rest voor zichzelf. */
-function magVoorIedereen(rol: UserRole): boolean {
-  return rol === 'manager' || rol === 'admin';
+/**
+ * Wie voor de hele afdeling mag plannen.
+ *
+ * Managers en beheerders via hun rol, en daarnaast iedereen met het vinkje
+ * "mag verlof en inzet voor collega's invullen". Dat vinkje bestaat omdat er
+ * vaak één iemand de planning bijhoudt zonder manager te zijn; die moest
+ * anders de hele managerrol krijgen.
+ */
+function magVoorIedereen(gebruiker: { role: UserRole; magVerlofBeheren?: boolean }): boolean {
+  return (
+    gebruiker.role === 'manager' || gebruiker.role === 'admin' || gebruiker.magVerlofBeheren === true
+  );
 }
 
 export type EigenRegistratieOpties = {
@@ -40,7 +49,7 @@ export function eigenRegistratie(
   opties: EigenRegistratieOpties,
 ): NonNullable<EntityDefinition['beforeWrite']> {
   return ({ gebruiker, invoer, bestaand, actie }) => {
-    const iedereen = magVoorIedereen(gebruiker.role);
+    const iedereen = magVoorIedereen(gebruiker);
 
     // Wie geen medewerker meestuurt, bedoelt zichzelf. Dat scheelt de UI een
     // veld en voorkomt een NOT NULL-fout uit SQLite.

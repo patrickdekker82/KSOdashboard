@@ -479,6 +479,40 @@ Failed to fetch" tonen. Twee oorzaken, allebei nodig om te herstellen.
 - Meldt de kern een echte startfout, dan tonen de schermen díe tekst in plaats
   van "Failed to fetch".
 
+### Beheer: gebruikers, wachtwoorden, rechten en velden
+
+- **Het versienummer loopt weer op.** Elke build heette 0.1.0, dus in Apps en
+  onderdelen en aan de bestandsnaam was niet te zien wat er draaide. Deze
+  uitlevering is **0.2.0**; `npm run versie:patch` of `versie:minor` hoogt hem
+  op. De versie staat rechtsboven in de balk.
+
+- **Gebruikersbeheer is een eigen scherm geworden.** Het oude leunde op de
+  generieke lijst, en die was leeg: gebruikers hebben geen velddefinities, en
+  zonder definities weet die lijst niet welke kolommen bestaan. Nu aanmaken,
+  bewerken, archiveren, met rol, kleur en de twee vinkjes.
+- **Aanmaken gaat langs een eigen adres in de kern** (`POST /users/aanmaken`).
+  De generieke aanmaakroute kon het niet: `password_hash` is verplicht en heeft
+  geen standaardwaarde, dus die liep stuk op een NOT NULL. Een vaste
+  plaatshouder invullen is geen optie — dan bestaat er een account waar met een
+  bekend wachtwoord op in te loggen valt.
+- **Een beheerder kan een wachtwoord opnieuw instellen.** Nodig omdat een
+  vergeten wachtwoord anders het einde van het account is: er is geen
+  e-mailkoppeling om een herstellink mee te sturen, en die willen we ook niet.
+  Het nieuwe wachtwoord geldt eenmalig — `must_change_password` gaat aan — en
+  alle sessies van die gebruiker vervallen meteen. Het gaat in het auditlog.
+- **Verlof voor een collega invullen is losgekoppeld van de rol.** Dat kon
+  alleen als manager of beheerder, terwijl er vaak één iemand de planning
+  bijhoudt zonder manager te zijn; die moest dan de hele managerrol krijgen.
+  Nieuwe migratie `0005_verlofrecht` met een vinkje per gebruiker, meegenomen in
+  de bewaker. Het vinkje breidt de kring uit en beperkt hem nooit. Met een
+  testpaar dat het bewijst: zonder vinkje 403, met vinkje 201.
+- **Veldbeheer voor twintig onderdelen in plaats van zes.** Het veldenregister
+  werkte altijd al voor elke entiteit; de keuzelijst in het scherm was gewoon te
+  kort. Nu ook gebruikers, producten, pakketten, offertes, disciplines,
+  werkroosters, verlofsoorten, activiteiten en meer. Koppeltabellen en regels
+  van iets anders blijven er bewust buiten: daar hoort een veld thuis op het
+  record erboven.
+
 ### Records aanmaken, bewerken en verwijderen
 De lijst kon alleen tonen wat er al was: filteren, sorteren, kolommen kiezen —
 maar niets toevoegen of weghalen. De kern kon dat allang; er zat geen knop aan.

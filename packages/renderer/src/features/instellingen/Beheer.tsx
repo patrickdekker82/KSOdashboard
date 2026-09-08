@@ -47,31 +47,6 @@ function Blad({
   );
 }
 
-export function Gebruikers({ onTerug }: { onTerug: () => void }): JSX.Element {
-  return (
-    <Blad
-      titel="Gebruikers &amp; rollen"
-      onTerug={onTerug}
-      uitleg={
-        <>
-          Vier rollen. Een <strong>meekijker</strong> ziet alles maar wijzigt niets. Een{' '}
-          <strong>medewerker</strong> werkt met klanten, kansen en projecten en beheert zijn eigen
-          verlof. Een <strong>manager</strong> keurt verlof goed, ziet het type afwezigheid en mag
-          rapportages bewaren. Een <strong>beheerder</strong> mag daarnaast bij de velden, de
-          back-up, de SQL-modus en de AI-sleutel.
-          <br />
-          <br />
-          Vink <em>kopersbegeleider</em> aan bij iedereen die showroomafspraken doet: alleen zij
-          tellen mee in de bezetting. Iemand die weggaat zet u op gearchiveerd; verwijderen kan
-          niet, want dan verdwijnt ook wie wat gedaan heeft.
-        </>
-      }
-    >
-      <GeneriekeLijst entiteit="users" titel="Gebruikers" />
-    </Blad>
-  );
-}
-
 export function Werkroosters({ onTerug }: { onTerug: () => void }): JSX.Element {
   return (
     <Blad

@@ -30,6 +30,14 @@ export type SessionUser = {
   role: UserRole;
   mustChangePassword: boolean;
   isKopersbegeleider: boolean;
+  /**
+   * Mag verlof en inzet voor collega's invullen, los van de rol.
+   *
+   * Er is vaak één iemand die de planning bijhoudt zonder manager te zijn.
+   * Die moest anders managerrechten krijgen, met alles wat daar verder bij
+   * hoort. Dit vinkje breidt de kring uit en beperkt hem nooit.
+   */
+  magVerlofBeheren: boolean;
 };
 
 export function hashToken(token: string): string {
@@ -82,7 +90,8 @@ export function resolveSession(
   const row = handle.raw
     .prepare(
       `SELECT s.expires_at, u.id, u.name, u.initials, u.email, u.role,
-              u.must_change_password, u.is_kopersbegeleider, u.active, u.archived_at
+              u.must_change_password, u.is_kopersbegeleider, u.may_manage_absences,
+              u.active, u.archived_at
          FROM sessions s
          JOIN users u ON u.id = s.user_id
         WHERE s.id = ?`,
@@ -109,6 +118,7 @@ export function resolveSession(
     role: String(row.role) as UserRole,
     mustChangePassword: Number(row.must_change_password) === 1,
     isKopersbegeleider: Number(row.is_kopersbegeleider) === 1,
+    magVerlofBeheren: Number(row.may_manage_absences) === 1,
   };
 }
 

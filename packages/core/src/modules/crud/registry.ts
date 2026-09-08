@@ -80,9 +80,12 @@ export const ENTITIES: EntityDefinition[] = [
     // filterbaar en dus ook niet per ongeluk te doorzoeken.
     writable: [
       'name', 'initials', 'email', 'role', 'color', 'active', 'is_kopersbegeleider',
-      'windows_account', 'custom_fields',
+      'may_manage_absences', 'windows_account', 'custom_fields',
     ],
-    filterable: ['id', 'name', 'initials', 'email', 'role', 'active', 'is_kopersbegeleider', ...AUDIT],
+    filterable: [
+      'id', 'name', 'initials', 'email', 'role', 'active', 'is_kopersbegeleider',
+      'may_manage_absences', ...AUDIT,
+    ],
     searchable: ['name', 'initials', 'email'],
     defaultSort: 'initials ASC',
     writeRole: 'admin',

@@ -1058,3 +1058,172 @@ describe('feestdagen genereren', () => {
     expect(tweede.json().toegevoegd).toBe(0);
   });
 });
+
+describe('gebruikersbeheer', () => {
+  it('maakt een gebruiker aan met een beginwachtwoord dat gewijzigd moet worden', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/aanmaken',
+      headers: headers(cookie),
+      payload: {
+        name: 'Nieuwe Collega',
+        initials: 'NC',
+        email: 'nieuw@showroom.local',
+        role: 'user',
+        wachtwoord: 'Sleutelbos2026x',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const rij = response.json().data as Record<string, unknown>;
+    expect(rij.email).toBe('nieuw@showroom.local');
+    // Het beginwachtwoord kent de beheerder; daarom moet het meteen om.
+    expect(Number(rij.must_change_password)).toBe(1);
+  });
+
+  it('weigert een tweede gebruiker op hetzelfde e-mailadres', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/aanmaken',
+      headers: headers(cookie),
+      payload: {
+        name: 'Dubbel',
+        initials: 'DB',
+        email: 'patrick@showroom.local',
+        role: 'user',
+        wachtwoord: 'Sleutelbos2026x',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe('email_bezet');
+  });
+
+  it('weigert een te zwak beginwachtwoord en zegt per veld wat er mis is', async () => {
+    const cookie = await login();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/aanmaken',
+      headers: headers(cookie),
+      payload: {
+        name: 'Zwak',
+        initials: 'ZW',
+        email: 'zwak@showroom.local',
+        role: 'user',
+        wachtwoord: 'kort',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const details = response.json().error.details as Array<{ veld: string }>;
+    expect(details.some((detail) => detail.veld === 'wachtwoord')).toBe(true);
+  });
+
+  it('laat een medewerker geen gebruikers aanmaken', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/aanmaken',
+      headers: headers(cookie),
+      payload: {
+        name: 'Stiekem',
+        initials: 'ST',
+        email: 'stiekem@showroom.local',
+        role: 'admin',
+        wachtwoord: 'Sleutelbos2026x',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('stelt een wachtwoord opnieuw in en logt die gebruiker overal uit', async () => {
+    const beheerder = await login();
+    const dennis = await login('dennis@showroom.local');
+    const id = Number(
+      (
+        handle.raw
+          .prepare('SELECT id FROM users WHERE email = ?')
+          .get('dennis@showroom.local') as { id: number }
+      ).id,
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/users/${String(id)}/reset-password`,
+      headers: headers(beheerder),
+      payload: { nieuw: 'Sleutelbos2026x' },
+    });
+    expect(response.statusCode).toBe(200);
+
+    // Zijn oude sessie is meteen ongeldig: dat is het punt van een herstel.
+    const daarna = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/me',
+      headers: headers(dennis),
+    });
+    expect(daarna.statusCode).toBe(401);
+  });
+
+  it('laat een medewerker geen wachtwoord van een ander opnieuw instellen', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/1/reset-password',
+      headers: headers(cookie),
+      payload: { nieuw: 'Sleutelbos2026x' },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('verlof voor een collega invullen', () => {
+  /** Het id van een gebruiker op e-mailadres. */
+  function idVan(email: string): number {
+    return Number(
+      (handle.raw.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: number }).id,
+    );
+  }
+
+  it('weigert een medewerker die verlof voor een ander boekt', async () => {
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        user_id: idVan('robert@showroom.local'),
+        absence_type_id: 1,
+        start_date: '2026-10-05',
+        end_date: '2026-10-05',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('laat dezelfde medewerker het wél doen zodra het vinkje aanstaat', async () => {
+    // Het vinkje staat los van de rol: dit blijft een gewone medewerker.
+    handle.raw
+      .prepare('UPDATE users SET may_manage_absences = 1 WHERE email = ?')
+      .run('dennis@showroom.local');
+
+    const cookie = await login('dennis@showroom.local');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/absences',
+      headers: headers(cookie),
+      payload: {
+        user_id: idVan('robert@showroom.local'),
+        absence_type_id: 1,
+        start_date: '2026-10-06',
+        end_date: '2026-10-06',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+});

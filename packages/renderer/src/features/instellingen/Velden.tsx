@@ -15,6 +15,17 @@ import { FIELD_TYPE_INFO, type FieldDefinition, type FieldType } from '@showroom
 import { ApiFout, endpoints } from '../../lib/api.ts';
 import { Kaart, Skelet } from '../Dashboard.tsx';
 
+/*
+ * Waar een beheerder velden aan mag hangen.
+ *
+ * Dit waren er zes van de drieëndertig, zonder dat daar een reden voor was:
+ * het veldenregister werkt voor elke entiteit, de lijst hier was gewoon te
+ * kort. Nu alles waar een afdeling redelijkerwijs iets eigens bij wil noteren.
+ *
+ * Wat er bewust níet in staat: koppeltabellen en regels van iets anders
+ * (offerteregels, kansregels, projectfasen). Daar hoort een veld thuis op het
+ * record erboven, en een los veld op een regel levert alleen verwarring op.
+ */
 const ENTITEIT_LABEL: Record<string, string> = {
   organizations: 'Klanten',
   contacts: 'Contactpersonen',
@@ -22,6 +33,20 @@ const ENTITEIT_LABEL: Record<string, string> = {
   opportunities: 'Kansen',
   absences: 'Verlof',
   'capacity-allocations': 'Inzet elders',
+  users: 'Gebruikers',
+  disciplines: 'Productdisciplines',
+  products: 'Producten',
+  packages: 'Pakketten',
+  'package-quotes': 'Offertes',
+  'product-categories': 'Productgroepen',
+  'work-schedules': 'Werkroosters',
+  'absence-types': 'Verlofsoorten',
+  'allocation-types': 'Inzetsoorten',
+  activities: 'Activiteiten',
+  'call-lists': 'Bellijsten',
+  pipelines: 'Verkooptrechters',
+  holidays: 'Feestdagen',
+  'closure-periods': 'Sluitingsperiodes',
 };
 
 export function Velden(): JSX.Element {

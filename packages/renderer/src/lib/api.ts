@@ -49,6 +49,22 @@ export type Updateuitkomst = {
   gecontroleerdOp: string;
 };
 
+/** Een gebruiker zoals het beheerscherm hem toont. */
+export type Beheergebruiker = {
+  id: number;
+  name: string;
+  initials: string;
+  email: string;
+  role: 'admin' | 'manager' | 'user' | 'readonly';
+  color: string | null;
+  active: number;
+  is_kopersbegeleider: number;
+  may_manage_absences: number;
+  must_change_password: number;
+  last_login_at: string | null;
+  archived_at: string | null;
+};
+
 /** Een productdiscipline: badkamer, keuken, tegelwerk. */
 export type Discipline = {
   id: number;
@@ -438,6 +454,12 @@ export const endpoints = {
     api.del<{ verwijderd: boolean; herstelbaar: boolean }>(`/${entiteit}/${id}`),
   herstel: (entiteit: string, id: number) =>
     api.post<{ data: unknown }>(`/${entiteit}/${id}/restore`),
+
+  // --- gebruikersbeheer -----------------------------------------------------
+  gebruikerAanmaken: (body: unknown) =>
+    api.post<{ data: Beheergebruiker }>('/users/aanmaken', body),
+  wachtwoordHerstellen: (id: number, nieuw: string) =>
+    api.post<{ hersteld: boolean; naam: string }>(`/users/${id}/reset-password`, { nieuw }),
 
   // --- veldenregister ------------------------------------------------------
   velden: (entiteit: string, includeArchived = false) =>

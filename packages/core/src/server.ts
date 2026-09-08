@@ -435,4 +435,141 @@ function registerAuthRoutes(app: FastifyInstance): void {
     deleteAllSessions(handle, user.id);
     return { gewijzigd: true };
   });
+
+  /*
+   * Een beheerder zet het wachtwoord van een collega opnieuw.
+   *
+   * Nodig omdat een vergeten wachtwoord anders het einde van het account is:
+   * er is geen e-mailkoppeling om een herstellink mee te sturen, en die willen
+   * we ook niet — de applicatie stuurt niets naar buiten.
+   *
+   * Het nieuwe wachtwoord geldt eenmalig: `must_change_password` gaat aan, dus
+   * de collega kiest bij de eerste keer inloggen zelf iets anders. De beheerder
+   * kent het dus niet langer dan dat ene moment, en alle openstaande sessies
+   * van die gebruiker vervallen meteen.
+   */
+  app.post('/api/v1/users/:id/reset-password', async (request) => {
+    const beheerder = currentUser(request);
+    if (beheerder.role !== 'admin') {
+      throw new ApiError(403, 'geen_rechten', 'Alleen een beheerder kan een wachtwoord opnieuw instellen.');
+    }
+
+    const id = Number((request.params as { id?: string }).id);
+    const body = request.body as { nieuw?: string } | undefined;
+    const next = String(body?.nieuw ?? '');
+
+    const { handle } = request.core;
+    const doelwit = handle.raw
+      .prepare('SELECT id, name FROM users WHERE id = ? AND archived_at IS NULL')
+      .get(id) as { id: number; name: string } | undefined;
+    if (!doelwit) throw new ApiError(404, 'niet_gevonden', 'Deze gebruiker bestaat niet.');
+
+    const problems = validatePassword(next);
+    if (problems.length > 0) {
+      throw new ApiError(
+        400,
+        'wachtwoord_zwak',
+        problems.map((problem) => problem.message).join(' '),
+        problems,
+      );
+    }
+
+    handle.raw
+      .prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?')
+      .run(await hashPassword(next), id);
+
+    deleteAllSessions(handle, id);
+
+    // In het auditlog, want dit is precies het soort handeling waarvan je
+    // later wilt kunnen nagaan wie hem deed.
+    handle.raw
+      .prepare(
+        `INSERT INTO audit_log (user_id, entity_key, record_id, action, before, after)
+         VALUES (?, 'users', ?, 'wachtwoord_hersteld', NULL, NULL)`,
+      )
+      .run(beheerder.id, id);
+
+    return { hersteld: true, naam: doelwit.name };
+  });
+
+  /*
+   * Een gebruiker aanmaken, mét beginwachtwoord.
+   *
+   * Een eigen adres en niet de generieke `POST /users`, omdat `password_hash`
+   * verplicht is en geen standaardwaarde heeft: die route zou stuklopen op een
+   * NOT NULL uit SQLite. Een lege of vaste plaatshouder invullen is geen optie
+   * — dan bestaat er een account waar met een bekend wachtwoord op in te
+   * loggen valt.
+   *
+   * Net als bij een herstel geldt het wachtwoord eenmalig: de collega kiest bij
+   * de eerste keer inloggen zelf iets anders.
+   */
+  app.post('/api/v1/users/aanmaken', async (request, reply) => {
+    const beheerder = currentUser(request);
+    if (beheerder.role !== 'admin') {
+      throw new ApiError(403, 'geen_rechten', 'Alleen een beheerder kan gebruikers aanmaken.');
+    }
+
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const naam = String(body.name ?? '').trim();
+    const initialen = String(body.initials ?? '').trim();
+    const email = String(body.email ?? '').trim().toLowerCase();
+    const rol = String(body.role ?? 'user');
+    const wachtwoord = String(body.wachtwoord ?? '');
+
+    const ontbreekt: Array<{ veld: string; melding: string }> = [];
+    if (naam === '') ontbreekt.push({ veld: 'name', melding: 'Vul een naam in.' });
+    if (initialen === '') ontbreekt.push({ veld: 'initials', melding: 'Vul initialen in.' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      ontbreekt.push({ veld: 'email', melding: 'Vul een geldig e-mailadres in.' });
+    }
+    if (!['admin', 'manager', 'user', 'readonly'].includes(rol)) {
+      ontbreekt.push({ veld: 'role', melding: 'Kies een geldige rol.' });
+    }
+    for (const probleem of validatePassword(wachtwoord)) {
+      ontbreekt.push({ veld: 'wachtwoord', melding: probleem.message });
+    }
+    if (ontbreekt.length > 0) {
+      throw new ApiError(400, 'validatiefout', 'Niet alles is goed ingevuld.', ontbreekt);
+    }
+
+    const { handle } = request.core;
+    const bezet = handle.raw.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (bezet) {
+      throw new ApiError(409, 'email_bezet', 'Er bestaat al een gebruiker met dit e-mailadres.', [
+        { veld: 'email', melding: 'Dit e-mailadres is al in gebruik.' },
+      ]);
+    }
+
+    const resultaat = handle.raw
+      .prepare(
+        `INSERT INTO users
+           (name, initials, email, password_hash, role, color, is_kopersbegeleider,
+            may_manage_absences, must_change_password, created_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      )
+      .run(
+        naam,
+        initialen,
+        email,
+        await hashPassword(wachtwoord),
+        rol,
+        body.color === undefined || body.color === null ? null : String(body.color),
+        body.is_kopersbegeleider ? 1 : 0,
+        body.may_manage_absences ? 1 : 0,
+        beheerder.id,
+        beheerder.id,
+      );
+
+    const id = Number(resultaat.lastInsertRowid);
+    handle.raw
+      .prepare(
+        `INSERT INTO audit_log (user_id, entity_key, record_id, action, before, after)
+         VALUES (?, 'users', ?, 'aangemaakt', NULL, NULL)`,
+      )
+      .run(beheerder.id, id);
+
+    const rij = handle.raw.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    return reply.code(201).send({ data: rij });
+  });
 }

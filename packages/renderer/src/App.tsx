@@ -21,12 +21,8 @@ import { AiInstellingen } from './features/ai/AiInstellingen.tsx';
 import { Backup } from './features/instellingen/Backup.tsx';
 import { Disciplines } from './features/instellingen/Disciplines.tsx';
 import { Netwerk } from './features/instellingen/Netwerk.tsx';
-import {
-  Capaciteit,
-  Gebruikers,
-  Keuzelijsten,
-  Werkroosters,
-} from './features/instellingen/Beheer.tsx';
+import { Capaciteit, Keuzelijsten, Werkroosters } from './features/instellingen/Beheer.tsx';
+import { Gebruikers } from './features/instellingen/Gebruikers.tsx';
 import { VandaagBeschikbaar } from './components/VandaagBeschikbaar.tsx';
 import { Zoekbalk } from './components/Zoekbalk.tsx';
 import { Dubbelen } from './features/crm/Dubbelen.tsx';
